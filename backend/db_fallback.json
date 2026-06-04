@@ -1,0 +1,123 @@
+{
+  "users": [
+    {
+      "_id": "mem_rsb5ga85i_1780435000359",
+      "name": "kd",
+      "email": "krishna@gmail.com",
+      "password": "$2a$10$EugSngzFVJSfhkWlIrDbMOmw2xCu46wdQ5AVueq8NuOwDitjyoHAm",
+      "createdAt": "2026-06-02T21:16:40.359Z",
+      "updatedAt": "2026-06-02T21:16:40.359Z"
+    },
+    {
+      "_id": "mem_sesr0zpdw_1780435486962",
+      "name": "Suresh Kumar (Google User)",
+      "email": "google.simulated@smartkisan.com",
+      "password": "google_mock_password_123",
+      "role": "farmer",
+      "createdAt": "2026-06-02T21:24:46.962Z",
+      "updatedAt": "2026-06-02T21:24:46.962Z"
+    }
+  ],
+  "posts": [],
+  "calendars": [],
+  "products": [
+    {
+      "_id": "mem_kg94jd6n6_1780435029120",
+      "name": "Organic Wheat Seeds",
+      "category": "Seeds",
+      "seller": "Green Agro Solutions",
+      "rating": 4.8,
+      "reviews": 234,
+      "price": 850,
+      "unit": "/kg",
+      "stock": "In Stock",
+      "image": "https://images.unsplash.com/photo-1506619216599-9d16d0903dfd?auto=format&fit=crop&w=900&q=80",
+      "createdAt": "2026-06-02T21:17:09.120Z",
+      "updatedAt": "2026-06-02T21:17:09.120Z"
+    },
+    {
+      "_id": "mem_g9g438ctv_1780435029120",
+      "name": "Bio-Fertilizer NPK",
+      "category": "Fertilizers",
+      "seller": "FarmTech India",
+      "rating": 4.8,
+      "reviews": 456,
+      "price": 1200,
+      "unit": "/25kg bag",
+      "stock": "In Stock",
+      "image": "https://images.unsplash.com/photo-1601004890684-d8cbf643f5f2?auto=format&fit=crop&w=900&q=80",
+      "createdAt": "2026-06-02T21:17:09.120Z",
+      "updatedAt": "2026-06-02T21:17:09.120Z"
+    },
+    {
+      "_id": "mem_8n82wewy1_1780435029120",
+      "name": "Drip Irrigation Kit",
+      "category": "Tools",
+      "seller": "Irrigation Pro",
+      "rating": 4.6,
+      "reviews": 89,
+      "price": 15000,
+      "unit": "/set",
+      "stock": "In Stock",
+      "image": "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=900&q=80",
+      "createdAt": "2026-06-02T21:17:09.120Z",
+      "updatedAt": "2026-06-02T21:17:09.120Z"
+    },
+    {
+      "_id": "mem_pdgomq6xd_1780435029120",
+      "name": "Hybrid Maize Seeds",
+      "category": "Seeds",
+      "seller": "AgriGrow Seeds",
+      "rating": 4.4,
+      "reviews": 120,
+      "price": 950,
+      "unit": "/kg",
+      "stock": "In Stock",
+      "image": "https://images.unsplash.com/photo-1524594154908-edd360252e60?auto=format&fit=crop&w=900&q=80",
+      "createdAt": "2026-06-02T21:17:09.120Z",
+      "updatedAt": "2026-06-02T21:17:09.120Z"
+    },
+    {
+      "_id": "mem_zl10ltgzb_1780435029120",
+      "name": "Liquid Micro-Nutrient Mix",
+      "category": "Fertilizers",
+      "seller": "Nutrient Plus",
+      "rating": 4.3,
+      "reviews": 98,
+      "price": 480,
+      "unit": "/litre",
+      "stock": "In Stock",
+      "image": "https://images.unsplash.com/photo-1518595088350-4c9392ee05b3?auto=format&fit=crop&w=900&q=80",
+      "createdAt": "2026-06-02T21:17:09.120Z",
+      "updatedAt": "2026-06-02T21:17:09.120Z"
+    },
+    {
+      "_id": "mem_36rsn22jb_1780435029120",
+      "name": "Hand Sprayer Pump",
+      "category": "Equipment",
+      "seller": "Kisan Equip Co.",
+      "rating": 4.1,
+      "reviews": 64,
+      "price": 2200,
+      "unit": "/unit",
+      "stock": "In Stock",
+      "image": "https://images.unsplash.com/photo-1592998385386-5c9b75434c8f?auto=format&fit=crop&w=900&q=80",
+      "createdAt": "2026-06-02T21:17:09.120Z",
+      "updatedAt": "2026-06-02T21:17:09.120Z"
+    },
+    {
+      "_id": "mem_dif6ix4dd_1780435029120",
+      "name": "Eco Pesticide (Neem Based)",
+      "category": "Pesticides",
+      "seller": "SafeCrop Bio",
+      "rating": 4.5,
+      "reviews": 142,
+      "price": 650,
+      "unit": "/litre",
+      "stock": "In Stock",
+      "image": "https://images.unsplash.com/photo-1589924749450-74c7fb10ae8c?auto=format&fit=crop&w=900&q=80",
+      "createdAt": "2026-06-02T21:17:09.120Z",
+      "updatedAt": "2026-06-02T21:17:09.120Z"
+    }
+  ]
+}
