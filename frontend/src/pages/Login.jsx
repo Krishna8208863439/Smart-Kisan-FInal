@@ -39,8 +39,18 @@ const Login = () => {
     setLoading(true);
     setError("");
     setInfoMessage("");
-    const demoEmail = role === "farmer" ? "farmer@smartkisan.com" : "merchant@smartkisan.com";
-    const demoPassword = role === "farmer" ? "farmer123" : "merchant123";
+    let demoEmail = "";
+    let demoPassword = "";
+    if (role === "farmer") {
+      demoEmail = "farmer@smartkisan.com";
+      demoPassword = "farmer123";
+    } else if (role === "merchant") {
+      demoEmail = "merchant@smartkisan.com";
+      demoPassword = "merchant123";
+    } else if (role === "krishna") {
+      demoEmail = "krishnadevadkar@gmail.com";
+      demoPassword = "krishna123";
+    }
     
     setForm({ email: demoEmail, password: demoPassword });
 
@@ -126,28 +136,73 @@ const Login = () => {
     <div className="app-container">
       <div className="login-split-layout">
         
-        {/* Left Side: Farm Landscape Image */}
+        {/* Left Side: Farm Landscape Image with Features list and credentials */}
         <div 
           className="login-split-left" 
           style={{ 
-            background: "url('http://localhost:5000/uploads/lush_green_farm.png') no-repeat center center",
+            background: "linear-gradient(rgba(21, 128, 61, 0.7), rgba(13, 148, 136, 0.8)), url('http://localhost:5000/uploads/lush_green_farm.png') no-repeat center center",
             backgroundSize: "cover",
             position: "relative",
-            minHeight: "100%"
+            minHeight: "100%",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            padding: "40px"
           }}
         >
-          {/* Branding overlay at the bottom of the photo */}
-          <div style={{ 
-            position: "absolute", 
-            bottom: 0, 
-            left: 0, 
-            right: 0, 
-            background: "linear-gradient(transparent, rgba(0,0,0,0.85))", 
-            padding: "40px 24px 24px 24px",
-            color: "white" 
+          <div style={{
+            background: "rgba(255, 255, 255, 0.12)",
+            backdropFilter: "blur(12px)",
+            borderRadius: "16px",
+            padding: "24px",
+            color: "white",
+            border: "1px solid rgba(255, 255, 255, 0.25)",
+            boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.3)"
           }}>
-            <h2 style={{ fontSize: 24, fontWeight: 800 }}>Smart Kisan Platform</h2>
-            <p style={{ opacity: 0.95, fontSize: 13.5, marginTop: 4 }}>Connecting traditional farming with modern AI intelligence.</p>
+            <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8, display: "flex", alignItems: "center", gap: 10 }}>
+              🌾 Smart Kisan
+            </h2>
+            <p style={{ fontSize: 13.5, opacity: 0.95, marginBottom: 16 }}>
+              Log in to access your agricultural suite and features:
+            </p>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 16px", marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5 }}>
+                <span>📊</span> <strong>Dashboard</strong>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5 }}>
+                <span>🤖</span> <strong>Kisan AI Chat</strong>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5 }}>
+                <span>🛠️</span> <strong>AI Center</strong>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5 }}>
+                <span>🛒</span> <strong>Farmers Bazaar</strong>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5 }}>
+                <span>👥</span> <strong>Community Hub</strong>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5 }}>
+                <span>☀️</span> <strong>Weather</strong>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5 }}>
+                <span>📈</span> <strong>Mandi Prices</strong>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5 }}>
+                <span>🌱</span> <strong>Crop Advisor</strong>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5 }}>
+                <span>📚</span> <strong>Learning Hub</strong>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5 }}>
+                <span>🌐</span> <strong>मराठी (Marathi)</strong>
+              </div>
+            </div>
+
+            <div style={{ borderTop: "1px solid rgba(255, 255, 255, 0.2)", paddingTop: 12, fontSize: 12, opacity: 0.9 }}>
+              <span style={{ display: "block", marginBottom: 6 }}>📲 PWA support with offline functionality</span>
+              <span style={{ display: "block" }}>🌙 Dark Mode & premium theme controls</span>
+            </div>
           </div>
         </div>
 
@@ -218,6 +273,56 @@ const Login = () => {
                   {loading ? "Verifying Credentials..." : "Log In Securely 🚀"}
                 </button>
               </form>
+
+              {/* Quick Demo Logins Section */}
+              <div style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid var(--border-color)" }}>
+                <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: "var(--text-dark)", display: "flex", alignItems: "center", gap: 6 }}>
+                  <span>🔑</span> Quick Demo Logins:
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <button
+                    type="button"
+                    className="button"
+                    style={{ 
+                      background: "linear-gradient(135deg, #059669, #10b981)", 
+                      color: "white", 
+                      padding: "10px 14px", 
+                      fontSize: 13,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                      border: "none",
+                      cursor: "pointer"
+                    }}
+                    onClick={() => handleDemoLogin("krishna")}
+                    disabled={loading}
+                  >
+                    <span>👨‍🌾</span> Log In as Krishna Devadkar (krishnadevadkar@gmail.com)
+                  </button>
+                  
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      type="button"
+                      className="button button-secondary"
+                      style={{ flex: 1, padding: "8px 12px", fontSize: 12.5 }}
+                      onClick={() => handleDemoLogin("farmer")}
+                      disabled={loading}
+                    >
+                      🌾 Demo Farmer
+                    </button>
+                    <button
+                      type="button"
+                      className="button button-secondary"
+                      style={{ flex: 1, padding: "8px 12px", fontSize: 12.5 }}
+                      onClick={() => handleDemoLogin("merchant")}
+                      disabled={loading}
+                    >
+                      🛒 Demo Merchant
+                    </button>
+                  </div>
+                </div>
+              </div>
 
 
               <div style={{ margin: "20px 0" }}></div>
