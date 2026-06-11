@@ -136,6 +136,17 @@ router.post("/", protect, async (req, res) => {
   }
 });
 
+// GET /api/marketplace/my-listings (Seller listings)
+router.get("/my-listings", protect, async (req, res) => {
+  try {
+    const products = await Product.find({ sellerId: req.user._id }).sort({ createdAt: -1 });
+    return res.json(products);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Failed to fetch user listings" });
+  }
+});
+
 // POST /api/marketplace/checkout
 router.post("/checkout", protect, async (req, res) => {
   try {
@@ -154,6 +165,36 @@ router.post("/checkout", protect, async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Checkout failed" });
+  }
+});
+
+// PATCH /api/marketplace/:id/stock (Toggle stock status)
+router.patch("/:id/stock", protect, async (req, res) => {
+  try {
+    const product = await Product.findOne({ _id: req.params.id, sellerId: req.user._id });
+    if (!product) {
+      return res.status(404).json({ message: "Listing not found or unauthorized" });
+    }
+    product.stock = product.stock === "In Stock" ? "Sold Out" : "In Stock";
+    await product.save();
+    return res.json(product);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Failed to update stock status" });
+  }
+});
+
+// DELETE /api/marketplace/:id (Delete listing)
+router.delete("/:id", protect, async (req, res) => {
+  try {
+    const product = await Product.findOneAndDelete({ _id: req.params.id, sellerId: req.user._id });
+    if (!product) {
+      return res.status(404).json({ message: "Listing not found or unauthorized" });
+    }
+    return res.json({ message: "Listing deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Failed to delete listing" });
   }
 });
 

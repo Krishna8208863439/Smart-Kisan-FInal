@@ -41,6 +41,32 @@ const CROP_TEMPLATES = {
     { title: "Late Blight Disease Check & Spray", dayOffset: 70, category: "Pest/Nutrition" },
     { title: "Haulm Cutting (Dehalming)", dayOffset: 90, category: "Harvest" },
     { title: "Harvesting & Curing Tubers", dayOffset: 105, category: "Harvest" }
+  ],
+  Mustard: [
+    { title: "Land Prep & Sowing Seeds", dayOffset: 0, category: "Sowing" },
+    { title: "First Irrigation & Weeding", dayOffset: 25, category: "Weed Control" },
+    { title: "Nitrogen Fertilizer Top Dressing", dayOffset: 35, category: "Fertilizer" },
+    { title: "Thinning & Flowering Stage Water management", dayOffset: 50, category: "Irrigation" },
+    { title: "Pod Formation (Siliqua stage) Pest check", dayOffset: 75, category: "Pest/Nutrition" },
+    { title: "Harvesting & Threshing", dayOffset: 110, category: "Harvest" }
+  ],
+  Chilli: [
+    { title: "Nursery Sowing", dayOffset: 0, category: "Sowing" },
+    { title: "Seedling Transplanting", dayOffset: 30, category: "Transplanting" },
+    { title: "First Weeding & Earthing Up", dayOffset: 45, category: "Weed Control" },
+    { title: "First Top Dressing (NPK)", dayOffset: 55, category: "Fertilizer" },
+    { title: "Flowering & Fruiting Spray (Boron)", dayOffset: 75, category: "Pest/Nutrition" },
+    { title: "First Picking of Green Chilli", dayOffset: 90, category: "Harvest" },
+    { title: "Multiple Pickings & Liquid Manure boost", dayOffset: 115, category: "Harvest" }
+  ],
+  Cotton: [
+    { title: "Field Prep & Sowing Cotton Seeds", dayOffset: 0, category: "Sowing" },
+    { title: "Thinning & Gap Filling", dayOffset: 15, category: "Weed Control" },
+    { title: "First Hand Weeding & Interculture", dayOffset: 30, category: "Weed Control" },
+    { title: "Square Formation (Buds stage) NPK Spray", dayOffset: 50, category: "Fertilizer" },
+    { title: "Flowering & Boll Development Pest check", dayOffset: 75, category: "Pest/Nutrition" },
+    { title: "First Cotton Picking", dayOffset: 110, category: "Harvest" },
+    { title: "Final Picking & Cotton stalks clearance", dayOffset: 140, category: "Harvest" }
   ]
 };
 
@@ -117,6 +143,42 @@ router.patch("/:id/task", protect, async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Failed to update task status" });
+  }
+});
+
+// POST /api/crop-calendar/:id/custom-task (Add a custom task to a calendar)
+router.post("/:id/custom-task", protect, async (req, res) => {
+  try {
+    const { title, dayOffset, category } = req.body;
+    if (!title) {
+      return res.status(400).json({ message: "Task title is required" });
+    }
+
+    const calendar = await CropCalendar.findOne({ _id: req.params.id, user: req.user._id });
+    if (!calendar) {
+      return res.status(404).json({ message: "Crop calendar not found" });
+    }
+
+    const offsetVal = Number(dayOffset) || 0;
+    const targetDate = new Date(calendar.sowingDate);
+    targetDate.setDate(targetDate.getDate() + offsetVal);
+
+    calendar.tasks.push({
+      title,
+      dayOffset: offsetVal,
+      targetDate,
+      status: "pending",
+      category: category || "custom"
+    });
+
+    // Sort tasks by dayOffset
+    calendar.tasks.sort((a, b) => a.dayOffset - b.dayOffset);
+
+    await calendar.save();
+    return res.status(201).json(calendar);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Failed to add custom task" });
   }
 });
 

@@ -1,15 +1,56 @@
 import React, { useMemo, useState, useEffect } from "react";
 import api from "../api";
 
-const CATEGORIES = ["All Products", "Seeds", "Fertilizers", "Tools", "Equipment", "Pesticides", "Produce"];
+const CATEGORIES = [
+  { name: "All Products", icon: "📦", color: "#64748b" },
+  { name: "Seeds", icon: "🌱", color: "#16a34a" },
+  { name: "Fertilizers", icon: "🧪", color: "#2563eb" },
+  { name: "Tools", icon: "🛠️", color: "#d97706" },
+  { name: "Equipment", icon: "🚜", color: "#7c3aed" },
+  { name: "Pesticides", icon: "🐛", color: "#dc2626" },
+  { name: "Produce", icon: "🍎", color: "#0d9488" }
+];
+
+const MARKET_REF_PRICES = {
+  "Organic Wheat Seeds": { price: "₹2,125 - ₹2,350", unit: "per quintal" },
+  "Bio-Fertilizer NPK": { price: "₹1,100 - ₹1,300", unit: "per 25kg bag" },
+  "Drip Irrigation Kit": { price: "₹14,000 - ₹16,000", unit: "per set" },
+  "Hybrid Maize Seeds": { price: "₹900 - ₹1,100", unit: "per kg" },
+  "Liquid Micro-Nutrient Mix": { price: "₹450 - ₹550", unit: "per litre" },
+  "Hand Sprayer Pump": { price: "₹2,000 - ₹2,400", unit: "per unit" },
+  "Eco Pesticide (Neem Based)": { price: "₹600 - ₹720", unit: "per litre" },
+  "Wheat": { price: "₹2,100 - ₹2,300", unit: "per quintal" },
+  "Rice": { price: "₹2,040 - ₹2,250", unit: "per quintal" },
+  "Potato": { price: "₹1,200 - ₹1,600", unit: "per quintal" },
+  "Tomato": { price: "₹1,500 - ₹3,500", unit: "per quintal" },
+  "Mustard": { price: "₹5,400 - ₹5,950", unit: "per quintal" },
+  "Chilli": { price: "₹9,000 - ₹14,000", unit: "per quintal" },
+  "Cotton": { price: "₹6,600 - ₹7,400", unit: "per quintal" }
+};
+
+const SAMPLE_IMAGES = [
+  { label: "Wheat", url: "https://images.unsplash.com/photo-1506619216599-9d16d0903dfd?auto=format&fit=crop&w=300&q=80" },
+  { label: "Potato", url: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=300&q=80" },
+  { label: "Rice", url: "https://images.unsplash.com/photo-1536304997881-a372c179924b?auto=format&fit=crop&w=300&q=80" },
+  { label: "Tomato", url: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=300&q=80" },
+  { label: "Mustard", url: "https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?auto=format&fit=crop&w=300&q=80" },
+  { label: "Chilli", url: "https://images.unsplash.com/photo-1596797038530-2c107229654b?auto=format&fit=crop&w=300&q=80" }
+];
 
 const Marketplace = () => {
   const [products, setProducts] = useState([]);
+  const [myListings, setMyListings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Products");
   const [sortBy, setSortBy] = useState("popular");
   
+  // Dashboard view toggle ("browse" or "dashboard")
+  const [viewMode, setViewMode] = useState("browse");
+
+  // Selected product for detail modal
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
   // Shopping Cart state
   const [cart, setCart] = useState(() => {
     const saved = localStorage.getItem("sk_cart");
@@ -26,9 +67,14 @@ const Marketplace = () => {
     price: "",
     unit: "/kg",
     image: "",
-    description: ""
+    description: "",
+    germinationRate: "",
+    npkRatio: "",
+    harvestDate: ""
   });
   const [sellLoading, setSellLoading] = useState(false);
+
+  const isLoggedIn = !!localStorage.getItem("sk_token");
 
   // Fetch products from backend
   const fetchProducts = async () => {
@@ -43,25 +89,44 @@ const Marketplace = () => {
     }
   };
 
+  // Fetch user listings
+  const fetchMyListings = async () => {
+    if (!isLoggedIn) return;
+    try {
+      const res = await api.get("/marketplace/my-listings");
+      setMyListings(res.data);
+    } catch (err) {
+      console.error("Error fetching seller listings:", err);
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
-  }, []);
+    if (isLoggedIn) {
+      fetchMyListings();
+    }
+  }, [isLoggedIn]);
 
   // Save cart to local storage
   useEffect(() => {
     localStorage.setItem("sk_cart", JSON.stringify(cart));
   }, [cart]);
 
-  // Derived metrics
+  // Derived counts for categories
   const countsByCategory = useMemo(() => {
     const base = { "All Products": products.length };
-    CATEGORIES.slice(1).forEach((c) => (base[c] = 0));
+    CATEGORIES.slice(1).forEach((cat) => {
+      base[cat.name] = 0;
+    });
     products.forEach((p) => {
-      base[p.category] = (base[p.category] || 0) + 1;
+      if (p.category) {
+        base[p.category] = (base[p.category] || 0) + 1;
+      }
     });
     return base;
   }, [products]);
 
+  // Filtered and Sorted products
   const filteredProducts = useMemo(() => {
     let list = [...products];
 
@@ -90,8 +155,16 @@ const Marketplace = () => {
     return list;
   }, [products, search, selectedCategory, sortBy]);
 
-  // Cart operations
-  const handleAddToCart = (product) => {
+  // Cart actions
+  const handleAddToCart = (product, e) => {
+    if (e) e.stopPropagation();
+    
+    // Check if the item is in stock
+    if (product.stock === "Sold Out") {
+      alert("This item is currently sold out.");
+      return;
+    }
+
     setCart((prev) => {
       const existing = prev.find((item) => item.product._id === product._id);
       if (existing) {
@@ -120,8 +193,22 @@ const Marketplace = () => {
     });
   };
 
-  const cartTotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  // Calculate cart total with mock bulk discount if applicable
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const cartTotalBeforeDiscount = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  
+  // Bulk discount rule: 10% off items with quantity >= 10
+  const cartDiscount = useMemo(() => {
+    let discount = 0;
+    cart.forEach(item => {
+      if (item.quantity >= 10) {
+        discount += (item.product.price * item.quantity) * 0.1; // 10% discount on that item
+      }
+    });
+    return Math.round(discount);
+  }, [cart]);
+
+  const cartTotal = cartTotalBeforeDiscount - cartDiscount;
 
   const handleCheckout = async () => {
     try {
@@ -129,33 +216,61 @@ const Marketplace = () => {
         cartItems: cart.map((i) => ({ productId: i.product._id, quantity: i.quantity }))
       });
       setCheckoutStatus(res.data);
-      setCart([]); // Clear cart on success
+      setCart([]); // Clear cart
+      fetchProducts(); // Refresh list to catch stock updates
     } catch (err) {
       console.error(err);
       alert("Checkout failed. Please verify you are logged in.");
     }
   };
 
-  // Farmers Bazaar: submit listing
+  // Farmer listing upload
   const handleSellProduct = async (e) => {
     e.preventDefault();
     if (!sellForm.name || !sellForm.price || !sellForm.unit) {
-      alert("Please fill in Name, Price, and Unit.");
+      alert("Please fill in the Item Name, Price, and Unit.");
+      return;
+    }
+    if (Number(sellForm.price) <= 0) {
+      alert("Please enter a valid price greater than zero.");
       return;
     }
     setSellLoading(true);
     try {
-      await api.post("/marketplace", sellForm);
+      // Package details inside description
+      let detailedDesc = sellForm.description;
+      if (sellForm.category === "Seeds" && sellForm.germinationRate) {
+        detailedDesc += `\n[Germination Rate: ${sellForm.germinationRate}%]`;
+      } else if (sellForm.category === "Fertilizers" && sellForm.npkRatio) {
+        detailedDesc += `\n[NPK Formula: ${sellForm.npkRatio}]`;
+      } else if (sellForm.category === "Produce" && sellForm.harvestDate) {
+        detailedDesc += `\n[Harvest Date: ${new Date(sellForm.harvestDate).toLocaleDateString()}]`;
+      }
+
+      await api.post("/marketplace", {
+        name: sellForm.name,
+        category: sellForm.category,
+        price: Number(sellForm.price),
+        unit: sellForm.unit,
+        image: sellForm.image,
+        description: detailedDesc
+      });
+
       setSellForm({
         name: "",
         category: "Produce",
         price: "",
         unit: "/kg",
         image: "",
-        description: ""
+        description: "",
+        germinationRate: "",
+        npkRatio: "",
+        harvestDate: ""
       });
       setShowSellForm(false);
-      fetchProducts(); // Reload marketplace items
+      fetchProducts();
+      fetchMyListings();
+      alert("Product listed successfully in the Bazaar!");
     } catch (err) {
       console.error(err);
       alert("Failed to submit listing. Make sure you are logged in.");
@@ -164,291 +279,810 @@ const Marketplace = () => {
     }
   };
 
-  const handleQuickImageSelect = (url) => {
-    setSellForm((prev) => ({ ...prev, image: url }));
+  // Toggle stock status
+  const handleToggleStock = async (productId, currentStock) => {
+    try {
+      await api.patch(`/marketplace/${productId}/stock`);
+      fetchProducts();
+      fetchMyListings();
+    } catch (err) {
+      console.error("Failed to toggle stock status:", err);
+      alert("Error updating stock status.");
+    }
   };
 
-  const SAMPLE_IMAGES = [
-    { label: "Wheat", url: "https://images.unsplash.com/photo-1506619216599-9d16d0903dfd?auto=format&fit=crop&w=300&q=80" },
-    { label: "Potato", url: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=300&q=80" },
-    { label: "Rice", url: "https://images.unsplash.com/photo-1536304997881-a372c179924b?auto=format&fit=crop&w=300&q=80" },
-    { label: "Tomato", url: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=300&q=80" }
-  ];
+  // Delete product
+  const handleDeleteListing = async (productId) => {
+    if (!window.confirm("Are you sure you want to pull this listing from the Bazaar?")) return;
+    try {
+      await api.delete(`/marketplace/${productId}`);
+      fetchProducts();
+      fetchMyListings();
+    } catch (err) {
+      console.error("Failed to delete listing:", err);
+      alert("Error deleting listing.");
+    }
+  };
+
+  // Reference guide fetch helper
+  const getReferencePrice = (productName) => {
+    // Find partial match
+    const key = Object.keys(MARKET_REF_PRICES).find(
+      (k) => productName.toLowerCase().includes(k.toLowerCase())
+    );
+    return key ? MARKET_REF_PRICES[key] : null;
+  };
 
   return (
-    <main className="app-container">
-      {/* Header Banner */}
-      <div className="card" style={{ background: "linear-gradient(135deg, #0d9488, #115e59)", color: "white", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <main className="app-container" style={{ position: "relative" }}>
+      {/* Banner */}
+      <div 
+        className="card" 
+        style={{ 
+          background: "linear-gradient(135deg, #0d9488, #115e59)", 
+          color: "white", 
+          display: "flex", 
+          flexDirection: "row", 
+          justifyContent: "space-between", 
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 16
+        }}
+      >
         <div>
-          <h1 style={{ fontSize: 28, fontWeight: 800 }}>Kisan Marketplace</h1>
-          <p style={{ opacity: 0.9, marginTop: 4 }}>
-            Trade premium seeds, specialized tools, bio-fertilizers, or sell your own farm produce directly on the Farmers Bazaar.
+          <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0 }}>Kisan Bazaar</h1>
+          <p style={{ opacity: 0.9, marginTop: 4, marginBottom: 0, fontSize: 14 }}>
+            Trade premium seeds, specialized tools, bio-fertilizers, or sell your own farm harvest directly to other farmers and wholesale merchants.
           </p>
         </div>
-        <button className="button" style={{ background: "#f59e0b" }} onClick={() => setIsCartOpen(true)}>
-          🛒 Cart <span style={{ background: "white", color: "#f59e0b", padding: "1px 6px", borderRadius: 10, marginLeft: 4, fontWeight: 800 }}>{cartItemCount}</span>
-        </button>
+        <div style={{ display: "flex", gap: 10 }}>
+          {isLoggedIn && (
+            <button 
+              className="button" 
+              style={{ background: viewMode === "dashboard" ? "#0f766e" : "#0284c7" }}
+              onClick={() => {
+                setViewMode(viewMode === "browse" ? "dashboard" : "browse");
+                setShowSellForm(false);
+              }}
+            >
+              {viewMode === "browse" ? "🚜 Seller Center" : "🛒 Browse Bazaar"}
+            </button>
+          )}
+          <button className="button" style={{ background: "#f59e0b" }} onClick={() => setIsCartOpen(true)}>
+            🛒 Cart ({cartItemCount})
+          </button>
+        </div>
       </div>
 
-      {/* Control Actions Row */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 16, margin: "20px 0", alignItems: "center" }}>
-        {/* Search & Sort filters */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-          <input
-            className="input"
-            style={{ width: 280, margin: 0 }}
-            placeholder="Search crop, seed, tools, seller..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-
-          <select
-            className="input"
-            style={{ width: 160, margin: 0 }}
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-          >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-
-          <select
-            className="input"
-            style={{ width: 160, margin: 0 }}
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-          >
-            <option value="popular">Popularity</option>
-            <option value="rating">Highest Rated</option>
-            <option value="price-low">Price: Low to High</option>
-            <option value="price-high">Price: High to Low</option>
-          </select>
-        </div>
-
-        {/* Sell produce button */}
-        <button 
-          className="button" 
-          style={{ background: "#2563eb", padding: "12px 20px" }}
-          onClick={() => setShowSellForm(!showSellForm)}
-        >
-          {showSellForm ? "Close Listing Form ✖" : "📢 Sell Your Produce"}
-        </button>
-      </div>
-
-      {/* Farmers Bazaar: Sell Your Produce Form */}
-      {showSellForm && (
-        <div className="card" style={{ border: "2px solid #2563eb", animation: "slideDown 0.25s ease" }}>
-          <h3>List Your Crop surplus in the Bazaar</h3>
-          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>
-            Set your wholesale pricing, upload/choose an image, and submit. Other farmers and merchants will see your listing instantly.
-          </p>
-
-          <form onSubmit={handleSellProduct} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-            <div>
-              <label>Crop / Item Name *</label>
-              <input
-                type="text"
-                className="input"
-                placeholder="e.g. Organic Basmati Rice, Red Potatoes"
-                value={sellForm.name}
-                onChange={(e) => setSellForm({ ...sellForm, name: e.target.value })}
-              />
-
-              <label>Category</label>
-              <select
-                className="input"
-                value={sellForm.category}
-                onChange={(e) => setSellForm({ ...sellForm, category: e.target.value })}
-              >
-                <option value="Produce">Produce (Farmer Harvest)</option>
-                <option value="Seeds">Seeds</option>
-                <option value="Fertilizers">Fertilizers</option>
-                <option value="Tools">Tools</option>
-              </select>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label>Wholesale Price (₹) *</label>
-                  <input
-                    type="number"
-                    className="input"
-                    placeholder="e.g. 1500"
-                    value={sellForm.price}
-                    onChange={(e) => setSellForm({ ...sellForm, price: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label>Sale Unit *</label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="e.g. /quintal, /kg, /bag"
-                    value={sellForm.unit}
-                    onChange={(e) => setSellForm({ ...sellForm, unit: e.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label>Item Description</label>
-              <textarea
-                className="input"
-                rows={3}
-                placeholder="Harvest conditions, organic practices, minimum order size..."
-                value={sellForm.description}
-                onChange={(e) => setSellForm({ ...sellForm, description: e.target.value })}
-              />
-
-              <label>Select Crop Photo Preset (Or paste custom URL below)</label>
-              <div style={{ display: "flex", gap: 10, margin: "6px 0 12px 0" }}>
-                {SAMPLE_IMAGES.map((img) => (
-                  <button
-                    key={img.label}
-                    type="button"
-                    style={{
-                      padding: "4px 8px",
-                      borderRadius: 6,
-                      border: "1px solid",
-                      borderColor: sellForm.image === img.url ? "#2563eb" : "var(--border-color)",
-                      background: sellForm.image === img.url ? "#eff6ff" : "white",
-                      fontSize: 12,
-                      cursor: "pointer"
-                    }}
-                    onClick={() => handleQuickImageSelect(img.url)}
-                  >
-                    {img.label}
-                  </button>
-                ))}
-              </div>
-
-              <input
-                type="text"
-                className="input"
-                placeholder="Custom Image URL..."
-                value={sellForm.image}
-                onChange={(e) => setSellForm({ ...sellForm, image: e.target.value })}
-              />
-
-              <button type="submit" className="button" style={{ width: "100%", background: "#2563eb" }} disabled={sellLoading}>
-                {sellLoading ? "Publishing listing..." : "Publish Listing in Bazaar 🚀"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Marketplace Catalog layout */}
-      <div style={{ display: "grid", gridTemplateColumns: "250px 1fr", gap: 24 }}>
-        
-        {/* Categories Sidebar Filter */}
-        <aside>
-          <div className="card" style={{ padding: 16 }}>
-            <h4 style={{ marginBottom: 12, borderBottom: "1px solid var(--border-color)", paddingBottom: 6 }}>Categories</h4>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      {viewMode === "browse" ? (
+        <>
+          {/* Categories Horizontal Grid */}
+          <div style={{ margin: "24px 0" }}>
+            <h3 style={{ fontSize: 16, marginBottom: 12 }}>Filter by Category</h3>
+            <div 
+              style={{ 
+                display: "grid", 
+                gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", 
+                gap: 12 
+              }}
+            >
               {CATEGORIES.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
+                <div
+                  key={cat.name}
+                  onClick={() => setSelectedCategory(cat.name)}
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    width: "100%",
-                    padding: "8px 12px",
-                    border: "none",
-                    background: selectedCategory === cat ? "var(--primary-light)" : "transparent",
-                    color: selectedCategory === cat ? "var(--primary-hover)" : "var(--text-dark)",
-                    fontWeight: selectedCategory === cat ? "700" : "500",
-                    borderRadius: 6,
+                    padding: "16px 12px",
+                    borderRadius: 12,
+                    background: "var(--bg-card)",
+                    border: "2px solid",
+                    borderColor: selectedCategory === cat.name ? cat.color : "var(--border-color)",
+                    textAlign: "center",
                     cursor: "pointer",
-                    textAlign: "left",
-                    fontSize: 13.5
+                    transition: "all 0.2s ease",
+                    boxShadow: selectedCategory === cat.name ? "0 4px 12px rgba(0,0,0,0.08)" : "none",
+                    transform: selectedCategory === cat.name ? "translateY(-2px)" : "none"
                   }}
-                  onClick={() => setSelectedCategory(cat)}
                 >
-                  <span>{cat}</span>
-                  <span style={{ opacity: 0.6, fontSize: 11 }}>({countsByCategory[cat] || 0})</span>
-                </button>
+                  <div style={{ fontSize: 24, marginBottom: 6 }}>{cat.icon}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dark)" }}>{cat.name}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                    ({countsByCategory[cat.name] || 0})
+                  </div>
+                </div>
               ))}
             </div>
           </div>
-        </aside>
 
-        {/* Product Catalog Grid */}
-        <section>
+          {/* Search, Sort, and Sell Control Row */}
+          <div 
+            style={{ 
+              display: "flex", 
+              justifyContent: "space-between", 
+              alignItems: "center", 
+              gap: 16, 
+              margin: "24px 0",
+              flexWrap: "wrap"
+            }}
+          >
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", flexGrow: 1 }}>
+              <input
+                className="input"
+                style={{ width: "min(320px, 100%)", margin: 0 }}
+                placeholder="Search products, categories, sellers..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+
+              <select
+                className="input"
+                style={{ width: 160, margin: 0 }}
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="popular">Popularity</option>
+                <option value="rating">Highest Rated</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+              </select>
+            </div>
+
+            {isLoggedIn ? (
+              <button 
+                className="button" 
+                style={{ background: "#16a34a", margin: 0 }}
+                onClick={() => setShowSellForm(!showSellForm)}
+              >
+                {showSellForm ? "Close Listing Form ✖" : "📢 List Surplus to Sell"}
+              </button>
+            ) : (
+              <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                🔐 Login to sell your items
+              </div>
+            )}
+          </div>
+
+          {/* Sell Form */}
+          {showSellForm && (
+            <div className="card" style={{ border: "2px solid #16a34a", animation: "slideDown 0.25s ease", marginBottom: 24 }}>
+              <h3 style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span>🌾</span> List Your Agriculture Item
+              </h3>
+              <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>
+                Set your wholesale pricing, select category, upload or choose an image, and submit. Your listing appears instantly in the Bazaar catalog.
+              </p>
+
+              <form onSubmit={handleSellProduct} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
+                <div>
+                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Item / Crop Name *</label>
+                  <input
+                    type="text"
+                    className="input"
+                    required
+                    placeholder="e.g. Organic Basmati Rice, Red Potatoes, Mustard seeds"
+                    value={sellForm.name}
+                    onChange={(e) => setSellForm({ ...sellForm, name: e.target.value })}
+                  />
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <div>
+                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Category</label>
+                      <select
+                        className="input"
+                        value={sellForm.category}
+                        onChange={(e) => setSellForm({ ...sellForm, category: e.target.value })}
+                      >
+                        <option value="Produce">Produce (Farmer Harvest)</option>
+                        <option value="Seeds">Seeds</option>
+                        <option value="Fertilizers">Fertilizers</option>
+                        <option value="Tools">Tools</option>
+                        <option value="Equipment">Equipment</option>
+                        <option value="Pesticides">Pesticides</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Sale Unit *</label>
+                      <input
+                        type="text"
+                        className="input"
+                        required
+                        placeholder="e.g. /kg, /quintal, /bag"
+                        value={sellForm.unit}
+                        onChange={(e) => setSellForm({ ...sellForm, unit: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <div>
+                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Wholesale Price (₹) *</label>
+                      <input
+                        type="number"
+                        className="input"
+                        required
+                        placeholder="e.g. 1850"
+                        value={sellForm.price}
+                        onChange={(e) => setSellForm({ ...sellForm, price: e.target.value })}
+                      />
+                    </div>
+                    
+                    <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingBottom: 12 }}>
+                      {/* Mandi Price Guideline badge */}
+                      {getReferencePrice(sellForm.name) && (
+                        <div style={{ fontSize: 11, background: "var(--primary-light)", color: "var(--primary-hover)", padding: "8px 10px", borderRadius: 8, fontWeight: 700 }}>
+                          📈 APMC: {getReferencePrice(sellForm.name).price}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Category-Specific Form Fields */}
+                  {sellForm.category === "Seeds" && (
+                    <div style={{ animation: "fadeIn 0.2s" }}>
+                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Germination Rate (%)</label>
+                      <input
+                        type="number"
+                        className="input"
+                        min="1"
+                        max="100"
+                        placeholder="e.g. 95"
+                        value={sellForm.germinationRate}
+                        onChange={(e) => setSellForm({ ...sellForm, germinationRate: e.target.value })}
+                      />
+                    </div>
+                  )}
+
+                  {sellForm.category === "Fertilizers" && (
+                    <div style={{ animation: "fadeIn 0.2s" }}>
+                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>NPK Formula Ratio</label>
+                      <input
+                        type="text"
+                        className="input"
+                        placeholder="e.g. 19:19:19, 10:26:26"
+                        value={sellForm.npkRatio}
+                        onChange={(e) => setSellForm({ ...sellForm, npkRatio: e.target.value })}
+                      />
+                    </div>
+                  )}
+
+                  {sellForm.category === "Produce" && (
+                    <div style={{ animation: "fadeIn 0.2s" }}>
+                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Harvest Date</label>
+                      <input
+                        type="date"
+                        className="input"
+                        value={sellForm.harvestDate}
+                        onChange={(e) => setSellForm({ ...sellForm, harvestDate: e.target.value })}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Item Description</label>
+                  <textarea
+                    className="input"
+                    rows={3}
+                    placeholder="Details about seed source, organic standards, packaging size, minimum purchase orders..."
+                    value={sellForm.description}
+                    onChange={(e) => setSellForm({ ...sellForm, description: e.target.value })}
+                  />
+
+                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Choose Photo Preset (Or enter URL below)</label>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "6px 0 12px 0" }}>
+                    {SAMPLE_IMAGES.map((img) => (
+                      <button
+                        key={img.label}
+                        type="button"
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: 8,
+                          border: "1px solid",
+                          borderColor: sellForm.image === img.url ? "var(--primary)" : "var(--border-color)",
+                          background: sellForm.image === img.url ? "var(--primary-light)" : "var(--bg-card)",
+                          color: sellForm.image === img.url ? "var(--primary-hover)" : "var(--text-dark)",
+                          fontSize: 12,
+                          cursor: "pointer",
+                          fontWeight: 600
+                        }}
+                        onClick={() => setSellForm({ ...sellForm, image: img.url })}
+                      >
+                        {img.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="Custom Image URL..."
+                    value={sellForm.image}
+                    onChange={(e) => setSellForm({ ...sellForm, image: e.target.value })}
+                  />
+
+                  {sellForm.image && (
+                    <div style={{ marginBottom: 12, textAlign: "center" }}>
+                      <img 
+                        src={sellForm.image} 
+                        alt="Listing Preview" 
+                        style={{ height: 80, borderRadius: 8, objectFit: "cover", border: "1px solid var(--border-color)" }}
+                      />
+                    </div>
+                  )}
+
+                  <button type="submit" className="button" style={{ width: "100%", background: "#16a34a" }} disabled={sellLoading}>
+                    {sellLoading ? "Publishing listing..." : "Publish Listing in Bazaar 🚀"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Product Catalog Grid */}
           {loading ? (
             <div style={{ textAlign: "center", padding: "60px 0" }}>
+              <span style={{ fontSize: 32 }}>🌾</span>
               <h3>Loading Bazaar Inventory...</h3>
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="card" style={{ textAlign: "center", padding: "60px 0" }}>
-              <h4>No products matches your filters.</h4>
+              <h4>No products matched your filters.</h4>
               <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>Try clearing search queries or checking other categories.</p>
             </div>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 20 }}>
-              {filteredProducts.map((p) => (
-                <div key={p._id} className="card" style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8, marginBottom: 0 }}>
-                  <div style={{ position: "relative", height: 140, borderRadius: 8, overflow: "hidden", background: "#eee" }}>
-                    <img
-                      src={p.image || "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=300&q=80"}
-                      alt={p.name}
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
-                    <span style={{
-                      position: "absolute",
-                      top: 8,
-                      right: 8,
-                      background: "rgba(0,0,0,0.6)",
-                      color: "white",
-                      fontSize: 10,
-                      padding: "2px 6px",
-                      borderRadius: 4,
-                      fontWeight: 700
-                    }}>
-                      {p.stock}
-                    </span>
-                  </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 3, flexGrow: 1 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: "var(--secondary)", textTransform: "uppercase" }}>{p.category}</span>
-                    <strong style={{ fontSize: 14, color: "var(--text-dark)", display: "block" }}>{p.name}</strong>
-                    <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Seller: {p.seller}</span>
-                    
-                    <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#eab308" }}>
-                      <span>⭐ {p.rating.toFixed(1)}</span>
-                      <span style={{ color: "var(--text-muted)" }}>({p.reviews} reviews)</span>
+            <div 
+              style={{ 
+                display: "grid", 
+                gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", 
+                gap: 20 
+              }}
+            >
+              {filteredProducts.map((p) => {
+                const refPrice = getReferencePrice(p.name);
+                return (
+                  <div 
+                    key={p._id} 
+                    className="card" 
+                    onClick={() => setSelectedProduct(p)}
+                    style={{ 
+                      padding: 12, 
+                      display: "flex", 
+                      flexDirection: "column", 
+                      gap: 8, 
+                      margin: 0,
+                      cursor: "pointer",
+                      transition: "transform 0.2s, box-shadow 0.2s",
+                      position: "relative"
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-4px)";
+                      e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.08)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "none";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
+                  >
+                    {/* Image */}
+                    <div style={{ position: "relative", height: 150, borderRadius: 8, overflow: "hidden", background: "#f1f5f9" }}>
+                      <img
+                        src={p.image || "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=300&q=80"}
+                        alt={p.name}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                      <span 
+                        style={{
+                          position: "absolute",
+                          top: 8,
+                          right: 8,
+                          background: p.stock === "In Stock" ? "rgba(22, 163, 74, 0.9)" : "rgba(220, 38, 38, 0.9)",
+                          color: "white",
+                          fontSize: 10,
+                          padding: "2px 6px",
+                          borderRadius: 4,
+                          fontWeight: 700
+                        }}
+                      >
+                        {p.stock}
+                      </span>
                     </div>
 
-                    {p.description && (
-                      <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                        {p.description}
-                      </p>
-                    )}
-                  </div>
+                    {/* Details */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 3, flexGrow: 1 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: "#16a34a", textTransform: "uppercase" }}>
+                          {p.category}
+                        </span>
+                        {p.sellerId && (
+                          <span style={{ fontSize: 9, background: "#dbeafe", color: "#1e40af", padding: "1px 4px", borderRadius: 4, fontWeight: 700 }}>
+                            👨‍🌾 Farmer Direct
+                          </span>
+                        )}
+                      </div>
+                      
+                      <strong style={{ fontSize: 15, color: "var(--text-dark)", display: "block" }}>{p.name}</strong>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Seller: {p.seller}</span>
+                      
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#eab308" }}>
+                        <span>⭐ {p.rating.toFixed(1)}</span>
+                        <span style={{ color: "var(--text-muted)" }}>({p.reviews || 0} reviews)</span>
+                      </div>
 
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-                    <div>
-                      <strong style={{ fontSize: 16, color: "var(--text-dark)" }}>₹{p.price}</strong>
-                      <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{p.unit}</span>
+                      {/* Display referenced mandi prices */}
+                      {refPrice && (
+                        <div style={{ fontSize: 11, color: "var(--primary-hover)", background: "var(--primary-light)", padding: "4px 8px", borderRadius: 6, marginTop: 4, fontWeight: 600 }}>
+                          📈 Mandi Ref: {refPrice.price}
+                        </div>
+                      )}
                     </div>
-                    <button className="button" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => handleAddToCart(p)}>
-                      + Add 🛒
-                    </button>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+                      <div>
+                        <strong style={{ fontSize: 18, color: "var(--text-dark)" }}>₹{p.price}</strong>
+                        <span style={{ fontSize: 11, color: "var(--text-muted)" }}> {p.unit}</span>
+                      </div>
+                      <button 
+                        className="button" 
+                        style={{ padding: "6px 12px", fontSize: 12, opacity: p.stock === "Sold Out" ? 0.5 : 1 }} 
+                        disabled={p.stock === "Sold Out"}
+                        onClick={(e) => handleAddToCart(p, e)}
+                      >
+                        + Add 🛒
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
-        </section>
-      </div>
+        </>
+      ) : (
+        /* Seller Center / Dashboard View */
+        <div style={{ marginTop: 24, animation: "fadeIn 0.25s ease" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <h2>Seller Center Dashboard</h2>
+            <button className="button" style={{ background: "#16a34a" }} onClick={() => setShowSellForm(!showSellForm)}>
+              {showSellForm ? "Close Listing Form" : "📢 List New Item"}
+            </button>
+          </div>
+
+          {/* Quick Metrics */}
+          <div 
+            style={{ 
+              display: "grid", 
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", 
+              gap: 16,
+              marginBottom: 24
+            }}
+          >
+            <div className="card" style={{ textAlign: "center", padding: 20 }}>
+              <div style={{ fontSize: 28 }}>📦</div>
+              <strong style={{ fontSize: 24, color: "var(--text-dark)" }}>{myListings.length}</strong>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Active Listings</div>
+            </div>
+            <div className="card" style={{ textAlign: "center", padding: 20 }}>
+              <div style={{ fontSize: 28 }}>✅</div>
+              <strong style={{ fontSize: 24, color: "#16a34a" }}>
+                {myListings.filter(p => p.stock === "In Stock").length}
+              </strong>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Available Items</div>
+            </div>
+            <div className="card" style={{ textAlign: "center", padding: 20 }}>
+              <div style={{ fontSize: 28 }}>💰</div>
+              <strong style={{ fontSize: 24, color: "#d97706" }}>
+                ₹{myListings.reduce((sum, p) => sum + (p.price * 25), 0).toLocaleString()}
+              </strong>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Est. Value (25 units sold)</div>
+            </div>
+          </div>
+
+          {/* Sell Form inside Seller Dashboard if toggled */}
+          {showSellForm && (
+            <div className="card" style={{ border: "2px solid #16a34a", animation: "slideDown 0.25s ease", marginBottom: 24 }}>
+              <h3>📢 List Your Harvest Surplus</h3>
+              <form onSubmit={handleSellProduct} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
+                <div>
+                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Item / Crop Name *</label>
+                  <input
+                    type="text"
+                    className="input"
+                    required
+                    placeholder="e.g. Organic Basmati Rice"
+                    value={sellForm.name}
+                    onChange={(e) => setSellForm({ ...sellForm, name: e.target.value })}
+                  />
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <div>
+                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Category</label>
+                      <select
+                        className="input"
+                        value={sellForm.category}
+                        onChange={(e) => setSellForm({ ...sellForm, category: e.target.value })}
+                      >
+                        <option value="Produce">Produce (Farmer Harvest)</option>
+                        <option value="Seeds">Seeds</option>
+                        <option value="Fertilizers">Fertilizers</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Sale Unit *</label>
+                      <input
+                        type="text"
+                        className="input"
+                        required
+                        placeholder="e.g. /quintal"
+                        value={sellForm.unit}
+                        onChange={(e) => setSellForm({ ...sellForm, unit: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Wholesale Price (₹) *</label>
+                  <input
+                    type="number"
+                    className="input"
+                    required
+                    placeholder="e.g. 2100"
+                    value={sellForm.price}
+                    onChange={(e) => setSellForm({ ...sellForm, price: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Item Description</label>
+                  <textarea
+                    className="input"
+                    rows={3}
+                    placeholder="Describe crop quality, organic details, harvest region..."
+                    value={sellForm.description}
+                    onChange={(e) => setSellForm({ ...sellForm, description: e.target.value })}
+                  />
+
+                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Select Crop Preset Photo</label>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "6px 0 12px 0" }}>
+                    {SAMPLE_IMAGES.map((img) => (
+                      <button
+                        key={img.label}
+                        type="button"
+                        style={{
+                          padding: "4px 8px",
+                          borderRadius: 6,
+                          border: "1px solid",
+                          borderColor: sellForm.image === img.url ? "var(--primary)" : "var(--border-color)",
+                          background: sellForm.image === img.url ? "var(--primary-light)" : "white",
+                          fontSize: 12,
+                          cursor: "pointer"
+                        }}
+                        onClick={() => setSellForm({ ...sellForm, image: img.url })}
+                      >
+                        {img.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="Custom Image URL..."
+                    value={sellForm.image}
+                    onChange={(e) => setSellForm({ ...sellForm, image: e.target.value })}
+                  />
+
+                  <button type="submit" className="button" style={{ width: "100%", background: "#16a34a" }} disabled={sellLoading}>
+                    {sellLoading ? "Publishing..." : "Publish Listing"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Seller Listings List */}
+          <div className="card">
+            <h3>My Active Bazaar Listings</h3>
+            {myListings.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)" }}>
+                <span>🚜</span>
+                <p style={{ marginTop: 12 }}>You have not listed any items for sale in the Bazaar yet.</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {myListings.map((p) => (
+                  <div 
+                    key={p._id} 
+                    style={{ 
+                      display: "flex", 
+                      alignItems: "center", 
+                      justifyContent: "space-between", 
+                      padding: "12px", 
+                      border: "1px solid var(--border-color)",
+                      borderRadius: 8,
+                      flexWrap: "wrap",
+                      gap: 12
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <img 
+                        src={p.image || "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=100&q=80"}
+                        alt={p.name} 
+                        style={{ width: 50, height: 50, borderRadius: 6, objectFit: "cover" }}
+                      />
+                      <div>
+                        <strong style={{ fontSize: 15, display: "block" }}>{p.name}</strong>
+                        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                          ₹{p.price} {p.unit} • <span style={{ textTransform: "uppercase", fontWeight: 700, color: "var(--primary)" }}>{p.category}</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <button 
+                        className="button"
+                        style={{ 
+                          background: p.stock === "In Stock" ? "#16a34a" : "#dc2626", 
+                          padding: "6px 12px", 
+                          fontSize: 12,
+                          margin: 0
+                        }}
+                        onClick={() => handleToggleStock(p._id, p.stock)}
+                      >
+                        {p.stock === "In Stock" ? "Mark Sold Out" : "Mark Available"}
+                      </button>
+                      <button 
+                        className="button" 
+                        style={{ background: "#ef4444", padding: "6px 12px", fontSize: 12, margin: 0 }}
+                        onClick={() => handleDeleteListing(p._id)}
+                      >
+                        🗑️ Pull Item
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* --- Detailed Product Modal --- */}
+      {selectedProduct && (
+        <div 
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 1100,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: 20
+          }}
+          onClick={() => setSelectedProduct(null)}
+        >
+          <div 
+            className="card"
+            style={{
+              maxWidth: 550,
+              width: "100%",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              position: "relative",
+              padding: 24,
+              animation: "zoomIn 0.2s ease",
+              boxShadow: "var(--shadow-lg)"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              style={{
+                position: "absolute",
+                top: 16,
+                right: 16,
+                background: "transparent",
+                border: "none",
+                fontSize: 20,
+                cursor: "pointer"
+              }}
+              onClick={() => setSelectedProduct(null)}
+            >
+              ✖
+            </button>
+
+            <div style={{ height: 220, borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
+              <img 
+                src={selectedProduct.image || "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=600&q=80"} 
+                alt={selectedProduct.name}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            </div>
+
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#16a34a", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
+              {selectedProduct.category}
+            </span>
+            <h2 style={{ margin: "0 0 8px 0" }}>{selectedProduct.name}</h2>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div>
+                <span style={{ fontSize: 24, fontWeight: 800, color: "var(--text-dark)" }}>₹{selectedProduct.price}</span>
+                <span style={{ color: "var(--text-muted)" }}> {selectedProduct.unit}</span>
+              </div>
+              <span 
+                style={{
+                  background: selectedProduct.stock === "In Stock" ? "#dcfce7" : "#fee2e2",
+                  color: selectedProduct.stock === "In Stock" ? "#166534" : "#991b1b",
+                  padding: "4px 10px",
+                  borderRadius: 6,
+                  fontSize: 12,
+                  fontWeight: 700
+                }}
+              >
+                {selectedProduct.stock}
+              </span>
+            </div>
+
+            <div style={{ background: "#f8fafc", padding: 12, borderRadius: 8, marginBottom: 16, borderLeft: "4px solid var(--primary)" }}>
+              <strong>📋 Details & Specifications:</strong>
+              <p style={{ fontSize: 13, color: "#475569", margin: "4px 0 0 0", lineHeight: 1.5, whiteSpace: "pre-line" }}>
+                {selectedProduct.description}
+              </p>
+            </div>
+
+            {/* Bulk Discount Info */}
+            <div style={{ background: "#fffbeb", border: "1px solid #fef3c7", padding: 12, borderRadius: 8, marginBottom: 16 }}>
+              <strong style={{ color: "#d97706" }}>🌾 Wholesale Special Discount:</strong>
+              <p style={{ fontSize: 12, color: "#92400e", margin: "4px 0 0 0" }}>
+                Buy <strong>10 or more</strong> items and get an automatic <strong>10% discount</strong> on checkout! Save on logistics shipping.
+              </p>
+            </div>
+
+            {/* Shipping & Seller */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 13, marginBottom: 20 }}>
+              <div>
+                <span style={{ color: "var(--text-muted)" }}>Seller Profile:</span>
+                <div style={{ fontWeight: 700, marginTop: 2 }}>{selectedProduct.seller}</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Rating: ⭐ {selectedProduct.rating.toFixed(1)} ({selectedProduct.reviews || 0} trades)</div>
+              </div>
+              <div>
+                <span style={{ color: "var(--text-muted)" }}>Estimated Delivery:</span>
+                <div style={{ fontWeight: 700, marginTop: 2, color: "var(--primary)" }}>🚚 2-3 Days (Kisan Logistics)</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Cash on Delivery available</div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 12 }}>
+              <button 
+                className="button"
+                style={{ flex: 1, background: "#0284c7" }}
+                onClick={() => {
+                  alert(`📞 Contacting Seller: ${selectedProduct.seller}\nDirect helpline: +91 99887 76655\nReference Product ID: ${selectedProduct._id}\n(Simulated SMS sent)`);
+                }}
+              >
+                📞 Contact Seller
+              </button>
+              <button 
+                className="button"
+                style={{ flex: 1, background: "#f59e0b", opacity: selectedProduct.stock === "Sold Out" ? 0.5 : 1 }}
+                disabled={selectedProduct.stock === "Sold Out"}
+                onClick={() => {
+                  handleAddToCart(selectedProduct);
+                  setSelectedProduct(null);
+                }}
+              >
+                + Add to Cart 🛒
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cart Drawer Panel */}
       {isCartOpen && (
         <div className="cart-drawer">
           <header style={{ background: "var(--primary)", color: "white", padding: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h3>Shopping Cart ({cartItemCount})</h3>
+            <h3 style={{ margin: 0 }}>Shopping Cart ({cartItemCount})</h3>
             <button style={{ background: "transparent", border: "none", color: "white", fontSize: 20, cursor: "pointer" }} onClick={() => { setIsCartOpen(false); setCheckoutStatus(null); }}>
               ✖
             </button>
@@ -458,17 +1092,17 @@ const Marketplace = () => {
             {checkoutStatus ? (
               <div style={{ textAlign: "center", padding: "20px 0" }}>
                 <span style={{ fontSize: 48 }}>🎉</span>
-                <h4 style={{ color: "var(--primary)", marginTop: 12 }}>Order Placed!</h4>
+                <h4 style={{ color: "var(--primary)", marginTop: 12 }}>Order Confirmed!</h4>
                 <p style={{ fontSize: 13, fontWeight: 700, margin: "8px 0" }}>{checkoutStatus.orderId}</p>
-                <p style={{ fontSize: 12, color: "var(--text-muted)" }}>{checkoutStatus.message}</p>
+                <p style={{ fontSize: 12, color: "var(--text-muted)", padding: "0 10px" }}>{checkoutStatus.message}</p>
                 <button className="button" style={{ marginTop: 16 }} onClick={() => { setIsCartOpen(false); setCheckoutStatus(null); }}>
-                  Continue Shopping
+                  Back to Bazaar
                 </button>
               </div>
             ) : cart.length === 0 ? (
               <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)" }}>
-                <span>🛒</span>
-                <p style={{ fontSize: 13, marginTop: 8 }}>Your cart is empty.</p>
+                <span style={{ fontSize: 40 }}>🛒</span>
+                <p style={{ fontSize: 13, marginTop: 8 }}>Your basket is currently empty.</p>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -477,10 +1111,10 @@ const Marketplace = () => {
                     <img
                       src={item.product.image || "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=100&q=80"}
                       alt={item.product.name}
-                      style={{ width: 50, height: 50, borderRadius: 4, objectFit: "cover" }}
+                      style={{ width: 55, height: 55, borderRadius: 4, objectFit: "cover" }}
                     />
                     <div style={{ flex: 1 }}>
-                      <strong style={{ fontSize: 13, display: "block" }}>{item.product.name}</strong>
+                      <strong style={{ fontSize: 13, display: "block", color: "var(--text-dark)" }}>{item.product.name}</strong>
                       <span style={{ fontSize: 11, color: "var(--text-muted)" }}>₹{item.product.price} {item.product.unit}</span>
                       
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
@@ -489,7 +1123,12 @@ const Marketplace = () => {
                           <span style={{ fontSize: 12, fontWeight: 700 }}>{item.quantity}</span>
                           <button style={{ padding: "1px 6px", fontSize: 11, cursor: "pointer" }} onClick={() => handleUpdateQuantity(item.product._id, 1)}>+</button>
                         </div>
-                        <strong style={{ fontSize: 13 }}>₹{item.product.price * item.quantity}</strong>
+                        <div style={{ textAlign: "right" }}>
+                          <strong style={{ fontSize: 13 }}>₹{item.product.price * item.quantity}</strong>
+                          {item.quantity >= 10 && (
+                            <div style={{ fontSize: 9, color: "#16a34a", fontWeight: 700 }}>-10% bulk saved</div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -500,11 +1139,23 @@ const Marketplace = () => {
 
           {!checkoutStatus && cart.length > 0 && (
             <footer style={{ padding: 16, borderTop: "1px solid var(--border-color)", background: "white" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, fontSize: 15 }}>
-                <span>Subtotal:</span>
-                <strong style={{ color: "var(--text-dark)", fontSize: 17 }}>₹{cartTotal}</strong>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--text-muted)" }}>
+                  <span>Items Total:</span>
+                  <span>₹{cartTotalBeforeDiscount}</span>
+                </div>
+                {cartDiscount > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#16a34a", fontWeight: 700 }}>
+                    <span>Bulk Savings:</span>
+                    <span>-₹{cartDiscount}</span>
+                  </div>
+                )}
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, borderTop: "1px solid var(--border-color)", paddingTop: 8 }}>
+                  <span>Total Payable:</span>
+                  <strong style={{ color: "var(--text-dark)", fontSize: 18 }}>₹{cartTotal}</strong>
+                </div>
               </div>
-              <button className="button" style={{ width: "100%", background: "#f59e0b", fontSize: 15 }} onClick={handleCheckout}>
+              <button className="button" style={{ width: "100%", background: "#f59e0b", fontSize: 15, margin: 0 }} onClick={handleCheckout}>
                 Complete Purchase 🚀
               </button>
             </footer>
