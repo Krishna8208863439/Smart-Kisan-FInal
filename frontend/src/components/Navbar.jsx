@@ -45,7 +45,6 @@ const Navbar = () => {
                 <NavLink to="/marketplace" className={navLinkClass}>{t('bazaar')}</NavLink>
                 <NavLink to="/forum" className={navLinkClass}>{t('community')}</NavLink>
                 <NavLink to="/recommendations" className={navLinkClass}>{t('recommendations')}</NavLink>
-                <NavLink to="/learning" className={navLinkClass}>{t('learning')}</NavLink>
               </>
             )}
             {!user && (
@@ -156,7 +155,6 @@ const Navbar = () => {
                 <NavLink to="/weather" className={navLinkClass}>{t('weather')}</NavLink>
                 <NavLink to="/market" className={navLinkClass}>{t('mandiPrices')}</NavLink>
                 <NavLink to="/recommendations" className={navLinkClass}>{t('recommendations')}</NavLink>
-                <NavLink to="/learning" className={navLinkClass}>{t('learning')}</NavLink>
               </>
             )}
             {!user && (

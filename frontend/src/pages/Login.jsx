@@ -192,9 +192,6 @@ const Login = () => {
                 <span>🌱</span> <strong>Crop Advisor</strong>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5 }}>
-                <span>📚</span> <strong>Learning Hub</strong>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5 }}>
                 <span>🌐</span> <strong>मराठी (Marathi)</strong>
               </div>
             </div>

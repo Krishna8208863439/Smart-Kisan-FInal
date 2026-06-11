@@ -9,7 +9,6 @@ import Register from "./pages/Register";
 import Recommendations from "./pages/Recommendations";
 import Weather from "./pages/Weather";
 import Market from "./pages/Market";
-import Learning from "./pages/Learning";
 import Forum from "./pages/Forum";
 import AITools from "./pages/AITools";
 import Marketplace from "./pages/Marketplace";
@@ -58,7 +57,6 @@ const App = () => {
             <Route path="/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
             <Route path="/weather" element={<ProtectedRoute><Weather /></ProtectedRoute>} />
             <Route path="/market" element={<ProtectedRoute><Market /></ProtectedRoute>} />
-            <Route path="/learning" element={<ProtectedRoute><Learning /></ProtectedRoute>} />
             <Route path="/forum" element={<ProtectedRoute><Forum /></ProtectedRoute>} />
             <Route path="/ai-tools" element={<ProtectedRoute><AITools /></ProtectedRoute>} />
             <Route path="/marketplace" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />

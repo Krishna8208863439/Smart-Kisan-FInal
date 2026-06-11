@@ -159,25 +159,6 @@ const Dashboard = () => {
           </Link>
         </div>
 
-        <div className="card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-          <div>
-            <div style={{ fontSize: 28, marginBottom: 8 }}>📚</div>
-            <h3>
-              {language === "mr" ? "कृषी शिक्षण व संसाधने" : "Learning Resources"}
-            </h3>
-            <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>
-              {language === "mr"
-                ? "शेतीचे उत्पादन आणि नफा वाढवण्यासाठी तज्ज्ञांचे लेख आणि विविध मार्गदर्शक पत्रके वाचा."
-                : "Access verified agronomic tutorials, study tools, and crop schedules to maximize yield."}
-            </p>
-          </div>
-          <Link to="/learning" style={{ marginTop: 16 }}>
-            <button className="button" style={{ width: "100%" }}>
-              {language === "mr" ? "शिक्षण केंद्र पहा 📚" : "Open Learning Hub 📚"}
-            </button>
-          </Link>
-        </div>
-
       </div>
 
       {/* Disease Detection Panel */}
