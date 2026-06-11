@@ -141,6 +141,77 @@ router.post("/google", async (req, res) => {
   }
 });
 
+// In-memory store for reset OTP codes
+const resetCodes = new Map();
+
+// ========== FORGOT PASSWORD ==========
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "No user found with this email address." });
+    }
+
+    // Generate a 6-digit OTP code
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    resetCodes.set(email.toLowerCase(), {
+      code: otp,
+      expires: Date.now() + 10 * 60 * 1000 // 10 minutes expiry
+    });
+
+    return res.json({
+      success: true,
+      message: `An OTP code has been generated. For testing/demo, your code is: ${otp}`,
+      otp // Send OTP back so user can easily complete the flow in the frontend!
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// ========== RESET PASSWORD ==========
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { email, code, newPassword } = req.body;
+    const key = email.toLowerCase();
+    const activeCode = resetCodes.get(key);
+
+    if (!activeCode) {
+      return res.status(400).json({ message: "No active password reset request for this email." });
+    }
+
+    if (activeCode.expires < Date.now()) {
+      resetCodes.delete(key);
+      return res.status(400).json({ message: "The reset code has expired. Please request a new one." });
+    }
+
+    if (activeCode.code !== String(code).trim()) {
+      return res.status(400).json({ message: "Invalid verification code. Please try again." });
+    }
+
+    // Find user and update password
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    user.password = hashed;
+    await user.save();
+
+    // Clean up code
+    resetCodes.delete(key);
+
+    return res.json({
+      success: true,
+      message: "Password reset successfully! You can now log in with your new password."
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 // ========== CURRENT USER ==========
 router.get("/me", protect, async (req, res) => {
   return res.json(req.user);

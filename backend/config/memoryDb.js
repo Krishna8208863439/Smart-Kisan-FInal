@@ -74,7 +74,20 @@ export const UserMock = {
   findOne: async (filter) => {
     const db = readDb();
     const user = db.users.find((u) => u.email === filter.email);
-    return user || null;
+    if (!user) return null;
+    return {
+      ...user,
+      save: async function () {
+        const currentDb = readDb();
+        const index = currentDb.users.findIndex((u) => String(u._id) === String(this._id));
+        if (index !== -1) {
+          const { save, ...cleanData } = this;
+          currentDb.users[index] = cleanData;
+          writeDb(currentDb);
+        }
+        return this;
+      }
+    };
   },
   findById: (id) => {
     const db = readDb();
