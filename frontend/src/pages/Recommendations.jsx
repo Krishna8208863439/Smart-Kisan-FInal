@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import api from "../api";
+import { useLanguage } from "../context/LanguageContext";
 
 const Recommendations = () => {
+  const { t, language } = useLanguage();
   const [form, setForm] = useState({
     soilType: "loamy",
     region: "",
@@ -56,7 +58,7 @@ const Recommendations = () => {
     setLoading(true);
     setError(null);
     try {
-      const headers = {};
+      const headers = { "x-language": language };
       const key = getCustomKey();
       if (key) {
         headers["x-gemini-key"] = key;
@@ -93,9 +95,9 @@ const Recommendations = () => {
   return (
     <div className="app-container">
       <div style={{ marginBottom: 24, textAlign: "center" }}>
-        <h1 style={{ fontSize: 32, fontWeight: 800, color: "var(--primary)" }}>AI Crop Recommendation Engine</h1>
+        <h1 style={{ fontSize: 32, fontWeight: 800, color: "var(--primary)" }}>{t("recommendationTitle")}</h1>
         <p style={{ color: "var(--text-muted)", marginTop: 6 }}>
-          Input your soil properties and location parameters to predict optimal crop varieties and resource allocation.
+          {t("recommendationSubtitle")}
         </p>
       </div>
 
@@ -104,44 +106,44 @@ const Recommendations = () => {
         {/* Form Column */}
         <div className="card" style={{ position: "sticky", top: 88 }}>
           <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-            <span>🧪</span> Soil & Location Details
+            <span>🧪</span> {t("soilLocationDetails")}
           </h2>
           
           <form onSubmit={handleSubmit}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
               <div>
-                <label style={{ fontSize: 13, fontWeight: 600, display: "block", marginBottom: 4 }}>Soil Type</label>
+                <label style={{ fontSize: 13, fontWeight: 600, display: "block", marginBottom: 4 }}>{t("soilType")}</label>
                 <select
                   className="input"
                   style={{ width: "100%", height: 42 }}
                   value={form.soilType}
                   onChange={(e) => setForm({ ...form, soilType: e.target.value })}
                 >
-                  <option value="loamy">Loamy Soil</option>
-                  <option value="sandy">Sandy Soil</option>
-                  <option value="clay">Clayey Soil</option>
-                  <option value="black">Black Soil</option>
-                  <option value="red">Red Soil</option>
+                  <option value="loamy">{t("soilLoamy")}</option>
+                  <option value="sandy">{t("soilSandy")}</option>
+                  <option value="clay">{t("soilClay")}</option>
+                  <option value="black">{t("soilBlack")}</option>
+                  <option value="red">{t("soilRed")}</option>
                 </select>
               </div>
 
               <div>
-                <label style={{ fontSize: 13, fontWeight: 600, display: "block", marginBottom: 4 }}>Season</label>
+                <label style={{ fontSize: 13, fontWeight: 600, display: "block", marginBottom: 4 }}>{t("season")}</label>
                 <select
                   className="input"
                   style={{ width: "100%", height: 42 }}
                   value={form.season}
                   onChange={(e) => setForm({ ...form, season: e.target.value })}
                 >
-                  <option value="kharif">Kharif (Monsoon)</option>
-                  <option value="rabi">Rabi (Winter)</option>
-                  <option value="zaid">Zaid (Summer)</option>
+                  <option value="kharif">{t("seasonKharif")}</option>
+                  <option value="rabi">{t("seasonRabi")}</option>
+                  <option value="zaid">{t("seasonZaid")}</option>
                 </select>
               </div>
             </div>
 
             <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, display: "block", marginBottom: 4 }}>Region / State</label>
+              <label style={{ fontSize: 13, fontWeight: 600, display: "block", marginBottom: 4 }}>{t("regionState")}</label>
               <div style={{ display: "flex", gap: 8 }}>
                 <input
                   className="input"
@@ -157,7 +159,7 @@ const Recommendations = () => {
                   onClick={detectLocation}
                   disabled={locating}
                 >
-                  {locating ? "📍..." : "📍 GPS"}
+                  {locating ? "📍..." : t("gpsDetectBtn")}
                 </button>
               </div>
               {form.lat && (
@@ -174,7 +176,7 @@ const Recommendations = () => {
                   checked={form.irrigationAvailable}
                   onChange={(e) => setForm({ ...form, irrigationAvailable: e.target.checked })}
                 />
-                <strong>Irrigation/Water Supply Available</strong>
+                <strong>{t("irrigationLabel")}</strong>
               </label>
             </div>
 
@@ -186,7 +188,7 @@ const Recommendations = () => {
                 style={{ width: "100%", padding: "8px 12px", fontSize: 13, display: "flex", justifyContent: "space-between", alignItems: "center" }}
                 onClick={() => setShowAdvanced(!showAdvanced)}
               >
-                <span>⚙️ Soil Chemistry (NPK & pH)</span>
+                <span>{t("soilChemistry")}</span>
                 <span>{showAdvanced ? "▲" : "▼"}</span>
               </button>
             </div>
@@ -197,7 +199,7 @@ const Recommendations = () => {
                 {/* pH Slider */}
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600 }}>
-                    <span>Soil pH</span>
+                    <span>{t("soilPH")}</span>
                     <span style={{ color: "var(--primary)", fontWeight: 700 }}>{form.pH}</span>
                   </div>
                   <input
@@ -210,16 +212,16 @@ const Recommendations = () => {
                     onChange={(e) => setForm({ ...form, pH: parseFloat(e.target.value) })}
                   />
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--text-muted)" }}>
-                    <span>Acidic (4.0)</span>
-                    <span>Neutral (7.0)</span>
-                    <span>Alkaline (9.0)</span>
+                    <span>{t("acidic")}</span>
+                    <span>{t("neutral")}</span>
+                    <span>{t("alkaline")}</span>
                   </div>
                 </div>
 
                 {/* Nitrogen (N) Slider */}
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600 }}>
-                    <span>Nitrogen (N)</span>
+                    <span>{t("nitrogen")}</span>
                     <span style={{ color: "#2563eb", fontWeight: 700 }}>{form.n} kg/ha</span>
                   </div>
                   <input
@@ -235,7 +237,7 @@ const Recommendations = () => {
                 {/* Phosphorus (P) Slider */}
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600 }}>
-                    <span>Phosphorus (P)</span>
+                    <span>{t("phosphorus")}</span>
                     <span style={{ color: "#d97706", fontWeight: 700 }}>{form.p} kg/ha</span>
                   </div>
                   <input
@@ -251,7 +253,7 @@ const Recommendations = () => {
                 {/* Potassium (K) Slider */}
                 <div style={{ marginBottom: 4 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 600 }}>
-                    <span>Potassium (K)</span>
+                    <span>{t("potassium")}</span>
                     <span style={{ color: "#dc2626", fontWeight: 700 }}>{form.k} kg/ha</span>
                   </div>
                   <input
@@ -279,7 +281,7 @@ const Recommendations = () => {
               style={{ width: "100%", height: 46, fontSize: 15, fontWeight: 700 }}
               disabled={loading}
             >
-              {loading ? "Analyzing Environmental Parameters..." : "Generate AI Recommendations"}
+              {loading ? (language === 'mr' ? 'पर्यावरण घटकांचे विश्लेषण सुरू आहे...' : "Analyzing Environmental Parameters...") : t("generateRecommendations")}
             </button>
           </form>
         </div>
@@ -293,7 +295,7 @@ const Recommendations = () => {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5, opacity: 0.9 }}>
-                    Detected Location & Weather
+                    {t("detectedWeather")}
                   </span>
                   <h3 style={{ fontSize: 20, fontWeight: 800, margin: "2px 0 6px 0" }}>{result.location}</h3>
                   <p style={{ fontSize: 13, opacity: 0.9 }}>
@@ -305,19 +307,19 @@ const Recommendations = () => {
                     {result.weather?.temp}°C
                   </div>
                   <div style={{ fontSize: 12, opacity: 0.9 }}>
-                    💧 Humidity: {result.weather?.humidity}%
+                    💧 {language === 'mr' ? 'आद्रता' : 'Humidity'}: {result.weather?.humidity}%
                   </div>
                 </div>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, paddingTop: 12, borderTop: "1px solid rgba(255, 255, 255, 0.15)", fontSize: 11 }}>
-                <span>🎯 Engine: {result.source === "gemini" ? "Google Gemini 1.5 Flash" : "Local Agronomy Classifier"}</span>
-                <span>⚡ Real-Time Sync</span>
+                <span>🎯 {language === 'mr' ? 'इंजिन' : 'Engine'}: {result.source === "gemini" ? "Google Gemini 1.5 Flash" : (language === 'mr' ? 'स्थानिक वर्गीकरणकर्ता' : "Local Agronomy Classifier")}</span>
+                <span>⚡ {language === 'mr' ? 'थेट समक्रमण' : 'Real-Time Sync'}</span>
               </div>
             </div>
 
             {/* Recommended Crop Cards */}
             <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
-              <span>🌾</span> Top AI Crop Recommendations
+              <span>🌾</span> {language === 'mr' ? 'शीर्ष एआय पीक शिफारसी' : 'Top AI Crop Recommendations'}
             </h3>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16, marginBottom: 24 }}>
@@ -342,15 +344,15 @@ const Recommendations = () => {
                         <div>
                           <h4 style={{ fontSize: 18, fontWeight: 800 }}>{r.crop}</h4>
                           <span style={{ fontSize: 11, background: "var(--primary-light)", color: "var(--primary)", padding: "2px 8px", borderRadius: 12, fontWeight: 700 }}>
-                            {r.suitabilityScore || 90}% Match
+                            {r.suitabilityScore || 90}% {t("matchPercentage")}
                           </span>
                         </div>
                       </div>
 
                       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                         <div style={{ textAlign: "right" }}>
-                          <span style={{ fontSize: 10, display: "block", color: "var(--text-muted)", fontWeight: 600 }}>Est. Profit</span>
-                          <strong style={{ color: "var(--primary)", fontSize: 15 }}>{r.estimatedProfit || "₹55,000/acre"}</strong>
+                          <span style={{ fontSize: 10, display: "block", color: "var(--text-muted)", fontWeight: 600 }}>{t("estProfitLabel")}</span>
+                          <strong style={{ color: "var(--primary)", fontSize: 15 }}>{r.estimatedProfit}</strong>
                         </div>
                       </div>
                     </div>
@@ -361,21 +363,21 @@ const Recommendations = () => {
 
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 10, borderTop: "1px solid var(--border-color)", paddingTop: 10, fontSize: 12 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        <span style={{ opacity: 0.7 }}>📈 Yield:</span>
-                        <strong>{r.predictedYield || "2.5 tons/acre"}</strong>
+                        <span style={{ opacity: 0.7 }}>📈 {t("yieldLabel")}</span>
+                        <strong>{r.predictedYield}</strong>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        <span style={{ opacity: 0.7 }}>💧 Water:</span>
+                        <span style={{ opacity: 0.7 }}>💧 {t("waterLabel")}</span>
                         <span style={{
                           fontWeight: 700,
-                          color: r.waterRequirement === "High" ? "var(--danger)" : r.waterRequirement === "Moderate" ? "var(--accent)" : "var(--primary)"
+                          color: r.waterRequirement === "High" || r.waterRequirement === "जास्त" ? "var(--danger)" : r.waterRequirement === "Moderate" || r.waterRequirement === "मध्यम" ? "var(--accent)" : "var(--primary)"
                         }}>
-                          {r.waterRequirement || "Moderate"}
+                          {r.waterRequirement}
                         </span>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        <span style={{ opacity: 0.7 }}>📦 Demand:</span>
-                        <strong>{r.marketDemand || "High"}</strong>
+                        <span style={{ opacity: 0.7 }}>📦 {t("demandLabel")}</span>
+                        <strong>{r.marketDemand}</strong>
                       </div>
                     </div>
                   </div>
@@ -388,10 +390,10 @@ const Recommendations = () => {
               <div className="card">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                   <h3 style={{ fontSize: 18, fontWeight: 800 }}>
-                    🛠️ Fertilizer & Action Plan for <span style={{ color: "var(--primary)" }}>{activeCrop}</span>
+                    🛠️ {t("fertilizerActionPlan")} <span style={{ color: "var(--primary)" }}>{activeCrop}</span>
                   </h3>
                   <span style={{ fontSize: 12, background: "var(--primary-light)", color: "var(--primary)", padding: "4px 10px", borderRadius: 4, fontWeight: 700 }}>
-                    Step-by-Step Calendar
+                    {t("stepCalendar")}
                   </span>
                 </div>
 

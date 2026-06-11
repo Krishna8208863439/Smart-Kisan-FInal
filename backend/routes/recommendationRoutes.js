@@ -210,9 +210,11 @@ router.post("/crop", protect, async (req, res) => {
 
     // 4. Try Gemini AI if key is present
     const geminiKey = req.headers["x-gemini-key"] || process.env.GEMINI_API_KEY;
+    const lang = req.headers["x-language"] || "en";
+
     if (geminiKey && geminiKey !== "YOUR_GEMINI_API_KEY" && geminiKey.trim().length > 10) {
       try {
-        const systemInstruction = 
+        let systemInstruction = 
           `You are Kisan AI, a Lead Agritech Specialist and AI Soil scientist. 
            You MUST recommend the top 3 most suitable crops and provide a detailed fertilizer schedule in strict JSON format. 
            Do not add any markup, styling, or text outside the JSON output. 
@@ -240,6 +242,10 @@ router.post("/crop", protect, async (req, res) => {
                }
              ]
            }`;
+
+        if (lang === "mr") {
+          systemInstruction += "\nIMPORTANT: You must write the entire output JSON values (crop names, reasons, predictedYield, estimatedProfit, waterRequirement, marketDemand, fertilizer stages, and recommendation details) in Marathi (मराठी) language. Do not translate keys like 'crop', 'suitabilityScore', 'reason', 'predictedYield', 'estimatedProfit', 'waterRequirement', 'marketDemand', 'recommendations', 'fertilizerPlan', 'stage', 'recommendation', etc. Only translate their values into Marathi.";
+        }
 
         const prompt = `
           Recommend crops based on these values:
@@ -371,30 +377,103 @@ router.post("/crop", protect, async (req, res) => {
       const cultivationCost = averageYield * 5000 + 4000; // Estimated input cost
       const netProfit = Math.round(totalRevenue - cultivationCost);
 
+      const cropMr = {
+        "Wheat": "गहू",
+        "Paddy (Rice)": "भात (तांदूळ)",
+        "Tomato": "टोमॅटो",
+        "Groundnut": "भुईमूग",
+        "Cotton": "कापूस",
+        "Mustard": "मोहरी",
+        "Maize": "मका",
+        "Potato": "बटाटा"
+      };
+
+      const reasonMr = {
+        "Wheat": "गहू थंड हवामानात आणि पाण्याचा निचरा होणाऱ्या लोमी मातीत चांगला वाढतो, जो हिवाळी हंगामासाठी योग्य आहे.",
+        "Paddy (Rice)": "भाताच्या पिकाला मुळांद्वारे पाणी शोषून घेण्यासाठी सतत पाणी साचून राहणे आणि चिकणमाती आवश्यक असते.",
+        "Tomato": "टोमॅटो गरम हवामानात वाळूच्या किंवा लोमी मातीत चांगला वाढतो आणि बाजारात सतत उच्च मागणी असते.",
+        "Groundnut": "भुईमूग हे हवेतील नायट्रोजन जमिनीत स्थिर करते. ते हलक्या मातीत पाण्याचा निचरा होण्यास मदत करते.",
+        "Cotton": "कापूस हे नगदी पीक असून ते जास्त पाणी धरून ठेवण्याची क्षमता असलेल्या खोल काळ्या मातीत आणि उष्ण हवामानात वाढते.",
+        "Mustard": "मोहरीला थंड तापमान आणि कमी पाण्याची आवश्यकता असते, ज्यामुळे ती कोरड्या मातीसाठी योग्य मानली जाते.",
+        "Maize": "मका हे बहुगुणी पीक असून त्याला खोल गाळाची माती आणि सुरुवातीच्या वाढीसाठी उबदार, सूर्यप्रकाश आवश्यक असतो.",
+        "Potato": "बटाट्याला बटाटे मोठे होण्यासाठी थंड हवामान आणि भुसभुशीत, हवा खेळती राहणारी वाळूमय लोमी माती हवी असते."
+      };
+
+      const waterMr = {
+        "High": "जास्त",
+        "Moderate": "मध्यम",
+        "Low": "कमी"
+      };
+
+      const demandMr = {
+        "High": "जास्त",
+        "Moderate": "मध्यम",
+        "Low": "कमी"
+      };
+
+      const cropName = lang === "mr" ? (cropMr[m.crop] || m.crop) : m.crop;
+      const cropReason = lang === "mr" ? (reasonMr[m.crop] || m.reason) : m.reason;
+      const reasonText = lang === "mr" 
+        ? `${cropReason} स्थानिक चालू बाजार भाव ₹${m.mandiPrice}/क्विंटल आहे.` 
+        : `${cropReason} Live local Mandi price is ₹${m.mandiPrice}/quintal.`;
+      
+      const profitText = lang === "mr" 
+        ? `₹${netProfit.toLocaleString("en-IN")}/एकर` 
+        : `₹${netProfit.toLocaleString("en-IN")}/acre`;
+
+      const yieldText = lang === "mr"
+        ? `${minYield} - ${maxYield} टन/एकर`
+        : `${minYield} - ${maxYield} tons/acre`;
+
       return {
-        crop: m.crop,
+        crop: cropName,
         suitabilityScore: m.score,
-        reason: m.reason + ` Live local Mandi price is ₹${m.mandiPrice}/quintal.`,
-        predictedYield,
-        estimatedProfit: `₹${netProfit.toLocaleString("en-IN")}/acre`,
-        waterRequirement: m.waterReq,
-        marketDemand: m.demand
+        reason: reasonText,
+        predictedYield: yieldText,
+        estimatedProfit: profitText,
+        waterRequirement: lang === "mr" ? (waterMr[m.waterReq] || m.waterReq) : m.waterReq,
+        marketDemand: lang === "mr" ? (demandMr[m.demand] || m.demand) : m.demand
       };
     });
 
     // Create tailored stage-wise fertilizer plan based on the soil inputs and best recommended crop
     const bestCrop = recommendations[0]?.crop || "Millets";
-    const optimalCrop = CROP_DATA.find(c => c.crop === bestCrop) || { optimalNPK: { n: 60, p: 40, k: 30 } };
+    // If bestCrop was translated to Marathi, resolve its English equivalent to lookup in CROP_DATA
+    const cropMrInverse = {
+      "गहू": "Wheat",
+      "भात (तांदूळ)": "Paddy (Rice)",
+      "टोमॅटो": "Tomato",
+      "भुईमूग": "Groundnut",
+      "कापूस": "Cotton",
+      "मोहरी": "Mustard",
+      "मका": "Maize",
+      "बटाटा": "Potato"
+    };
+    const bestCropEn = cropMrInverse[bestCrop] || bestCrop;
+    const optimalCrop = CROP_DATA.find(c => c.crop === bestCropEn) || { optimalNPK: { n: 60, p: 40, k: 30 } };
     
     // Custom calculation: advise NPK values based on deficiency
     const nGap = Math.max(0, optimalCrop.optimalNPK.n - nVal);
     const pGap = Math.max(0, optimalCrop.optimalNPK.p - pVal);
     const kGap = Math.max(0, optimalCrop.optimalNPK.k - kVal);
 
-    const fertilizerPlan = [
+    const fertilizerPlan = lang === "mr" ? [
+      {
+        stage: "पायाभूत खत (शेतीची तयारी)",
+        recommendation: `१०-१५ टन सेंद्रिय शेणखत टाका. माती चाचणीनुसार NPK मूल्ये आहेत: N=${nVal}, P=${pVal}, K=${kVal}. ${bestCrop} साठी आवश्यक प्रमाण N=${optimalCrop.optimalNPK.n}, P=${optimalCrop.optimalNPK.p}, K=${optimalCrop.optimalNPK.k} आहे, म्हणून पेरणीपूर्वी ${pGap > 0 ? (pGap * 0.8).toFixed(0) + "किलो फॉस्फरस (सिंगल सुपर फॉस्फेटद्वारे)" : "शिफारस केलेले फॉस्फरस"} आणि ${kGap > 0 ? (kGap * 0.8).toFixed(0) + "किलो पोटॅश (एमओपी द्वारे)" : "शिफारस केलेले पोटॅश"} टाका.`
+      },
+      {
+        stage: "शाकीय वाढ/फुटवे येण्याचा टप्पा (आठवडा ३-४)",
+        recommendation: `पानांच्या चांगल्या वाढीसाठी ${nGap > 0 ? (nGap * 0.6).toFixed(0) + "किलो नायट्रोजन (युरियाद्वारे टॉप ड्रेसिंग)" : "२५ किलो नायट्रोजन"} टाका.`
+      },
+      {
+        stage: "फूल येण्याचा/लोंब्या बाहेर पडण्याचा टप्पा (आठवडा ७-८)",
+        recommendation: `नायट्रोजनचा उर्वरित हप्ता (${nGap > 0 ? (nGap * 0.4).toFixed(0) + "किलो नायट्रोजन" : "१५ किलो नायट्रोजन"}) टाका आणि रोगांचा प्रतिकार करण्यासाठी आणि दाण्यांची गुणवत्ता सुधारण्यासाठी १% पोटॅशियम नायट्रेटची फवारणी करा.`
+      }
+    ] : [
       {
         stage: "Basal Dressing (Field Preparation)",
-        recommendation: `Apply 10-15 tons of organic compost. Soil test shows NPK values: N=${nVal}, P=${pVal}, K=${kVal}. Since optimal for ${bestCrop} is N=${optimalCrop.optimalNPK.n}, P=${optimalCrop.optimalNPK.p}, K=${optimalCrop.optimalNPK.k}, apply ${pGap > 0 ? (pGap * 0.8).toFixed(0) + "kg Phosphorus (via Single Super Phosphate)" : "recommended maintenance Phosphorus"} and ${kGap > 0 ? (kGap * 0.8).toFixed(0) + "kg Potassium (via MOP)" : "recommended Potassium"} before sowing.`
+        recommendation: `Apply 10-15 tons of organic compost. Soil test shows NPK values: N=${nVal}, P=${pVal}, K=${kVal}. Since optimal for ${bestCropEn} is N=${optimalCrop.optimalNPK.n}, P=${optimalCrop.optimalNPK.p}, K=${optimalCrop.optimalNPK.k}, apply ${pGap > 0 ? (pGap * 0.8).toFixed(0) + "kg Phosphorus (via Single Super Phosphate)" : "recommended maintenance Phosphorus"} and ${kGap > 0 ? (kGap * 0.8).toFixed(0) + "kg Potassium (via MOP)" : "recommended Potassium"} before sowing.`
       },
       {
         stage: "Vegetative/Active Tillering Stage (Week 3-4)",
