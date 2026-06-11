@@ -301,9 +301,6 @@ const Home = () => {
                 {t("installedSuccess")}
               </div>
             )}
-            <div className="download-manual-hint" style={{ marginTop: 12 }}>
-              <span>🤖 {language === 'en' ? 'Android Chrome: Menu → "Add to Home screen"' : 'अँड्रॉइड क्रोम: मेनू → "होम स्क्रीनवर जोडा"'}</span>
-            </div>
           </div>
         </div>
       </section>
