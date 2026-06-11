@@ -9,6 +9,10 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  const geminiKey = localStorage.getItem("sk_gemini_key");
+  if (geminiKey) {
+    config.headers["x-gemini-key"] = geminiKey.trim();
+  }
   return config;
 });
 

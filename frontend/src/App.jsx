@@ -16,6 +16,7 @@ import Marketplace from "./pages/Marketplace";
 import KisanChat from "./pages/KisanChat";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { ThemeProvider } from "./context/ThemeContext";
+import { LanguageProvider } from "./context/LanguageContext";
 
 // Offline notification banner rendered inside router context
 const OfflineBar = () => {
@@ -41,25 +42,27 @@ const OfflineBar = () => {
 const App = () => {
   return (
     <ThemeProvider>
-      <BrowserRouter>
-        <Navbar />
-        <OfflineBar />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
-          <Route path="/weather" element={<ProtectedRoute><Weather /></ProtectedRoute>} />
-          <Route path="/market" element={<ProtectedRoute><Market /></ProtectedRoute>} />
-          <Route path="/learning" element={<ProtectedRoute><Learning /></ProtectedRoute>} />
-          <Route path="/forum" element={<ProtectedRoute><Forum /></ProtectedRoute>} />
-          <Route path="/ai-tools" element={<ProtectedRoute><AITools /></ProtectedRoute>} />
-          <Route path="/marketplace" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />
-          <Route path="/chat" element={<ProtectedRoute><KisanChat /></ProtectedRoute>} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-        </Routes>
-        <BottomNav />
-      </BrowserRouter>
+      <LanguageProvider>
+        <BrowserRouter>
+          <Navbar />
+          <OfflineBar />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
+            <Route path="/weather" element={<ProtectedRoute><Weather /></ProtectedRoute>} />
+            <Route path="/market" element={<ProtectedRoute><Market /></ProtectedRoute>} />
+            <Route path="/learning" element={<ProtectedRoute><Learning /></ProtectedRoute>} />
+            <Route path="/forum" element={<ProtectedRoute><Forum /></ProtectedRoute>} />
+            <Route path="/ai-tools" element={<ProtectedRoute><AITools /></ProtectedRoute>} />
+            <Route path="/marketplace" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />
+            <Route path="/chat" element={<ProtectedRoute><KisanChat /></ProtectedRoute>} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+          </Routes>
+          <BottomNav />
+        </BrowserRouter>
+      </LanguageProvider>
     </ThemeProvider>
   );
 };

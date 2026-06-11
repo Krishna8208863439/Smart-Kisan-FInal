@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import api from "../api";
+import { useLanguage } from "../context/LanguageContext";
 
 const TABS = ["Disease Detection", "Irrigation", "Fertilizer / NPK", "Smart Calendar"];
 
@@ -31,8 +32,17 @@ const REFERENCE_HEALTHY_LEAVES = {
 };
 
 const AITools = () => {
+  const { t, language } = useLanguage();
   const [activeTab, setActiveTab] = useState("Disease Detection");
   const isLoggedIn = !!localStorage.getItem("sk_token");
+
+  const displayTabName = (tab) => {
+    if (tab === "Disease Detection") return t("leafDiagnostics");
+    if (tab === "Irrigation") return language === 'mr' ? 'सिंचन वेळापत्रक' : 'Irrigation';
+    if (tab === "Fertilizer / NPK") return language === 'mr' ? 'खत / NPK सल्लागार' : 'Fertilizer / NPK';
+    if (tab === "Smart Calendar") return language === 'mr' ? 'स्मार्ट वेळापत्रक' : 'Smart Calendar';
+    return tab;
+  };
 
   // State: Disease Detection
   const [diseaseFile, setDiseaseFile] = useState(null);
@@ -437,9 +447,9 @@ const AITools = () => {
     <div className="app-container">
       {/* Title Card */}
       <div className="card" style={{ paddingBottom: 12, background: "linear-gradient(135deg, #15803d, #166534)", color: "white" }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0 }}>AI Agri-Center</h1>
+        <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0 }}>{t("agriCenterTitle")}</h1>
         <p style={{ opacity: 0.9, marginTop: 4, marginBottom: 0, fontSize: 14 }}>
-          Access cutting-edge advisory tools including visual disease checking, water managers, soil NPK prescription tools, and dynamic crop planners.
+          {t("agriCenterSubtitle")}
         </p>
       </div>
 
@@ -452,7 +462,7 @@ const AITools = () => {
             className={`ai-tab ${tab === activeTab ? "ai-tab-active" : ""}`}
             onClick={() => setActiveTab(tab)}
           >
-            {tab}
+            {displayTabName(tab)}
           </button>
         ))}
       </div>
@@ -465,12 +475,12 @@ const AITools = () => {
           <div className="grid-2">
             {/* Upload Card */}
             <div className="card">
-              <h3>Leaf Disease Diagnostics</h3>
+              <h3>{t("leafDiagnostics")}</h3>
               <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
-                Snap or upload a photo of the affected plant leaf. Our AI model examines textures and spotting to suggest treatments.
+                {t("leafDiagnosticsDesc")}
               </p>
 
-              <label style={{ fontWeight: 600, fontSize: 13 }}>Crop Type Hint</label>
+              <label style={{ fontWeight: 600, fontSize: 13 }}>{t("cropTypeHint")}</label>
               <select 
                 className="input"
                 value={diseaseCropHint}
@@ -512,9 +522,9 @@ const AITools = () => {
 
                 <div style={{ fontSize: 36, marginBottom: 8 }}>🍃</div>
                 <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text-dark)" }}>
-                  {diseaseFile ? diseaseFile.name : "Click here or drag-and-drop crop photo"}
+                  {diseaseFile ? diseaseFile.name : t("dragDropPhoto")}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Supports PNG, JPG, JPEG</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{t("supportsFormats")}</div>
               </div>
 
               {diseasePreview && (
@@ -540,7 +550,7 @@ const AITools = () => {
                 onClick={handleAnalyzeDisease}
                 disabled={diseaseLoading || !diseaseFile}
               >
-                {diseaseLoading ? "Running Diagnostics..." : "Analyze Image 🔬"}
+                {diseaseLoading ? (language === 'mr' ? 'तपासत आहे...' : 'Running Diagnostics...') : t("analyzeImageBtn")}
               </button>
               
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
@@ -554,10 +564,10 @@ const AITools = () => {
             {/* Diagnostics Report */}
             <div className="card" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h3 style={{ margin: 0 }}>AI Diagnostic Report</h3>
+                <h3 style={{ margin: 0 }}>{t("diagnosticsReport")}</h3>
                 {diseaseResult && (
                   <button className="button" style={{ background: "#0284c7", padding: "6px 12px", fontSize: 12, margin: 0 }} onClick={printPrescription}>
-                    🖨️ Print Prescription
+                    {t("printPrescription")}
                   </button>
                 )}
               </div>
@@ -565,7 +575,7 @@ const AITools = () => {
               {!diseaseResult ? (
                 <div style={{ padding: "60px 0", textAlign: "center", color: "var(--text-muted)", flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
                   <span style={{ fontSize: 48 }}>📊</span>
-                  <p style={{ marginTop: 12, fontSize: 14 }}>Upload a leaf photo and click analyze to output report.</p>
+                  <p style={{ marginTop: 12, fontSize: 14 }}>{t("uploadPrompt")}</p>
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -593,24 +603,24 @@ const AITools = () => {
                       </div>
                     </div>
                     <div>
-                      <strong style={{ display: "block", fontSize: 14, color: "var(--text-dark)" }}>AI Model Confidence</strong>
-                      <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Based on visual foliage index patterns</span>
+                      <strong style={{ display: "block", fontSize: 14, color: "var(--text-dark)" }}>{t("modelConfidence")}</strong>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{t("basedOnFoliage")}</span>
                     </div>
                   </div>
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                     <div>
-                      <span style={{ color: "var(--text-muted)", fontSize: 12 }}>Crop Target:</span>
+                      <span style={{ color: "var(--text-muted)", fontSize: 12 }}>{t("cropTarget")}</span>
                       <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text-dark)" }}>{diseaseResult.crop}</div>
                     </div>
                     <div>
-                      <span style={{ color: "var(--text-muted)", fontSize: 12 }}>Detected Disease:</span>
+                      <span style={{ color: "var(--text-muted)", fontSize: 12 }}>{t("detectedDisease")}</span>
                       <div style={{ fontWeight: 700, fontSize: 15, color: "#dc2626" }}>{diseaseResult.disease}</div>
                     </div>
                   </div>
 
                   <div>
-                    <span style={{ color: "var(--text-muted)", fontSize: 12, display: "block", marginBottom: 4 }}>Threat Severity Level:</span>
+                    <span style={{ color: "var(--text-muted)", fontSize: 12, display: "block", marginBottom: 4 }}>{t("severityLevel")}</span>
                     <div style={{ height: 8, background: "#e2e8f0", borderRadius: 4, overflow: "hidden", position: "relative", marginBottom: 6 }}>
                       <div 
                         style={{
@@ -628,14 +638,14 @@ const AITools = () => {
                         textTransform: "uppercase"
                       }}
                     >
-                      {diseaseResult.severity} Severity Threat
+                      {diseaseResult.severity === "high" ? (language === 'mr' ? 'उच्च' : 'high') : diseaseResult.severity === "medium" ? (language === 'mr' ? 'मध्यम' : 'medium') : (language === 'mr' ? 'कमी' : 'low')} {t("severityThreat")}
                     </span>
                   </div>
 
                   {/* Healthy Leaf Comparison preset */}
                   {REFERENCE_HEALTHY_LEAVES[diseaseResult.crop] && (
                     <div style={{ border: "1px solid var(--border-color)", padding: 10, borderRadius: 8 }}>
-                      <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>Reference Healthy {diseaseResult.crop} Leaf:</span>
+                      <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>{t("healthyLeafRef")}</span>
                       <img 
                         src={REFERENCE_HEALTHY_LEAVES[diseaseResult.crop]} 
                         alt="Healthy Reference" 
@@ -663,7 +673,7 @@ const AITools = () => {
                         }}
                         onClick={() => setTreatmentTab("organic")}
                       >
-                        🍃 Organic Remedy (Recommended)
+                        {t("organicRemedy")}
                       </button>
                       <button 
                         type="button"
@@ -679,26 +689,28 @@ const AITools = () => {
                         }}
                         onClick={() => setTreatmentTab("chemical")}
                       >
-                        🧪 Chemical Control
+                        {t("chemicalControl")}
                       </button>
                     </div>
 
                     {treatmentTab === "organic" ? (
                       <div style={{ background: "#ecfdf5", borderLeft: "4px solid #16a34a", padding: 12, borderRadius: 8, fontSize: 13, color: "#14532d", lineHeight: 1.5 }}>
-                        <strong>Organic Prescription:</strong>
+                        <strong>{t("organicPrescription")}</strong>
                         <p style={{ margin: "4px 0 0 0" }}>{diseaseResult.advice}</p>
                         <p style={{ margin: "6px 0 0 0", fontSize: 11, opacity: 0.8 }}>
-                          💡 Natural compost teas and Trichoderma viride application are highly effective biological alternatives.
+                          💡 {language === 'mr' ? 'कम्पोस्ट चहा आणि ट्रायकोडर्मा विरिडी सेंद्रिय नियंत्रणासाठी अतिशय प्रभावी पर्याय आहेत.' : 'Natural compost teas and Trichoderma viride application are highly effective biological alternatives.'}
                         </p>
                       </div>
                     ) : (
                       <div style={{ background: "#eff6ff", borderLeft: "4px solid #2563eb", padding: 12, borderRadius: 8, fontSize: 13, color: "#1e3a8a", lineHeight: 1.5 }}>
-                        <strong>Chemical Treatment Guidelines:</strong>
+                        <strong>{t("chemicalGuidelines")}</strong>
                         <p style={{ margin: "4px 0 0 0" }}>
-                          In case of severe outbreak: Apply systemic fungicides containing Mancozeb or Carbendazim (1.5g per litre of water). Wear gloves and protect respiratory airways during spray.
+                          {language === 'mr' 
+                            ? 'गंभीर प्रादुर्भाव असल्यास: मँकोझेब किंवा कार्बेंडाझिम (१.५ ग्रॅम प्रति लीटर पाणी) घटक असलेले बुरशीनाशक फवारा. फवारणी करताना सुरक्षित मास्क व हातमोजे वापरा.'
+                            : 'In case of severe outbreak: Apply systemic fungicides containing Mancozeb or Carbendazim (1.5g per litre of water). Wear gloves and protect respiratory airways during spray.'}
                         </p>
                         <p style={{ margin: "6px 0 0 0", fontSize: 11, opacity: 0.8 }}>
-                          ⚠️ Keep a 14-day pre-harvest interval after chemical sprays.
+                          ⚠️ {language === 'mr' ? 'रासायनिक फवारणीनंतर काढणीपूर्वी किमान १४ दिवसांचे अंतर ठेवा.' : 'Keep a 14-day pre-harvest interval after chemical sprays.'}
                         </p>
                       </div>
                     )}
@@ -714,63 +726,65 @@ const AITools = () => {
         {activeTab === "Irrigation" && (
           <div className="grid-2">
             <div className="card">
-              <h3>Irrigation Scheduler</h3>
+              <h3>{language === 'mr' ? 'सिंचन वेळापत्रक सल्लागार' : 'Irrigation Scheduler'}</h3>
               <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
-                Set up crop irrigation schedules based on growth stage, crop type, and soil profile metrics.
+                {language === 'mr' 
+                  ? 'पिकाच्या वाढीचे टप्पे, पिकाचा प्रकार आणि मातीच्या प्रकारानुसार पाणी देण्याचे अचूक वेळापत्रक बनवा.' 
+                  : 'Set up crop irrigation schedules based on growth stage, crop type, and soil profile metrics.'}
               </p>
 
               <form onSubmit={handleCalculateIrrigation}>
-                <label style={{ fontWeight: 600, fontSize: 13 }}>Select Crop</label>
+                <label style={{ fontWeight: 600, fontSize: 13 }}>{t("selectCrop")}</label>
                 <select className="input" value={irrCrop} onChange={(e) => setIrrCrop(e.target.value)}>
                   {Object.keys(CROP_NPK_TARGETS).map(crop => (
                     <option key={crop} value={crop}>{CROP_NPK_TARGETS[crop].name}</option>
                   ))}
                 </select>
 
-                <label style={{ fontWeight: 600, fontSize: 13 }}>Growth Stage</label>
+                <label style={{ fontWeight: 600, fontSize: 13 }}>{language === 'mr' ? 'वाढीचा टप्पा' : 'Growth Stage'}</label>
                 <select className="input" value={irrStage} onChange={(e) => setIrrStage(e.target.value)}>
-                  <option value="Nursery">Nursery / Germination</option>
-                  <option value="Vegetative">Vegetative Growth</option>
-                  <option value="Flowering">Flowering Stage</option>
-                  <option value="Reproductive">Reproductive / Boll-Pod formation</option>
-                  <option value="Harvesting">Harvesting stage</option>
+                  <option value="Nursery">{language === 'mr' ? 'रोपवाटिका / उगवण' : 'Nursery / Germination'}</option>
+                  <option value="Vegetative">{language === 'mr' ? 'शाकीय वाढ (Vegetative)' : 'Vegetative Growth'}</option>
+                  <option value="Flowering">{language === 'mr' ? 'फुलधारणेचा टप्पा (Flowering)' : 'Flowering Stage'}</option>
+                  <option value="Reproductive">{language === 'mr' ? 'पुनरुत्पादन टप्पा (Reproductive)' : 'Reproductive / Boll-Pod formation'}</option>
+                  <option value="Harvesting">{language === 'mr' ? 'काढणी टप्पा (Harvesting)' : 'Harvesting stage'}</option>
                 </select>
 
-                <label style={{ fontWeight: 600, fontSize: 13 }}>Soil Type</label>
+                <label style={{ fontWeight: 600, fontSize: 13 }}>{language === 'mr' ? 'मातीचा प्रकार' : 'Soil Type'}</label>
                 <select className="input" value={irrSoil} onChange={(e) => setIrrSoil(e.target.value)}>
-                  <option value="sandy">Sandy (Fast Drainage)</option>
-                  <option value="loamy">Loamy (Ideal Retention)</option>
-                  <option value="clay">Clay (Slow Drainage)</option>
-                  <option value="peaty">Peaty (Acidic/Spongy)</option>
+                  <option value="sandy">{language === 'mr' ? 'वाळूमय माती' : 'Sandy (Fast Drainage)'}</option>
+                  <option value="loamy">{language === 'mr' ? 'गाळाची/लोमी माती' : 'Loamy (Ideal Retention)'}</option>
+                  <option value="clay">{language === 'mr' ? 'चिकणमाती' : 'Clay (Slow Drainage)'}</option>
+                  <option value="peaty">{language === 'mr' ? 'पीठमय माती (Peaty)' : 'Peaty (Acidic/Spongy)'}</option>
                 </select>
 
                 <button type="submit" className="button" style={{ width: "100%" }}>
-                  Calculate Irrigation Prescriptions 💧
+                  {language === 'mr' ? 'सिंचन वेळापत्रक मिळवा 💧' : 'Calculate Irrigation Prescriptions 💧'}
                 </button>
               </form>
             </div>
 
             <div className="card">
-              <h3>Prescription Details</h3>
+              <h3>{language === 'mr' ? 'सिंचन शिफारस तपशील' : 'Prescription Details'}</h3>
               {!irrResult ? (
                 <div style={{ padding: "60px 0", textAlign: "center", color: "var(--text-muted)" }}>
                   <span style={{ fontSize: 40 }}>🚿</span>
-                  <p style={{ marginTop: 12, fontSize: 14 }}>Submit farm configuration to view watering prescription.</p>
+                  <p style={{ marginTop: 12, fontSize: 14 }}>{language === 'mr' ? 'माती व पिकाची माहिती भरून शिफारसी मिळवा.' : 'Submit farm configuration to view watering prescription.'}</p>
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span>Estimated Consumption Rate:</span>
-                    <strong style={{ fontSize: 18, color: "var(--primary)" }}>{irrResult.dailyRate} mm / day</strong>
+                    <span>{language === 'mr' ? 'अंदाजे वापर दर:' : 'Estimated Consumption Rate:'}</span>
+                    <strong style={{ fontSize: 18, color: "var(--primary)" }}>{irrResult.dailyRate} mm / {language === 'mr' ? 'दिवस' : 'day'}</strong>
                   </div>
 
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span>Recommended Frequency:</span>
-                    <strong style={{ fontSize: 16 }}>Every {irrResult.interval} day(s)</strong>
+                    <span>{language === 'mr' ? 'शिफारस केलेली वारंवारता:' : 'Recommended Frequency:'}</span>
+                    <strong style={{ fontSize: 16 }}>{language === 'mr' ? `दर ${irrResult.interval} दिवसांनी` : `Every ${irrResult.interval} day(s)`}</strong>
                   </div>
 
                   <div style={{ background: "var(--bg-main)", padding: 12, borderRadius: 8, borderLeft: "4px solid var(--primary)" }}>
-                    <strong>Growth stage guidance:</strong>
+                    <strong>{language === 'mr' ? 'वाढीच्या टप्प्यासाठी मार्गदर्शन:' : 'Growth stage guidance:'}</strong>
                     <p style={{ fontSize: 13, color: "var(--text-dark)", marginTop: 4, margin: 0 }}>{irrResult.stageAdvice}</p>
                   </div>
 
@@ -790,15 +804,17 @@ const AITools = () => {
           <div className="grid-2">
             {/* Input Form */}
             <div className="card">
-              <h3>NPK Soil Nutrient Advisor</h3>
+              <h3>{language === 'mr' ? 'NPK माती पोषक सल्लागार' : 'NPK Soil Nutrient Advisor'}</h3>
               <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
-                Enter soil test values (N, P, K in kg/hectare) to calculate fertilizer bag dosage split schedules.
+                {language === 'mr' 
+                  ? 'खतांचे योग्य नियोजन करण्यासाठी माती चाचणीचे मूल्य (N, P, K किलो/हेक्टर) टाका.'
+                  : 'Enter soil test values (N, P, K in kg/hectare) to calculate fertilizer bag dosage split schedules.'}
               </p>
 
               <form onSubmit={handleCalculateFertilizer}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   <div>
-                    <label style={{ fontWeight: 600, fontSize: 13 }}>Target Crop</label>
+                    <label style={{ fontWeight: 600, fontSize: 13 }}>{language === 'mr' ? 'निवडलेले पीक' : 'Target Crop'}</label>
                     <select className="input" value={fertCrop} onChange={(e) => setFertCrop(e.target.value)}>
                       {Object.keys(CROP_NPK_TARGETS).map(crop => (
                         <option key={crop} value={crop}>{CROP_NPK_TARGETS[crop].name}</option>
@@ -807,12 +823,12 @@ const AITools = () => {
                   </div>
 
                   <div>
-                    <label style={{ fontWeight: 600, fontSize: 13 }}>Soil Type</label>
+                    <label style={{ fontWeight: 600, fontSize: 13 }}>{language === 'mr' ? 'मातीचा प्रकार' : 'Soil Type'}</label>
                     <select className="input" value={fertSoil} onChange={(e) => setFertSoil(e.target.value)}>
-                      <option value="sandy">Sandy Soil</option>
-                      <option value="loamy">Loamy Soil</option>
-                      <option value="clay">Clayey Soil</option>
-                      <option value="peaty">Peaty Soil</option>
+                      <option value="sandy">{language === 'mr' ? 'वाळूमय माती' : 'Sandy Soil'}</option>
+                      <option value="loamy">{language === 'mr' ? 'गाळाची/लोमी माती' : 'Loamy Soil'}</option>
+                      <option value="clay">{language === 'mr' ? 'चिकणमाती' : 'Clayey Soil'}</option>
+                      <option value="peaty">{language === 'mr' ? 'पीठमय माती (Peaty)' : 'Peaty Soil'}</option>
                     </select>
                   </div>
                 </div>

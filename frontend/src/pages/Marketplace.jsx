@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import api from "../api";
+import { useLanguage } from "../context/LanguageContext";
 
 const CATEGORIES = [
   { name: "All Products", icon: "📦", color: "#64748b" },
@@ -38,6 +39,7 @@ const SAMPLE_IMAGES = [
 ];
 
 const Marketplace = () => {
+  const { t, language } = useLanguage();
   const [products, setProducts] = useState([]);
   const [myListings, setMyListings] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -313,6 +315,17 @@ const Marketplace = () => {
     return key ? MARKET_REF_PRICES[key] : null;
   };
 
+  const displayCategoryName = (catName) => {
+    if (catName === "All Products") return language === 'mr' ? 'सर्व उत्पादने' : 'All Products';
+    if (catName === "Seeds") return language === 'mr' ? 'बियाणे' : 'Seeds';
+    if (catName === "Fertilizers") return language === 'mr' ? 'खते' : 'Fertilizers';
+    if (catName === "Tools") return language === 'mr' ? 'साधने' : 'Tools';
+    if (catName === "Equipment") return language === 'mr' ? 'अवजारे (Equipment)' : 'Equipment';
+    if (catName === "Pesticides") return language === 'mr' ? 'कीटकनाशके' : 'Pesticides';
+    if (catName === "Produce") return language === 'mr' ? 'कृषी उत्पन्न (Produce)' : 'Produce';
+    return catName;
+  };
+
   return (
     <main className="app-container" style={{ position: "relative" }}>
       {/* Banner */}
@@ -330,9 +343,9 @@ const Marketplace = () => {
         }}
       >
         <div>
-          <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0 }}>Kisan Bazaar</h1>
+          <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0 }}>{t("bazaarTitle")}</h1>
           <p style={{ opacity: 0.9, marginTop: 4, marginBottom: 0, fontSize: 14 }}>
-            Trade premium seeds, specialized tools, bio-fertilizers, or sell your own farm harvest directly to other farmers and wholesale merchants.
+            {t("bazaarSubtitle")}
           </p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
@@ -345,11 +358,11 @@ const Marketplace = () => {
                 setShowSellForm(false);
               }}
             >
-              {viewMode === "browse" ? "🚜 Seller Center" : "🛒 Browse Bazaar"}
+              {viewMode === "browse" ? t("bazaarSellerCenter") : t("bazaarBrowse")}
             </button>
           )}
           <button className="button" style={{ background: "#f59e0b" }} onClick={() => setIsCartOpen(true)}>
-            🛒 Cart ({cartItemCount})
+            {t("bazaarCart")} ({cartItemCount})
           </button>
         </div>
       </div>
@@ -358,7 +371,7 @@ const Marketplace = () => {
         <>
           {/* Categories Horizontal Grid */}
           <div style={{ margin: "24px 0" }}>
-            <h3 style={{ fontSize: 16, marginBottom: 12 }}>Filter by Category</h3>
+            <h3 style={{ fontSize: 16, marginBottom: 12 }}>{t("bazaarFilterCategory")}</h3>
             <div 
               style={{ 
                 display: "grid", 
@@ -384,7 +397,7 @@ const Marketplace = () => {
                   }}
                 >
                   <div style={{ fontSize: 24, marginBottom: 6 }}>{cat.icon}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dark)" }}>{cat.name}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dark)" }}>{displayCategoryName(cat.name)}</div>
                   <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
                     ({countsByCategory[cat.name] || 0})
                   </div>
@@ -408,7 +421,7 @@ const Marketplace = () => {
               <input
                 className="input"
                 style={{ width: "min(320px, 100%)", margin: 0 }}
-                placeholder="Search products, categories, sellers..."
+                placeholder={t("bazaarSearchPlaceholder")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -419,10 +432,10 @@ const Marketplace = () => {
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
-                <option value="popular">Popularity</option>
-                <option value="rating">Highest Rated</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
+                <option value="popular">{t("bazaarSortPopularity")}</option>
+                <option value="rating">{t("bazaarSortRating")}</option>
+                <option value="price-low">{t("bazaarSortPriceLow")}</option>
+                <option value="price-high">{t("bazaarSortPriceHigh")}</option>
               </select>
             </div>
 
@@ -432,11 +445,11 @@ const Marketplace = () => {
                 style={{ background: "#16a34a", margin: 0 }}
                 onClick={() => setShowSellForm(!showSellForm)}
               >
-                {showSellForm ? "Close Listing Form ✖" : "📢 List Surplus to Sell"}
+                {showSellForm ? t("bazaarCloseForm") : t("bazaarListSurplus")}
               </button>
             ) : (
               <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                🔐 Login to sell your items
+                {t("bazaarLoginToSell")}
               </div>
             )}
           </div>
@@ -445,15 +458,15 @@ const Marketplace = () => {
           {showSellForm && (
             <div className="card" style={{ border: "2px solid #16a34a", animation: "slideDown 0.25s ease", marginBottom: 24 }}>
               <h3 style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span>🌾</span> List Your Agriculture Item
+                <span>🌾</span> {t("bazaarListHarvestTitle")}
               </h3>
               <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>
-                Set your wholesale pricing, select category, upload or choose an image, and submit. Your listing appears instantly in the Bazaar catalog.
+                {t("bazaarListHarvestDesc")}
               </p>
 
               <form onSubmit={handleSellProduct} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
                 <div>
-                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Item / Crop Name *</label>
+                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>{t("bazaarItemName")}</label>
                   <input
                     type="text"
                     className="input"
@@ -465,23 +478,23 @@ const Marketplace = () => {
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                     <div>
-                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Category</label>
+                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>{t("bazaarCategory")}</label>
                       <select
                         className="input"
                         value={sellForm.category}
                         onChange={(e) => setSellForm({ ...sellForm, category: e.target.value })}
                       >
-                        <option value="Produce">Produce (Farmer Harvest)</option>
-                        <option value="Seeds">Seeds</option>
-                        <option value="Fertilizers">Fertilizers</option>
-                        <option value="Tools">Tools</option>
-                        <option value="Equipment">Equipment</option>
-                        <option value="Pesticides">Pesticides</option>
+                        <option value="Produce">{language === 'mr' ? 'कृषी उत्पन्न (Produce)' : 'Produce (Farmer Harvest)'}</option>
+                        <option value="Seeds">{language === 'mr' ? 'बियाणे' : 'Seeds'}</option>
+                        <option value="Fertilizers">{language === 'mr' ? 'खते' : 'Fertilizers'}</option>
+                        <option value="Tools">{language === 'mr' ? 'साधने' : 'Tools'}</option>
+                        <option value="Equipment">{language === 'mr' ? 'अवजारे (Equipment)' : 'Equipment'}</option>
+                        <option value="Pesticides">{language === 'mr' ? 'कीटकनाशके' : 'Pesticides'}</option>
                       </select>
                     </div>
 
                     <div>
-                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Sale Unit *</label>
+                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>{t("bazaarSaleUnit")}</label>
                       <input
                         type="text"
                         className="input"
@@ -495,7 +508,7 @@ const Marketplace = () => {
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                     <div>
-                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Wholesale Price (₹) *</label>
+                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>{t("bazaarWholesalePrice")}</label>
                       <input
                         type="number"
                         className="input"
@@ -510,7 +523,7 @@ const Marketplace = () => {
                       {/* Mandi Price Guideline badge */}
                       {getReferencePrice(sellForm.name) && (
                         <div style={{ fontSize: 11, background: "var(--primary-light)", color: "var(--primary-hover)", padding: "8px 10px", borderRadius: 8, fontWeight: 700 }}>
-                          📈 APMC: {getReferencePrice(sellForm.name).price}
+                          📈 {language === 'mr' ? 'बाजार भाव संदर्भ' : 'APMC'}: {getReferencePrice(sellForm.name).price}
                         </div>
                       )}
                     </div>
@@ -519,7 +532,7 @@ const Marketplace = () => {
                   {/* Category-Specific Form Fields */}
                   {sellForm.category === "Seeds" && (
                     <div style={{ animation: "fadeIn 0.2s" }}>
-                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Germination Rate (%)</label>
+                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>{t("bazaarSeedsGermination")}</label>
                       <input
                         type="number"
                         className="input"
@@ -534,7 +547,7 @@ const Marketplace = () => {
 
                   {sellForm.category === "Fertilizers" && (
                     <div style={{ animation: "fadeIn 0.2s" }}>
-                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>NPK Formula Ratio</label>
+                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>{t("bazaarFertilizersRatio")}</label>
                       <input
                         type="text"
                         className="input"
@@ -547,7 +560,7 @@ const Marketplace = () => {
 
                   {sellForm.category === "Produce" && (
                     <div style={{ animation: "fadeIn 0.2s" }}>
-                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Harvest Date</label>
+                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>{t("bazaarProduceHarvestDate")}</label>
                       <input
                         type="date"
                         className="input"
@@ -559,7 +572,7 @@ const Marketplace = () => {
                 </div>
 
                 <div>
-                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Item Description</label>
+                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>{t("bazaarItemDesc")}</label>
                   <textarea
                     className="input"
                     rows={3}
@@ -568,7 +581,7 @@ const Marketplace = () => {
                     onChange={(e) => setSellForm({ ...sellForm, description: e.target.value })}
                   />
 
-                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Choose Photo Preset (Or enter URL below)</label>
+                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>{t("bazaarPhotoPreset")}</label>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "6px 0 12px 0" }}>
                     {SAMPLE_IMAGES.map((img) => (
                       <button
@@ -611,7 +624,7 @@ const Marketplace = () => {
                   )}
 
                   <button type="submit" className="button" style={{ width: "100%", background: "#16a34a" }} disabled={sellLoading}>
-                    {sellLoading ? "Publishing listing..." : "Publish Listing in Bazaar 🚀"}
+                    {sellLoading ? t("bazaarPublishing") : t("bazaarPublishListing")}
                   </button>
                 </div>
               </form>
@@ -622,12 +635,12 @@ const Marketplace = () => {
           {loading ? (
             <div style={{ textAlign: "center", padding: "60px 0" }}>
               <span style={{ fontSize: 32 }}>🌾</span>
-              <h3>Loading Bazaar Inventory...</h3>
+              <h3>{t("bazaarLoadingInventory")}</h3>
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="card" style={{ textAlign: "center", padding: "60px 0" }}>
-              <h4>No products matched your filters.</h4>
-              <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>Try clearing search queries or checking other categories.</p>
+              <h4>{t("bazaarNoProductsMatched")}</h4>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>{t("bazaarTryClearing")}</p>
             </div>
           ) : (
             <div 
@@ -683,7 +696,7 @@ const Marketplace = () => {
                           fontWeight: 700
                         }}
                       >
-                        {p.stock}
+                        {p.stock === "In Stock" ? (language === 'mr' ? 'शिल्लक आहे' : 'In Stock') : (language === 'mr' ? 'विक्री झाली' : 'Sold Out')}
                       </span>
                     </div>
 
@@ -691,27 +704,27 @@ const Marketplace = () => {
                     <div style={{ display: "flex", flexDirection: "column", gap: 3, flexGrow: 1 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <span style={{ fontSize: 10, fontWeight: 700, color: "#16a34a", textTransform: "uppercase" }}>
-                          {p.category}
+                          {displayCategoryName(p.category)}
                         </span>
                         {p.sellerId && (
                           <span style={{ fontSize: 9, background: "#dbeafe", color: "#1e40af", padding: "1px 4px", borderRadius: 4, fontWeight: 700 }}>
-                            👨‍🌾 Farmer Direct
+                            {t("bazaarFarmerDirect")}
                           </span>
                         )}
                       </div>
                       
                       <strong style={{ fontSize: 15, color: "var(--text-dark)", display: "block" }}>{p.name}</strong>
-                      <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Seller: {p.seller}</span>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{language === 'mr' ? 'विक्रेता' : 'Seller'}: {p.seller}</span>
                       
                       <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#eab308" }}>
                         <span>⭐ {p.rating.toFixed(1)}</span>
-                        <span style={{ color: "var(--text-muted)" }}>({p.reviews || 0} reviews)</span>
+                        <span style={{ color: "var(--text-muted)" }}>({p.reviews || 0} {language === 'mr' ? 'पुनरावलोकने' : 'reviews'})</span>
                       </div>
 
                       {/* Display referenced mandi prices */}
                       {refPrice && (
                         <div style={{ fontSize: 11, color: "var(--primary-hover)", background: "var(--primary-light)", padding: "4px 8px", borderRadius: 6, marginTop: 4, fontWeight: 600 }}>
-                          📈 Mandi Ref: {refPrice.price}
+                          📈 {t("bazaarMandiRef")}: {refPrice.price}
                         </div>
                       )}
                     </div>
@@ -727,7 +740,7 @@ const Marketplace = () => {
                         disabled={p.stock === "Sold Out"}
                         onClick={(e) => handleAddToCart(p, e)}
                       >
-                        + Add 🛒
+                        {t("bazaarAddToCart")}
                       </button>
                     </div>
                   </div>

@@ -219,28 +219,9 @@ const Login = () => {
                 </button>
               </form>
 
-              {/* Divider */}
-              <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "20px 0" }}>
-                <hr style={{ flex: 1, borderColor: "var(--border-color)" }} />
-                <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 700 }}>OR SIGN IN WITH</span>
-                <hr style={{ flex: 1, borderColor: "var(--border-color)" }} />
-              </div>
 
-              {/* SSO Google login */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center", marginBottom: 24 }}>
-                <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
-                  <GoogleLogin onSuccess={handleGoogleSuccess} onError={handleGoogleError} />
-                </div>
-                
-                <button
-                  type="button"
-                  className="button button-secondary"
-                  style={{ width: "100%", fontSize: 13, borderColor: "#4285f4", color: "#4285f4", padding: "8px 16px" }}
-                  onClick={handleSimulatedGoogleLogin}
-                >
-                  🌐 Simulated Google Login (Bypass)
-                </button>
-              </div>
+              <div style={{ margin: "20px 0" }}></div>
+
 
               <p style={{ textAlign: "center", fontSize: 13.5, color: "var(--text-muted)" }}>
                 New to Smart Kisan? <Link to="/register" style={{ color: "var(--primary)", fontWeight: 700 }}>Create an account</Link>

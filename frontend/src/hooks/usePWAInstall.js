@@ -48,8 +48,7 @@ const usePWAInstall = () => {
 
   const installApp = async () => {
     if (!deferredPrompt) {
-      // Fallback: show manual instructions
-      alert('To install Smart Kisan:\n\n📱 Android Chrome: Tap the menu (⋮) → "Add to Home screen"\n🍎 iPhone Safari: Tap Share (□↑) → "Add to Home Screen"');
+      alert('To install Smart Kisan:\n\n📱 Android Chrome: Tap the menu (⋮) → "Add to Home screen"');
       return;
     }
     try {

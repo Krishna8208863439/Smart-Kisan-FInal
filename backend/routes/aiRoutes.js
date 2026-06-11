@@ -3,27 +3,37 @@ import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Multilingual fallback content for offline/no-key mode
+// Multilingual fallback content for offline/no-key mode with correct agricultural facts
 const FALLBACK_RESPONSES = {
   en: {
-    greeting: "Hello! I am Kisan AI, your agricultural assistant. Ask me anything about crop diseases, fertilizers, watering, or sowing schedules!",
-    pest: "For pest control:\n- Use Neem oil spray for aphids and mites.\n- Apply ash to ward off beetles.\n- Maintain crop rotation to break pest lifecycles.",
-    soil: "For healthy soil, practice organic manuring. Apply compost, bio-fertilizers (Azotobacter, Rhizobium), and crop residues to boost organic carbon content.",
-    tomato: "Tomato cultivation tips:\n- Sowing temp: 21-24°C.\n- Watering: Keep soil moist but not waterlogged. Water deeply once a week.\n- Deficiencies: Calcium deficiency causes blossom end rot. Spray calcium chloride.",
-    rice: "Paddy/Rice tips:\n- Maintain 5cm water level in fields during early tillering to flowering stages.\n- Split nitrogen applications (basal, tillering, panicle initiation).\n- Monitor for Blast disease (spindle-shaped leaf spots).",
-    fertilizer: "Fertilizer advice: Test your soil before application. Apply Nitrogen (N) for vegetative growth, Phosphorus (P) for root development, and Potassium (K) for crop disease resistance and quality fruits.",
-    irrigation: "Irrigation advice: Drip irrigation saves up to 50% water. Water crops during early morning or late evening to minimize evaporation losses.",
-    default: "I recommend checking local soil nutrient levels, monitoring daily weather forecasts, and adjusting crop schedules. Let me know if you want detailed info on crops like Tomato, Paddy, Wheat, or pest controls!"
+    greeting: "Namaste! Welcome to Kisan AI Assistant. How can I help you today with your farming decisions?",
+    pest: "For whiteflies control:\n- Install Yellow Sticky Traps (15-20 traps per acre) to trap flying insects.\n- Spray Neem Oil (3000 ppm) at 3-5 ml per litre of water organic detergent.\n- For severe attacks, apply systemic Acetamiprid 20% SP (0.2 g/L) or Diafenthiuron 50% WP (1.2 g/L) chemical sprays.",
+    soil: "For healthy soil:\n- Practice organic manuring by applying 10-15 tons of farmyard manure or vermicompost.\n- Apply bio-fertilizers (Azotobacter for Nitrogen fixation, PSB for Phosphorus solubilizing, and KMB for Potassium mobilizing) to improve soil microbiology.",
+    tomato: "Tomato cultivation & fertilizer guidelines:\n- Require NPK in a 120:60:60 kg/ha ratio.\n- Sowing temperature: 21-24°C.\n- Watering: Irrigate weekly, keeping soil moist but avoid waterlogging to prevent damping-off.\n- Deficiency: Calcium deficit causes blossom end rot. Spray Calcium Chloride (0.5%) at flowering.",
+    rice: "Paddy/Rice leaf blast (Alternaria/Blast) treatment:\n- Spray Tricyclazole 75% WP (0.6 g/L) or Carbendazim 50% WP (1.0 g/L).\n- Maintain a shallow water level of 5cm in puddled fields.\n- Reduce excess Nitrogen (Urea) applications during active leaf spotting.",
+    fertilizer: "General fertilizer advice:\n- Conduct a soil test first to map deficiencies.\n- Apply Nitrogen (N) for vegetative foliage growth, Phosphorus (P) for deep root establishment, and Potassium (K) for crop disease resistance and heavy yield quality.",
+    irrigation: "Wheat watering schedule:\n- Water at the 6 critical growth stages:\n1. Crown Root Initiation (CRI) at 21 days (most critical - irrigate immediately!)\n2. Tillering at 40-45 days\n3. Jointing at 60-65 days\n4. Flowering at 80-85 days\n5. Milking stage at 100-105 days\n6. Dough stage at 115-120 days.",
+    default: "I recommend checking local soil nutrient levels, monitoring daily weather forecasts, and adjusting crop schedules. Ask me about Tomato fertilizer, Paddy blast, Wheat watering, or Whiteflies control!"
   },
   hi: {
-    greeting: "नमस्ते! मैं किसान एआई हूं, आपका कृषि सहायक। मुझसे फसल के रोगों, खादों, सिंचाई या बुवाई के बारे में कुछ भी पूछें!",
-    pest: "कीट नियंत्रण के लिए:\n- एफिड्स और माइट्स के लिए नीम के तेल का स्प्रे करें।\n- बीटल्स को दूर रखने के लिए लकड़ी की राख का छिड़काव करें।\n- फसल चक्र अपनाएं ताकि कीटों का चक्र टूट सके।",
-    soil: "स्वस्थ मिट्टी के लिए जैविक खाद का उपयोग करें। जैविक कार्बन बढ़ाने के लिए कम्पोस्ट, जैव-उर्वरक (राइजोबियम) और फसल अवशेष डालें।",
-    tomato: "टमाटर की खेती के टिप्स:\n- बुवाई तापमान: 21-24°C।\n- सिंचाई: मिट्टी नम रखें पर जलभराव न होने दें। सप्ताह में एक बार गहरी सिंचाई करें।\n- पोषण कमी: कैल्शियम की कमी से फल सड़ते हैं। कैल्शियम क्लोराइड का स्प्रे करें।",
-    rice: "धान/चावल के टिप्स:\n- कल्ले फूटते समय और फूल आते समय खेत में 5 सेमी पानी का स्तर बनाए रखें।\n- नाइट्रोजन को तीन भागों में विभाजित करके डालें (बुवाई, कल्ले फुटाव, और बालियाँ आते समय)।",
-    fertilizer: "उर्वरक सलाह: प्रयोग से पहले मिट्टी की जांच अवश्य करें। पत्तियों की वृद्धि के लिए नाइट्रोजन, जड़ों के विकास के लिए फास्फोरस, और फलों की गुणवत्ता व रोग प्रतिरोधक क्षमता के लिए पोटेशियम डालें।",
-    irrigation: "सिंचाई सलाह: टपक सिंचाई (Drip irrigation) से 50% तक पानी बचता है। वाष्पीकरण से बचने के लिए सुबह जल्दी या शाम को पानी दें।",
-    default: "मैं स्थानीय मिट्टी की जांच करने, दैनिक मौसम पूर्वानुमान पर नजर रखने और फसल कार्यक्रम को समायोजित करने की सलाह देता हूं। टमाटर, धान, गेहूं या कीट नियंत्रण के बारे में पूछें!"
+    greeting: "नमस्ते! किसान एआई असिस्टेंट में आपका स्वागत है। आज मैं आपकी कृषि निर्णयों में कैसे मदद कर सकता हूँ?",
+    pest: "सफ़ेद मक्खी (Whiteflies) नियंत्रण के लिए:\n- पीली चिपचिपी जालियां (15-20 ट्रैप प्रति एकड़) लगाएं।\n- नीम का तेल (3000 ppm) 3-5 मिली प्रति लीटर पानी में मिलाकर स्प्रे करें।\n- गंभीर स्थिति में, एसिटामिप्रिड 20% एसपी (0.2 ग्राम/लीटर) का छिड़काव करें।",
+    soil: "स्वस्थ मिट्टी के लिए:\n- खेत की तैयारी के समय 10-15 टन जैविक कम्पोस्ट या केंचुआ खाद डालें।\n- राइजोबियम, पीएसबी (PSB) और एज़ोटोबैक्टर जैव-उर्वरकों का उपयोग करें ताकि मिट्टी की उर्वरकता बढ़े।",
+    tomato: "टमाटर की खेती और उर्वरक सलाह:\n- टमाटर के लिए NPK अनुपात 120:60:60 किलोग्राम प्रति हेक्टेयर होना चाहिए।\n- तापमान 21-24°C बुवाई के लिए उत्तम है। सप्ताह में एक बार गहरी सिंचाई करें।\n- कैल्शियम की कमी से फल सड़ते हैं (Blossom end rot)। कैल्शियम क्लोराइड (0.5%) का स्प्रे करें।",
+    rice: "धान में ब्लास्ट रोग का उपचार:\n- ट्राइसाइक्लाजोल 75% डब्ल्यूपी (0.6 ग्राम/लीटर) या कार्बेन्डाजिम 50% डब्ल्यूपी (1 ग्राम/लीटर) का छिड़काव करें।\n- नाइट्रोजन (यूरिया) का अत्यधिक उपयोग रोकें। खेत में 5 सेमी पानी का स्तर बनाए रखें।",
+    fertilizer: "उर्वरक सलाह: पत्तियों की वृद्धि के लिए नाइट्रोजन, जड़ों के विकास के लिए फास्फोरस, और जड़ों को रोग प्रतिरोधक क्षमता व गुणवत्ता के लिए पोटेशियम का सही मात्रा में छिड़काव करें।",
+    irrigation: "गेहूं की सिंचाई का समयपत्रक:\nगेहूं की फसल में ६ प्रमुख चरणों में सिंचाई अवश्य करें:\n१. क्राउन रूट इनिशिएशन (CRI) - २१ दिनों में (सबसे महत्वपूर्ण!)\n२. कल्ले फूटने पर - ४०-४५ दिन\n३. गांठे बनने पर - ६०-६५ दिन\n४. फूल आने पर - ८०-८५ दिन\n५. दूध बनने की अवस्था - १००-१०५ दिन\n६. दाना पकने पर - ११५-१२० दिन।",
+    default: "मैं मिट्टी की जांच करने, दैनिक मौसम पूर्वानुमान पर नजर रखने और फसल कार्यक्रम को बदलने की सलाह देता हूं। टमाटर खाद, धान ब्लास्ट, गेहूं सिंचाई या कीट नियंत्रण के बारे में पूछें!"
+  },
+  mr: {
+    greeting: "नमस्ते! किसान एआई सहाय्यकामध्ये आपले स्वागत आहे. आज मी आपल्या शेतीच्या निर्णयांमध्ये कशी मदत करू शकतो?",
+    pest: "पांढऱ्या माशीच्या (Whiteflies) नियंत्रणासाठी:\n- पिवळे चिकट सापळे (१५-२० सापळे प्रति एकर) शेतात लावा.\n- लिंबोळी तेल (३००० ppm) ३-५ मिली प्रति लीटर पाण्यात मिसळून फवारा.\n- प्रादुर्भाव जास्त असल्यास, ॲसिटामिप्रीड २०% एसपी (०.२ ग्रॅम/लीटर) किंवा डायफेंथियुरॉन ५०% डब्ल्यूपी (१.२ ग्रॅम/लीटर) रसायनांची फवारणी करा.",
+    soil: "सेंद्रिय खत तयार करण्यासाठी व जमिनीच्या आरोग्यासाठी:\n- शेत तयार करताना प्रति एकर १०-१५ टन शेणखत किंवा गांडूळ खत वापरा.\n- जैविक खते जसे की अझोटोबॅक्टर (नायट्रोजन स्थिर करण्यासाठी) आणि पीएसबी (PSB - स्फुरद विरघळवण्यासाठी) यांचा वापर करा.",
+    tomato: "टोमॅटोसाठी सर्वोत्तम खत नियोजन:\n- टोमॅटो पिकासाठी नायट्रोजन, स्फुरद आणि पालाश (NPK) १२०:६०:६० किलो प्रति हेक्टर प्रमाणात आवश्यक आहे.\n- बुजविलेले रोप लावणीच्या वेळी आणि फुलधारणेच्या वेळी खतांचे योग्य डोस द्या. पानांवर कॅल्शियमची कमतरता टाळण्यासाठी कॅल्शियम क्लोराइड (०.५%) फवारा.",
+    rice: "भातावरील करपा (Blast) रोगाचा उपचार:\n- ट्रायसायक्लाझोल ७५% डब्ल्यूपी (०.६ ग्रॅम/लीटर) किंवा कार्बेन्डाझिम ५०% डब्ल्यूपी (१.० ग्रॅम/लीटर) ची फवारणी करा.\n- शेतात पाण्याचा योग्य निचरा ठेवा आणि ५ सेमी पाणी साठवून ठेवा.\n- रोगट प्रादुर्भाव दिसताच युरियाचा अतिरिक्त वापर थांबवा.",
+    fertilizer: "खत सल्ला: पिकाची वाढ होण्यासाठी नायट्रोजन, मुळे मजबूत होण्यासाठी स्फुरद, आणि रोगप्रतिकारक शक्ती वाढवण्यासाठी पालाश खतांचा संतुलित वापर करा.",
+    irrigation: "गहू पिकाचे सिंचन वेळापत्रक (६ महत्त्वाचे टप्पे):\n१. मुकुट मूळ सुरू होणे (CRI stage) - २१ दिवसांनी (अतिशय महत्त्वाचे - लगेच पाणी द्या!)\n२. फुटवे येणे (Tillering) - ४०-४५ दिवसांनी\n३. कांडी धरणे (Jointing) - ६०-६५ दिवसांनी\n४. फुलारा (Flowering) - ८०-८५ दिवसांनी\n१. दुधाळ अवस्था (Milking) - १००-१०५ दिवसांनी\n६. दाणे भरणे (Dough stage) - ११५-१२० दिवसांनी.",
+    default: "मी जमिनीची चाचणी करण्याचे, हवामान अंदाज तपासण्याचे आणि पीक नियोजनात सुधारणा करण्याचे सुचवतो. मला टोमॅटो खत, भातावरील करपा, गहू सिंचन किंवा पांढऱ्या माशी नियंत्रण याबद्दल विचारा!"
   }
 };
 
@@ -86,19 +96,19 @@ router.post("/chat", protect, async (req, res) => {
   const dict = FALLBACK_RESPONSES[lang] || FALLBACK_RESPONSES["en"];
   let reply = dict.default;
 
-  if (userMessage.includes("hello") || userMessage.includes("hi") || userMessage.includes("नमस्ते") || userMessage.includes("हैलो")) {
+  if (userMessage.includes("hello") || userMessage.includes("hi") || userMessage.includes("नमस्ते") || userMessage.includes("हैलो") || userMessage.includes("नमस्कार")) {
     reply = dict.greeting;
-  } else if (userMessage.includes("pest") || userMessage.includes("insect") || userMessage.includes("कीट") || userMessage.includes("कीड़ा")) {
+  } else if (userMessage.includes("pest") || userMessage.includes("insect") || userMessage.includes("कीट") || userMessage.includes("कीड़ा") || userMessage.includes("कीड") || userMessage.includes("माशी")) {
     reply = dict.pest;
-  } else if (userMessage.includes("soil") || userMessage.includes("mitti") || userMessage.includes("मिट्टी") || userMessage.includes("भूमि")) {
+  } else if (userMessage.includes("soil") || userMessage.includes("mitti") || userMessage.includes("मिट्टी") || userMessage.includes("भूमि") || userMessage.includes("माती") || userMessage.includes("जमीन")) {
     reply = dict.soil;
-  } else if (userMessage.includes("tomato") || userMessage.includes("tamatar") || userMessage.includes("टमाटर")) {
+  } else if (userMessage.includes("tomato") || userMessage.includes("tamatar") || userMessage.includes("टमाटर") || userMessage.includes("टोमॅटो")) {
     reply = dict.tomato;
-  } else if (userMessage.includes("rice") || userMessage.includes("paddy") || userMessage.includes("धान") || userMessage.includes("चावल")) {
+  } else if (userMessage.includes("rice") || userMessage.includes("paddy") || userMessage.includes("धान") || userMessage.includes("चावल") || userMessage.includes("भात") || userMessage.includes("करपा")) {
     reply = dict.rice;
-  } else if (userMessage.includes("fertilizer") || userMessage.includes("khad") || userMessage.includes("खाद") || userMessage.includes("यूरिया")) {
+  } else if (userMessage.includes("fertilizer") || userMessage.includes("khad") || userMessage.includes("खाद") || userMessage.includes("यूरिया") || userMessage.includes("युरिया")) {
     reply = dict.fertilizer;
-  } else if (userMessage.includes("water") || userMessage.includes("irrigation") || userMessage.includes("sinchai") || userMessage.includes("सिंचाई") || userMessage.includes("पानी")) {
+  } else if (userMessage.includes("water") || userMessage.includes("irrigation") || userMessage.includes("sinchai") || userMessage.includes("सिंचाई") || userMessage.includes("पानी") || userMessage.includes("सिंचन") || userMessage.includes("गहू")) {
     reply = dict.irrigation;
   }
 

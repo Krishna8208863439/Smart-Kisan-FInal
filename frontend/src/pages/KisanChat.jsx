@@ -1,27 +1,61 @@
 import React, { useState, useEffect, useRef } from "react";
 import api from "../api";
+import { useLanguage } from "../context/LanguageContext";
 
-const CHIPS = [
-  "What fertilizer is best for tomato?",
-  "How to treat early blight in paddy?",
-  "Tips for organic composting",
-  "How often should I water wheat?",
-  "Whiteflies control recommendations"
-];
+const CHIPS_TRANSLATIONS = {
+  en: [
+    "What fertilizer is best for tomato?",
+    "How to treat early blight in paddy?",
+    "Tips for organic composting",
+    "How often should I water wheat?",
+    "Whiteflies control recommendations"
+  ],
+  hi: [
+    "टमाटर के लिए कौन सा उर्वरक सबसे अच्छा है?",
+    "धान में झुलसा रोग का इलाज कैसे करें?",
+    "जैविक खाद बनाने के टिप्स",
+    "गेहूं में सिंचाई कब करनी चाहिए?",
+    "सफेद मक्खियों के नियंत्रण के उपाय"
+  ],
+  mr: [
+    "टोमॅटोसाठी कोणते खत सर्वोत्तम आहे?",
+    "भातावरील करपा रोगावर काय उपाय करावा?",
+    "सेंद्रिय खत तयार करण्याच्या टिप्स",
+    "गव्हाला किती वेळा पाणी द्यावे?",
+    "पांढऱ्या माशीच्या नियंत्रणासाठी शिफारसी"
+  ]
+};
 
 const KisanChat = () => {
-  const [messages, setMessages] = useState([
-    {
-      sender: "ai",
-      text: "Namaste! Welcome to Kisan AI Assistant. How can I help you today with your farming decisions?",
-      timestamp: new Date()
-    }
-  ]);
+  const { language: contextLang, t } = useLanguage();
+  const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
-  const [language, setLanguage] = useState("en");
+  const [language, setLanguage] = useState(contextLang === 'mr' ? 'mr' : 'en');
   const [loading, setLoading] = useState(false);
   const [customKey, setCustomKey] = useState(localStorage.getItem("sk_gemini_key") || "");
   const [showKeyConfig, setShowKeyConfig] = useState(false);
+
+  useEffect(() => {
+    if (contextLang) {
+      setLanguage(contextLang === 'mr' ? 'mr' : 'en');
+    }
+  }, [contextLang]);
+
+  useEffect(() => {
+    const welcomeText = language === 'mr'
+      ? "नमस्ते! किसान एआई सहाय्यकामध्ये आपले स्वागत आहे. आज मी आपल्या शेतीच्या निर्णयांमध्ये कशी मदत करू शकतो?"
+      : language === 'hi'
+      ? "नमस्ते! किसान एआई असिस्टेंट में आपका स्वागत है। आज मैं आपकी कृषि निर्णयों में कैसे मदद कर सकता हूँ?"
+      : "Namaste! Welcome to Kisan AI Assistant. How can I help you today with your farming decisions?";
+    
+    setMessages([
+      {
+        sender: "ai",
+        text: welcomeText,
+        timestamp: new Date()
+      }
+    ]);
+  }, [language]);
   
   const chatEndRef = useRef(null);
 
@@ -99,13 +133,15 @@ const KisanChat = () => {
         
         {/* Left Side: Controls & Info */}
         <aside className="chat-sidebar">
-          <h2>Kisan AI Copilot</h2>
+          <h2>{language === 'mr' ? 'किसान एआय को-पायलट' : 'Kisan AI Copilot'}</h2>
           <p style={{ fontSize: 13, color: "var(--text-muted)" }}>
-            An intelligent advisor designed to assist with crop diagnosis, watering advice, and soil nutrient planning.
+            {language === 'mr' 
+              ? 'पीक निदान, पाणी व्यवस्थापन आणि मातीचे खत नियोजन यासाठी शेती सहाय्यक.' 
+              : 'An intelligent advisor designed to assist with crop diagnosis, watering advice, and soil nutrient planning.'}
           </p>
 
           <div>
-            <label>Select Language</label>
+            <label>{language === 'mr' ? 'भाषा निवडा' : 'Select Language'}</label>
             <select
               className="input"
               value={language}
@@ -113,6 +149,7 @@ const KisanChat = () => {
               style={{ marginTop: 4 }}
             >
               <option value="en">English</option>
+              <option value="mr">मराठी (Marathi)</option>
               <option value="hi">हिन्दी (Hindi)</option>
             </select>
           </div>
@@ -123,17 +160,19 @@ const KisanChat = () => {
               style={{ width: "100%" }}
               onClick={() => setShowKeyConfig(!showKeyConfig)}
             >
-              ⚙️ Gemini Key Config
+              {language === 'mr' ? '⚙️ जेमिनी की कॉन्फिगरेशन' : '⚙️ Gemini Key Config'}
             </button>
             <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6, textAlign: "center" }}>
-              {customKey ? "✅ Custom key enabled" : "⚠️ Running in offline/standard mode"}
+              {language === 'mr'
+                ? (customKey ? "✅ सानुकूल की सक्रिय केली" : "⚠️ ऑफलाइन / मानक मोडमध्ये चालू")
+                : (customKey ? "✅ Custom key enabled" : "⚠️ Running in offline/standard mode")}
             </p>
           </div>
 
           {showKeyConfig && (
             <div className="card" style={{ marginTop: 12, padding: 12, border: "1px solid var(--accent)" }}>
               <form onSubmit={handleSaveKey}>
-                <label style={{ fontSize: 12 }}>Enter Google Gemini API Key</label>
+                <label style={{ fontSize: 12 }}>{language === 'mr' ? 'गुगल जेमिनी API की टाका' : 'Enter Google Gemini API Key'}</label>
                 <input
                   type="password"
                   className="input"
@@ -144,7 +183,7 @@ const KisanChat = () => {
                 />
                 <div style={{ display: "flex", gap: 8 }}>
                   <button type="submit" className="button" style={{ padding: "4px 8px", fontSize: 12 }}>
-                    Save
+                    {language === 'mr' ? 'जतन करा' : 'Save'}
                   </button>
                   <button 
                     type="button" 
@@ -155,7 +194,7 @@ const KisanChat = () => {
                       localStorage.removeItem("sk_gemini_key");
                     }}
                   >
-                    Clear
+                    {language === 'mr' ? 'साफ करा' : 'Clear'}
                   </button>
                 </div>
               </form>
@@ -169,12 +208,12 @@ const KisanChat = () => {
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ fontSize: 24 }}>🤖</div>
               <div>
-                <h3 style={{ fontSize: 16 }}>Kisan AI</h3>
-                <p style={{ fontSize: 11, opacity: 0.85 }}>Your Smart Farm Advisor</p>
+                <h3 style={{ fontSize: 16 }}>{language === 'mr' ? 'किसान एआय' : 'Kisan AI'}</h3>
+                <p style={{ fontSize: 11, opacity: 0.85 }}>{language === 'mr' ? 'तुमचा स्मार्ट शेती सल्लागार' : 'Your Smart Farm Advisor'}</p>
               </div>
             </div>
             <div style={{ fontSize: 12, background: "rgba(255,255,255,0.2)", padding: "4px 8px", borderRadius: 4 }}>
-              Multilingual Advisor
+              {language === 'mr' ? 'बहुभाषिक सल्लागार' : 'Multilingual Advisor'}
             </div>
           </header>
 
@@ -188,7 +227,7 @@ const KisanChat = () => {
                 <div>{m.text}</div>
                 {m.source && (
                   <div style={{ fontSize: 9, opacity: 0.7, textAlign: "right", marginTop: 4 }}>
-                    via {m.source === "gemini" ? "Google Gemini" : "Local Kisan Database"}
+                    {language === 'mr' ? 'द्वारे' : 'via'} {m.source === "gemini" ? "Google Gemini" : (language === 'mr' ? "स्थानिक किसान डेटाबेस" : "Local Kisan Database")}
                   </div>
                 )}
               </div>
@@ -196,7 +235,7 @@ const KisanChat = () => {
             
             {loading && (
               <div className="chat-bubble chat-bubble-ai" style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                <span style={{ fontSize: 12 }}>Thinking...</span>
+                <span style={{ fontSize: 12 }}>{language === 'mr' ? 'विचार करत आहे...' : 'Thinking...'}</span>
               </div>
             )}
             <div ref={chatEndRef} />
@@ -204,7 +243,7 @@ const KisanChat = () => {
 
           {/* Prompt Chips */}
           <div className="chat-chips">
-            {CHIPS.map((chip, idx) => (
+            {(CHIPS_TRANSLATIONS[language] || CHIPS_TRANSLATIONS.en).map((chip, idx) => (
               <button 
                 key={idx} 
                 type="button" 
@@ -222,7 +261,7 @@ const KisanChat = () => {
               type="text"
               className="input"
               style={{ flex: 1, margin: 0 }}
-              placeholder="Ask about soil, crops, fertilizers, irrigation..."
+              placeholder={language === 'mr' ? 'माती, पिके, खते, सिंचन याबद्दल विचारा...' : 'Ask about soil, crops, fertilizers, irrigation...'}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={(e) => {
@@ -234,7 +273,7 @@ const KisanChat = () => {
               onClick={() => handleSendMessage(inputText)}
               disabled={loading || !inputText.trim()}
             >
-              Send 🚀
+              {language === 'mr' ? 'पाठवा 🚀' : 'Send 🚀'}
             </button>
           </div>
         </main>

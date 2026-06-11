@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import usePWAInstall from '../hooks/usePWAInstall';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
+  const { language, toggleLanguage, t } = useLanguage();
   const { isInstallable, isInstalled, installApp } = usePWAInstall();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -29,31 +31,41 @@ const Navbar = () => {
       <nav className={`nav-bar ${scrolled ? 'nav-bar-scrolled' : ''}`}>
         <div className="nav-container">
           <Link to="/" className="nav-logo" onClick={() => setMenuOpen(false)}>
-            🌾 Smart Kisan
+            🌾 {t('title')}
           </Link>
 
           {/* Desktop Links */}
           <div className="nav-links nav-links-desktop">
-            <NavLink to="/" className={navLinkClass} end>Home</NavLink>
+            <NavLink to="/" className={navLinkClass} end>{t('home')}</NavLink>
             {user && (
               <>
-                <NavLink to="/dashboard" className={navLinkClass}>Dashboard</NavLink>
-                <NavLink to="/chat" className={navLinkClass}>🤖 Chat</NavLink>
-                <NavLink to="/ai-tools" className={navLinkClass}>🛠️ AI Center</NavLink>
-                <NavLink to="/marketplace" className={navLinkClass}>🛒 Bazaar</NavLink>
-                <NavLink to="/forum" className={navLinkClass}>👥 Community</NavLink>
+                <NavLink to="/dashboard" className={navLinkClass}>{t('dashboard')}</NavLink>
+                <NavLink to="/chat" className={navLinkClass}>{t('chat')}</NavLink>
+                <NavLink to="/ai-tools" className={navLinkClass}>{t('aiCenter')}</NavLink>
+                <NavLink to="/marketplace" className={navLinkClass}>{t('bazaar')}</NavLink>
+                <NavLink to="/forum" className={navLinkClass}>{t('community')}</NavLink>
               </>
             )}
             {!user && (
               <>
-                <NavLink to="/login" className={navLinkClass}>Login</NavLink>
-                <NavLink to="/register" className={navLinkClass}>Register</NavLink>
+                <NavLink to="/login" className={navLinkClass}>{t('login')}</NavLink>
+                <NavLink to="/register" className={navLinkClass}>{t('register')}</NavLink>
               </>
             )}
           </div>
 
           {/* Right Controls */}
           <div className="nav-actions">
+            {/* Language Toggle */}
+            <button
+              className="nav-icon-btn"
+              onClick={toggleLanguage}
+              aria-label="Toggle language"
+              style={{ fontWeight: 800, minWidth: 62, justifyContent: 'center' }}
+            >
+              {language === 'en' ? 'मराठी' : 'EN'}
+            </button>
+
             {/* Dark Mode Toggle */}
             <button
               className="nav-icon-btn"
@@ -71,19 +83,19 @@ const Navbar = () => {
                 onClick={installApp}
                 aria-label="Install Smart Kisan App"
               >
-                📲 Install App
+                {t('installApp')}
               </button>
             )}
 
             {/* User info (desktop) */}
             {user && (
               <div className="nav-user nav-user-desktop">
-                <span className="nav-user-name">Hi, {user.name?.split(' ')[0]}</span>
+                <span className="nav-user-name">{t('hi')}, {user.name?.split(' ')[0]}</span>
                 <button
                   className="button nav-logout-btn"
                   onClick={logout}
                 >
-                  Logout
+                  {t('logout')}
                 </button>
               </div>
             )}
@@ -115,7 +127,7 @@ const Navbar = () => {
       {/* Mobile Side Drawer */}
       <aside className={`nav-drawer ${menuOpen ? 'nav-drawer-open' : ''}`} aria-label="Mobile menu">
         <div className="nav-drawer-header">
-          <span className="nav-logo" style={{ color: 'white', fontSize: 18 }}>🌾 Smart Kisan</span>
+          <span className="nav-logo" style={{ color: 'white', fontSize: 18 }}>🌾 {t('title')}</span>
           <button className="nav-icon-btn" onClick={() => setMenuOpen(false)} aria-label="Close menu">
             ✕
           </button>
@@ -131,27 +143,35 @@ const Navbar = () => {
           )}
 
           <nav className="nav-drawer-links">
-            <NavLink to="/" className={navLinkClass} end>🏠 Home</NavLink>
+            <NavLink to="/" className={navLinkClass} end>🏠 {t('home')}</NavLink>
             {user && (
               <>
-                <NavLink to="/dashboard" className={navLinkClass}>📊 Dashboard</NavLink>
-                <NavLink to="/chat" className={navLinkClass}>🤖 Kisan Chat</NavLink>
-                <NavLink to="/ai-tools" className={navLinkClass}>🛠️ AI Center</NavLink>
-                <NavLink to="/marketplace" className={navLinkClass}>🛒 Bazaar</NavLink>
-                <NavLink to="/forum" className={navLinkClass}>👥 Community</NavLink>
-                <NavLink to="/weather" className={navLinkClass}>☀️ Weather</NavLink>
-                <NavLink to="/market" className={navLinkClass}>📈 Mandi Prices</NavLink>
+                <NavLink to="/dashboard" className={navLinkClass}>📊 {t('dashboard')}</NavLink>
+                <NavLink to="/chat" className={navLinkClass}>{t('chat')}</NavLink>
+                <NavLink to="/ai-tools" className={navLinkClass}>{t('aiCenter')}</NavLink>
+                <NavLink to="/marketplace" className={navLinkClass}>{t('bazaar')}</NavLink>
+                <NavLink to="/forum" className={navLinkClass}>{t('community')}</NavLink>
+                <NavLink to="/weather" className={navLinkClass}>{t('weather')}</NavLink>
+                <NavLink to="/market" className={navLinkClass}>{t('mandiPrices')}</NavLink>
               </>
             )}
             {!user && (
               <>
-                <NavLink to="/login" className={navLinkClass}>🔑 Login</NavLink>
-                <NavLink to="/register" className={navLinkClass}>✍️ Register</NavLink>
+                <NavLink to="/login" className={navLinkClass}>🔑 {t('login')}</NavLink>
+                <NavLink to="/register" className={navLinkClass}>✍️ {t('register')}</NavLink>
               </>
             )}
           </nav>
 
           <div className="nav-drawer-footer">
+            <button
+              className="nav-icon-btn"
+              onClick={toggleLanguage}
+              style={{ gap: 8, fontSize: 14 }}
+            >
+              🌐 {language === 'en' ? 'मराठी (Marathi)' : 'English'}
+            </button>
+
             <button
               className="nav-icon-btn"
               onClick={toggleTheme}
@@ -166,7 +186,7 @@ const Navbar = () => {
                 onClick={installApp}
                 style={{ width: '100%', marginTop: 8, background: '#f59e0b' }}
               >
-                📲 Install App
+                {t('installApp')}
               </button>
             )}
 
@@ -176,7 +196,7 @@ const Navbar = () => {
                 onClick={logout}
                 style={{ width: '100%', marginTop: 8 }}
               >
-                🚪 Logout
+                🚪 {t('logout')}
               </button>
             )}
           </div>

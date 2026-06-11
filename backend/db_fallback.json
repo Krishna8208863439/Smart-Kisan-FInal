@@ -16,6 +16,15 @@
       "role": "farmer",
       "createdAt": "2026-06-02T21:24:46.962Z",
       "updatedAt": "2026-06-02T21:24:46.962Z"
+    },
+    {
+      "_id": "mem_y086qp2py_1781185994632",
+      "name": "Krishna Devadkar",
+      "email": "krishnadevadkar@gmail.com",
+      "password": "$2a$10$9CLgcpsDg.4ucDyCB5IO9O77s9bggJEk/un.x/76FcCLiqav0cTR6",
+      "role": "farmer",
+      "createdAt": "2026-06-11T13:53:14.632Z",
+      "updatedAt": "2026-06-11T13:53:14.632Z"
     }
   ],
   "posts": [],
