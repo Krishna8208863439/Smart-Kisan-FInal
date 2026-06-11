@@ -4,6 +4,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -94,7 +95,7 @@ function fakeDiseaseModel(imagePath, cropHint) {
 }
 
 // POST /api/crop-disease/analyze
-router.post("/analyze", upload.single("image"), async (req, res) => {
+router.post("/analyze", protect, upload.single("image"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: "No image uploaded" });

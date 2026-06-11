@@ -1,9 +1,10 @@
 import express from "express";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 // GET /api/learning
-router.get("/", (req, res) => {
+router.get("/", protect, (req, res) => {
   const lessons = [
     {
       id: 1,
