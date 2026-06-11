@@ -227,28 +227,7 @@ const Login = () => {
                 New to Smart Kisan? <Link to="/register" style={{ color: "var(--primary)", fontWeight: 700 }}>Create an account</Link>
               </p>
 
-              {/* Quick trial accounts section */}
-              <div className="demo-accounts-box">
-                <div className="demo-accounts-title">🔑 Quick Trial demo logins</div>
-                <div className="demo-buttons-row">
-                  <button 
-                    type="button" 
-                    className="demo-btn"
-                    onClick={() => handleDemoLogin("farmer")}
-                  >
-                    <span>🌾 Demo Farmer</span>
-                    <span style={{ fontSize: 9, opacity: 0.8 }}>Single-click login</span>
-                  </button>
-                  <button 
-                    type="button" 
-                    className="demo-btn"
-                    onClick={() => handleDemoLogin("merchant")}
-                  >
-                    <span>🛒 Demo Merchant</span>
-                    <span style={{ fontSize: 9, opacity: 0.8 }}>Single-click login</span>
-                  </button>
-                </div>
-              </div>
+
             </>
           )}
 
