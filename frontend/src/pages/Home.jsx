@@ -18,10 +18,6 @@ const FAQ_ITEMS = [
   {
     q: "Can I use Smart Kisan offline?",
     a: "Yes! Once installed as an app on your phone, Smart Kisan caches core pages for offline access. You can view your crop calendar, saved prices, and chatbot history even without internet."
-  },
-  {
-    q: "What languages does the AI chatbot support?",
-    a: "The Kisan AI Chatbot supports Hindi, English, Marathi, Punjabi, Telugu, Tamil, and more. Just type in your language and it will respond in kind."
   }
 ];
 
