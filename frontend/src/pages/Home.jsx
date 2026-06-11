@@ -257,53 +257,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* App Download CTA Section */}
-      <section className="download-cta-section" style={{ gridTemplateColumns: "1fr", textAlign: "center" }}>
-        <div className="download-cta-content" style={{ margin: "0 auto", maxWidth: 650 }}>
-          <h2 className="download-cta-title">{t("pwaCTA")}</h2>
-          <p className="download-cta-desc">
-            {t("pwaDesc")}
-          </p>
-          <div className="download-cta-steps" style={{ justifyContent: "center", display: "flex", flexWrap: "wrap", gap: 20, margin: "20px 0" }}>
-            <div className="download-step" style={{ textAlign: "center" }}>
-              <div className="download-step-num" style={{ margin: "0 auto 6px auto" }}>1</div>
-              <div>
-                <strong>{t("pwaStep1Title")}</strong>
-                <span>{t("pwaStep1Desc")}</span>
-              </div>
-            </div>
-            <div className="download-step" style={{ textAlign: "center" }}>
-              <div className="download-step-num" style={{ margin: "0 auto 6px auto" }}>2</div>
-              <div>
-                <strong>{t("pwaStep2Title")}</strong>
-                <span>{t("pwaStep2Desc")}</span>
-              </div>
-            </div>
-            <div className="download-step" style={{ textAlign: "center" }}>
-              <div className="download-step-num" style={{ margin: "0 auto 6px auto" }}>3</div>
-              <div>
-                <strong>{t("pwaStep3Title")}</strong>
-                <span>{t("pwaStep3Desc")}</span>
-              </div>
-            </div>
-          </div>
-          <div className="download-cta-buttons" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            {!isInstalled ? (
-              <button
-                className="button download-cta-btn"
-                onClick={installApp}
-                id="download-cta-install-btn"
-              >
-                {t("downloadFree")}
-              </button>
-            ) : (
-              <div className="download-installed-msg">
-                {t("installedSuccess")}
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
 
     </div>
   );

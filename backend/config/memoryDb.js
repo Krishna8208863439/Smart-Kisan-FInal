@@ -221,9 +221,47 @@ export const ProductMock = {
     writeDb(db);
     return formatted;
   },
-  find: () => {
+  find: (filter) => {
     const db = readDb();
-    return new MemoryQuery(Promise.resolve(db.products));
+    let result = db.products;
+    if (filter && filter.sellerId) {
+      result = result.filter((p) => String(p.sellerId) === String(filter.sellerId));
+    }
+    return new MemoryQuery(Promise.resolve(result));
+  },
+  findOne: async (filter) => {
+    const db = readDb();
+    const product = db.products.find((p) => {
+      const matchId = String(p._id) === String(filter._id);
+      if (!p.sellerId) return matchId;
+      return matchId && String(p.sellerId) === String(filter.sellerId);
+    });
+    if (!product) return null;
+    return {
+      ...product,
+      save: async function () {
+        const currentDb = readDb();
+        const index = currentDb.products.findIndex((p) => String(p._id) === String(this._id));
+        if (index !== -1) {
+          const { save, ...cleanData } = this;
+          currentDb.products[index] = cleanData;
+          writeDb(currentDb);
+        }
+        return this;
+      }
+    };
+  },
+  findOneAndDelete: async (filter) => {
+    const db = readDb();
+    const index = db.products.findIndex((p) => {
+      const matchId = String(p._id) === String(filter._id);
+      if (!p.sellerId) return matchId;
+      return matchId && String(p.sellerId) === String(filter.sellerId);
+    });
+    if (index === -1) return null;
+    const removed = db.products.splice(index, 1)[0];
+    writeDb(db);
+    return removed;
   },
   create: async (prodData) => {
     const db = readDb();
