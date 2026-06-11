@@ -1,26 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import usePWAInstall from "../hooks/usePWAInstall";
-
-const FAQ_ITEMS = [
-  {
-    q: "How does the AI Crop Disease detection model work?",
-    a: "It analyzes uploaded images of plant leaves to identify visual symptoms of blight, rust, or curls, combining it with crop-specific agronomy rules to suggest fungicide and water adjustments."
-  },
-  {
-    q: "Do I need to pay to use the Kisan AI Copilot?",
-    a: "No! The platform features a local rules-based engine which is 100% free. Users can optionally supply their own Google Gemini API keys to activate advanced multilingual AI conversations."
-  },
-  {
-    q: "How does the Farmers Bazaar handle payments?",
-    a: "It runs a direct peer-to-peer catalog system. Farmers list their price and contact, and buyers/merchants coordinate directly via the SMS-verified Kisan network with zero platform commissions."
-  },
-  {
-    q: "Can I use Smart Kisan offline?",
-    a: "Yes! Once installed as an app on your phone, Smart Kisan caches core pages for offline access. You can view your crop calendar, saved prices, and chatbot history even without internet."
-  }
-];
-
 const PREVIEWS = {
   Tomato: [
     { title: "Sowing in Nursery Bed", day: "Day 0", details: "Prepare fine soil bed and sow seeds 0.5 cm deep." },
@@ -56,7 +36,6 @@ const Home = () => {
   const [customCropName, setCustomCropName] = useState("");
   const [simDate, setSimDate] = useState(new Date().toISOString().split("T")[0]);
   const [timeline, setTimeline] = useState(null);
-  const [openFaq, setOpenFaq] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [bannerDismissed, setBannerDismissed] = useState(() =>
     localStorage.getItem('sk-banner-dismissed') === 'true'
@@ -372,39 +351,6 @@ const Home = () => {
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* FAQ Section */}
-      <section className="card" style={{ marginBottom: 24 }}>
-        <h3 style={{ marginBottom: 16 }}>❓ Frequently Asked Questions</h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {FAQ_ITEMS.map((item, idx) => (
-            <div key={idx} style={{ border: "1.5px solid var(--border-color)", borderRadius: 8, overflow: "hidden" }}>
-              <div
-                onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                style={{
-                  background: openFaq === idx ? "var(--primary-light)" : "var(--bg-card)",
-                  padding: "12px 16px",
-                  cursor: "pointer",
-                  fontWeight: 700,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  fontSize: 14.5,
-                  color: "var(--text-dark)"
-                }}
-              >
-                <span>{item.q}</span>
-                <span style={{ transition: "transform 0.2s", transform: openFaq === idx ? "rotate(45deg)" : "none" }}>➕</span>
-              </div>
-              {openFaq === idx && (
-                <div style={{ padding: 16, background: "var(--bg-card)", fontSize: 13.5, color: "var(--text-muted)", borderTop: "1.5px solid var(--border-color)", lineHeight: 1.6 }}>
-                  {item.a}
-                </div>
-              )}
-            </div>
-          ))}
         </div>
       </section>
     </div>
