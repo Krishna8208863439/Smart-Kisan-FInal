@@ -14,7 +14,7 @@ const SEED_PRODUCTS = [
     price: 850,
     unit: "/kg",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1506619216599-9d16d0903dfd?auto=format&fit=crop&w=900&q=80"
+    image: "http://localhost:5000/uploads/organic_wheat_seeds.png"
   },
   {
     name: "Bio-Fertilizer NPK",
@@ -25,7 +25,7 @@ const SEED_PRODUCTS = [
     price: 1200,
     unit: "/25kg bag",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1601004890684-d8cbf643f5f2?auto=format&fit=crop&w=900&q=80"
+    image: "http://localhost:5000/uploads/bio_fertilizer_npk.png"
   },
   {
     name: "Drip Irrigation Kit",
@@ -36,7 +36,7 @@ const SEED_PRODUCTS = [
     price: 15000,
     unit: "/set",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=900&q=80"
+    image: "http://localhost:5000/uploads/drip_irrigation_kit.png"
   },
   {
     name: "Hybrid Maize Seeds",
@@ -47,7 +47,7 @@ const SEED_PRODUCTS = [
     price: 950,
     unit: "/kg",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1524594154908-edd360252e60?auto=format&fit=crop&w=900&q=80"
+    image: "http://localhost:5000/uploads/hybrid_maize_seeds.png"
   },
   {
     name: "Liquid Micro-Nutrient Mix",
@@ -58,7 +58,7 @@ const SEED_PRODUCTS = [
     price: 480,
     unit: "/litre",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1518595088350-4c9392ee05b3?auto=format&fit=crop&w=900&q=80"
+    image: "http://localhost:5000/uploads/liquid_micronutrient.png"
   },
   {
     name: "Hand Sprayer Pump",
@@ -69,7 +69,7 @@ const SEED_PRODUCTS = [
     price: 2200,
     unit: "/unit",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1592998385386-5c9b75434c8f?auto=format&fit=crop&w=900&q=80"
+    image: "http://localhost:5000/uploads/hand_sprayer_pump.png"
   },
   {
     name: "Eco Pesticide (Neem Based)",
@@ -80,7 +80,7 @@ const SEED_PRODUCTS = [
     price: 650,
     unit: "/litre",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1589924749450-74c7fb10ae8c?auto=format&fit=crop&w=900&q=80"
+    image: "http://localhost:5000/uploads/eco_pesticide.png"
   }
 ];
 
