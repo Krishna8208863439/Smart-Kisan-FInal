@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Navbar from "./components/Navbar";
 import BottomNav from "./components/BottomNav";
@@ -17,6 +17,7 @@ import KisanChat from "./pages/KisanChat";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { ThemeProvider } from "./context/ThemeContext";
 import { LanguageProvider } from "./context/LanguageContext";
+import { useAuth } from "./context/AuthContext";
 
 // Offline notification banner rendered inside router context
 const OfflineBar = () => {
@@ -39,6 +40,11 @@ const OfflineBar = () => {
   );
 };
 
+const RootRoute = () => {
+  const { user } = useAuth();
+  return user ? <Home /> : <Navigate to="/login" replace />;
+};
+
 const App = () => {
   return (
     <ThemeProvider>
@@ -47,7 +53,7 @@ const App = () => {
           <Navbar />
           <OfflineBar />
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<RootRoute />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
             <Route path="/weather" element={<ProtectedRoute><Weather /></ProtectedRoute>} />

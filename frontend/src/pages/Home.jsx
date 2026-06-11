@@ -45,6 +45,8 @@ const Home = () => {
     { icon: "🛒", title: t("bazaar"), desc: language === 'en' ? "Buy seeds, sell surplus crops — zero commission peer trading" : "बियाणे खरेदी करा, पीक विक्री करा — शून्य मध्यस्थी थेट व्यापार", link: "/marketplace", color: "#fce7f3" },
     { icon: "☀️", title: t("weather"), desc: t("impactAccuracy"), link: "/weather", color: "#ede9fe" },
     { icon: "📈", title: t("mandiPrices"), desc: t("mandiSubtitle"), link: "/market", color: "#d1fae5" },
+    { icon: "🌱", title: language === 'en' ? "Crop Advisor" : "पीक सल्लागार", desc: language === 'en' ? "Predict optimal crops based on soil and location parameters" : "माती आणि हवामानाच्या आधारे फायदेशीर पिकांची शिफारस मिळवा", link: "/recommendations", color: "#fff7ed" },
+    { icon: "📚", title: language === 'en' ? "Learning Hub" : "कृषी शिक्षण", desc: language === 'en' ? "Access agricultural learning resources and training programs" : "कृषी शिक्षण, संशोधन आणि मार्गदर्शक माहितीपत्रके पहा", link: "/learning", color: "#f0fdf4" },
   ];
 
   // Live clock
