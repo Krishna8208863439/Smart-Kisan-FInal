@@ -57,6 +57,7 @@ const FEATURES = [
 
 const Home = () => {
   const [selectedCrop, setSelectedCrop] = useState("Tomato");
+  const [customCropName, setCustomCropName] = useState("");
   const [simDate, setSimDate] = useState(new Date().toISOString().split("T")[0]);
   const [timeline, setTimeline] = useState(null);
   const [openFaq, setOpenFaq] = useState(null);
@@ -92,9 +93,27 @@ const Home = () => {
 
   const handleSimulate = (e) => {
     e.preventDefault();
-    const steps = PREVIEWS[selectedCrop] || PREVIEWS["Tomato"];
+    let steps;
+    let offsets;
+    let cropName = selectedCrop;
+
+    if (selectedCrop === "Other") {
+      cropName = customCropName.trim() || "Custom Crop";
+      steps = [
+        { title: `${cropName} Sowing`, day: "Day 0", details: `Sow ${cropName} seeds in prepared field beds with appropriate depth and row spacing.` },
+        { title: `Early Emergence Care`, day: "Day 10", details: `Monitor germination. Supply light irrigation and apply crop protection measures if necessary.` },
+        { title: `Vegetative Top Dressing`, day: "Day 40", details: `Top dress with urea or organic manure to boost growth. Maintain clean, weed-free soil.` },
+        { title: `${cropName} Harvest`, day: "Day 90", details: `Inspect maturity signs (color, dryness) and begin harvesting ${cropName} for market.` }
+      ];
+      offsets = [0, 10, 40, 90];
+    } else {
+      steps = PREVIEWS[selectedCrop] || PREVIEWS["Tomato"];
+      offsets = selectedCrop === "Tomato" ? [0, 25, 45, 95] 
+              : selectedCrop === "Paddy" ? [0, 25, 55, 125]
+              : [0, 21, 35, 130];
+    }
+
     const base = new Date(simDate);
-    const offsets = [0, 25, 45, 95];
     const calculated = steps.map((s, idx) => {
       const stepDate = new Date(base);
       stepDate.setDate(stepDate.getDate() + (offsets[idx] || 0));
@@ -238,7 +257,23 @@ const Home = () => {
               <option value="Tomato">Tomato</option>
               <option value="Paddy">Paddy / Rice</option>
               <option value="Wheat">Wheat</option>
+              <option value="Other">Other (Type custom name...)</option>
             </select>
+            
+            {selectedCrop === "Other" && (
+              <div style={{ marginTop: 8, marginBottom: 12 }}>
+                <label style={{ fontSize: 12.5, fontWeight: 600 }}>Enter Custom Crop Name</label>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="e.g. Mustard, Cotton, Carrot"
+                  value={customCropName}
+                  onChange={(e) => setCustomCropName(e.target.value)}
+                  required
+                />
+              </div>
+            )}
+
             <label>Estimated Sowing Date</label>
             <input type="date" className="input" value={simDate} onChange={(e) => setSimDate(e.target.value)} />
             <button type="submit" className="button" style={{ width: "100%" }}>
@@ -256,7 +291,9 @@ const Home = () => {
             </div>
           ) : (
             <div style={{ marginTop: 12 }}>
-              <strong style={{ fontSize: 14, color: "var(--primary)" }}>{selectedCrop} Sowing Milestones:</strong>
+              <strong style={{ fontSize: 14, color: "var(--primary)" }}>
+                {selectedCrop === "Other" ? (customCropName.trim() || "Custom Crop") : selectedCrop} Sowing Milestones:
+              </strong>
               <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 16 }}>
                 {timeline.map((step, idx) => (
                   <div key={idx} style={{ display: "flex", gap: 12, borderLeft: "3px solid var(--primary-light)", paddingLeft: 12, paddingBottom: 6 }}>
