@@ -27,8 +27,8 @@ export const AuthProvider = ({ children }) => {
     saveAuth(res.data);
   };
 
-  const register = async (name, email, password) => {
-    const res = await api.post("/auth/register", { name, email, password });
+  const register = async (name, email, password, role) => {
+    const res = await api.post("/auth/register", { name, email, password, role });
     saveAuth(res.data);
   };
 
