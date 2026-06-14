@@ -1,3 +1,4 @@
+import "./config/proxySetup.js";
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -19,7 +20,7 @@ import marketplaceRoutes from "./routes/marketplaceRoutes.js";
 dotenv.config();
 
 // connect to database
-connectDB();
+await connectDB();
 
 const app = express();
 

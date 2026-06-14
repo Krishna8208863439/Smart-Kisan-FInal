@@ -2,6 +2,9 @@ import mongoose from "mongoose";
 
 global.useMemoryDB = false;
 
+// Disable Mongoose command buffering to prevent hanging queries on connection failures
+mongoose.set("bufferCommands", false);
+
 export const connectDB = async () => {
   try {
     // Attempt connecting to mongoose with a fast timeout (3 seconds)
@@ -14,3 +17,4 @@ export const connectDB = async () => {
     global.useMemoryDB = true;
   }
 };
+
