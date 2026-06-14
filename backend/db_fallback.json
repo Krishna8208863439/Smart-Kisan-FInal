@@ -19,12 +19,21 @@
     },
     {
       "_id": "mem_y086qp2py_1781185994632",
-      "name": "Krishna Devadkar",
-      "email": "krishnadevadkar@gmail.com",
-      "password": "$2a$10$9CLgcpsDg.4ucDyCB5IO9O77s9bggJEk/un.x/76FcCLiqav0cTR6",
+      "name": "R. S. Devadkar",
+      "email": "rsdevadkar@gmail.com",
+      "password": "$2a$10$9C0VmZ6vNgeSd5zKmN93Z.KqozexA221ge5H9gsgErCjYw7OWq3Ba",
       "role": "farmer",
       "createdAt": "2026-06-11T13:53:14.632Z",
       "updatedAt": "2026-06-11T13:53:14.632Z"
+    },
+    {
+      "_id": "mem_z6jttk7bi_1781340722598",
+      "name": "Ram Singh (Farmer)",
+      "email": "farmer@smartkisan.com",
+      "password": "$2a$10$m.uy7JYejC3yySDopSx9G.DB7lWDn4BxpAHQIBfBPnZV/Js3WR.ji",
+      "role": "farmer",
+      "createdAt": "2026-06-13T08:52:02.598Z",
+      "updatedAt": "2026-06-13T08:52:02.598Z"
     }
   ],
   "posts": [],

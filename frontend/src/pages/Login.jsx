@@ -48,8 +48,8 @@ const Login = () => {
       demoEmail = "merchant@smartkisan.com";
       demoPassword = "merchant123";
     } else if (role === "krishna") {
-      demoEmail = "krishnadevadkar@gmail.com";
-      demoPassword = "krishna123";
+      demoEmail = "rsdevadkar@gmail.com";
+      demoPassword = "rsdevadkar123";
     }
     
     setForm({ email: demoEmail, password: demoPassword });
@@ -140,7 +140,7 @@ const Login = () => {
         <div 
           className="login-split-left" 
           style={{ 
-            background: "linear-gradient(rgba(21, 128, 61, 0.7), rgba(13, 148, 136, 0.8)), url('http://localhost:5000/uploads/lush_green_farm.png') no-repeat center center",
+            background: `linear-gradient(rgba(21, 128, 61, 0.7), rgba(13, 148, 136, 0.8)), url('${import.meta.env.VITE_API_URL || "http://localhost:5000"}/uploads/lush_green_farm.png') no-repeat center center`,
             backgroundSize: "cover",
             position: "relative",
             minHeight: "100%",
@@ -271,54 +271,19 @@ const Login = () => {
                 </button>
               </form>
 
-              {/* Quick Demo Logins Section */}
-              <div style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid var(--border-color)" }}>
-                <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: "var(--text-dark)", display: "flex", alignItems: "center", gap: 6 }}>
-                  <span>🔑</span> Quick Demo Logins:
-                </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <button
-                    type="button"
-                    className="button"
-                    style={{ 
-                      background: "linear-gradient(135deg, #059669, #10b981)", 
-                      color: "white", 
-                      padding: "10px 14px", 
-                      fontSize: 13,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 8,
-                      border: "none",
-                      cursor: "pointer"
-                    }}
-                    onClick={() => handleDemoLogin("krishna")}
-                    disabled={loading}
-                  >
-                    <span>👨‍🌾</span> Log In as Krishna Devadkar (krishnadevadkar@gmail.com)
-                  </button>
-                  
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button
-                      type="button"
-                      className="button button-secondary"
-                      style={{ flex: 1, padding: "8px 12px", fontSize: 12.5 }}
-                      onClick={() => handleDemoLogin("farmer")}
-                      disabled={loading}
-                    >
-                      🌾 Demo Farmer
-                    </button>
-                    <button
-                      type="button"
-                      className="button button-secondary"
-                      style={{ flex: 1, padding: "8px 12px", fontSize: 12.5 }}
-                      onClick={() => handleDemoLogin("merchant")}
-                      disabled={loading}
-                    >
-                      🛒 Demo Merchant
-                    </button>
-                  </div>
-                </div>
+              {/* Farmer Image Section */}
+              <div style={{ marginTop: 24, display: "flex", justifyContent: "center", alignItems: "center" }}>
+                <img 
+                  src="/farmer.png" 
+                  alt="Farmer" 
+                  style={{ 
+                    maxWidth: "280px", 
+                    width: "100%",
+                    height: "auto", 
+                    borderRadius: "12px", 
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)" 
+                  }} 
+                />
               </div>
 
 

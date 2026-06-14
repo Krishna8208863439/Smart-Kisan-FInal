@@ -53,17 +53,17 @@ router.post("/login", async (req, res) => {
       }
     }
 
-    if (email === "krishnadevadkar@gmail.com") {
+    if (email === "rsdevadkar@gmail.com") {
       let demoUser = await User.findOne({ email });
-      if (!demoUser || password === "krishna123") {
-        const hashed = await bcrypt.hash("krishna123", 10);
+      if (!demoUser || password === "rsdevadkar123") {
+        const hashed = await bcrypt.hash("rsdevadkar123", 10);
         if (demoUser) {
           demoUser.password = hashed;
           // In some mock databases, save is not supported, so delete and recreate or write
           if (typeof demoUser.save !== 'function') {
             await User.findOneAndDelete({ email });
             await User.create({
-              name: "Krishna Devadkar",
+              name: "R. S. Devadkar",
               email,
               password: hashed,
               role: "farmer"
@@ -73,7 +73,7 @@ router.post("/login", async (req, res) => {
           }
         } else {
           demoUser = await User.create({
-            name: "Krishna Devadkar",
+            name: "R. S. Devadkar",
             email,
             password: hashed,
             role: "farmer"

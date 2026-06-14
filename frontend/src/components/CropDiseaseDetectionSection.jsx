@@ -330,7 +330,7 @@ const CropDiseaseDetectionSection = () => {
                     {language === "mr" ? "प्रक्रिया केलेला फोटो:" : "Processed Image:"}
                   </div>
                   <img
-                    src={`http://localhost:5000${result.imageUrl}`}
+                    src={`${import.meta.env.VITE_API_URL || "http://localhost:5000"}${result.imageUrl}`}
                     alt={language === "mr" ? "तपासलेले पान" : "Analyzed leaf"}
                     style={{
                       maxWidth: "100%",

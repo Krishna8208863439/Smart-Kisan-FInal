@@ -38,6 +38,18 @@ const SAMPLE_IMAGES = [
   { label: "Chilli", url: "https://images.unsplash.com/photo-1596797038530-2c107229654b?auto=format&fit=crop&w=300&q=80" }
 ];
 
+const getProductImageUrl = (url) => {
+  if (!url) return "";
+  const backendBase = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  if (url.startsWith("http://localhost:5000")) {
+    return url.replace("http://localhost:5000", backendBase);
+  }
+  if (url.startsWith("/uploads")) {
+    return `${backendBase}${url}`;
+  }
+  return url;
+};
+
 const Marketplace = () => {
   const { t, language } = useLanguage();
   const [products, setProducts] = useState([]);
@@ -679,7 +691,7 @@ const Marketplace = () => {
                     {/* Image */}
                     <div style={{ position: "relative", height: 150, borderRadius: 8, overflow: "hidden", background: "#f1f5f9" }}>
                       <img
-                        src={p.image || "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=300&q=80"}
+                        src={getProductImageUrl(p.image) || "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=300&q=80"}
                         alt={p.name}
                         style={{ width: "100%", height: "100%", objectFit: "cover" }}
                       />
@@ -916,7 +928,7 @@ const Marketplace = () => {
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <img 
-                        src={p.image || "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=100&q=80"}
+                        src={getProductImageUrl(p.image) || "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=100&q=80"}
                         alt={p.name} 
                         style={{ width: 50, height: 50, borderRadius: 6, objectFit: "cover" }}
                       />
@@ -1006,7 +1018,7 @@ const Marketplace = () => {
 
             <div style={{ height: 220, borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
               <img 
-                src={selectedProduct.image || "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=600&q=80"} 
+                src={getProductImageUrl(selectedProduct.image) || "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=600&q=80"} 
                 alt={selectedProduct.name}
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
@@ -1122,7 +1134,7 @@ const Marketplace = () => {
                 {cart.map((item) => (
                   <div key={item.product._id} style={{ background: "white", border: "1px solid var(--border-color)", padding: 10, borderRadius: 8, display: "flex", gap: 10 }}>
                     <img
-                      src={item.product.image || "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=100&q=80"}
+                      src={getProductImageUrl(item.product.image) || "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=100&q=80"}
                       alt={item.product.name}
                       style={{ width: 55, height: 55, borderRadius: 4, objectFit: "cover" }}
                     />
