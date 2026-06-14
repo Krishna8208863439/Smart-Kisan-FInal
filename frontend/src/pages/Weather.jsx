@@ -31,12 +31,11 @@ const Weather = () => {
   const [activeDay, setActiveDay] = useState(0);
   const [lastCity, setLastCity] = useState(() => localStorage.getItem("sk_last_city") || "");
 
-  // Auto-load last city on mount
+  // Auto-load last city or default to New Delhi on mount
   useEffect(() => {
-    if (lastCity) {
-      setLocation(lastCity);
-      fetchWeather(null, lastCity);
-    }
+    const city = lastCity || "New Delhi";
+    setLocation(city);
+    fetchWeather(null, city);
   }, []);
 
   const fetchWeather = useCallback(async (e, cityOverride = null) => {

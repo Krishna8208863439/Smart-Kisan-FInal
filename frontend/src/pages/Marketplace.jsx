@@ -50,6 +50,33 @@ const getProductImageUrl = (url) => {
   return url;
 };
 
+const parseDescriptionSpecs = (description) => {
+  if (!description) return { cleanDesc: "", specs: {} };
+  
+  const specs = {};
+  let cleanDesc = description;
+
+  const germinationMatch = description.match(/\[Germination Rate:\s*([^\]]+)\]/);
+  if (germinationMatch) {
+    specs.germinationRate = germinationMatch[1];
+    cleanDesc = cleanDesc.replace(germinationMatch[0], "");
+  }
+
+  const npkMatch = description.match(/\[NPK Formula:\s*([^\]]+)\]/);
+  if (npkMatch) {
+    specs.npkRatio = npkMatch[1];
+    cleanDesc = cleanDesc.replace(npkMatch[0], "");
+  }
+
+  const harvestMatch = description.match(/\[Harvest Date:\s*([^\]]+)\]/);
+  if (harvestMatch) {
+    specs.harvestDate = harvestMatch[1];
+    cleanDesc = cleanDesc.replace(harvestMatch[0], "");
+  }
+
+  return { cleanDesc: cleanDesc.trim(), specs };
+};
+
 const Marketplace = () => {
   const { t, language } = useLanguage();
   const [products, setProducts] = useState([]);
@@ -59,6 +86,14 @@ const Marketplace = () => {
   const [selectedCategory, setSelectedCategory] = useState("All Products");
   const [sortBy, setSortBy] = useState("popular");
   
+  // Price and stock filters
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [showInStockOnly, setShowInStockOnly] = useState(false);
+
+  // Uploading state
+  const [uploadingImage, setUploadingImage] = useState(false);
+
   // Dashboard view toggle ("browse" or "dashboard")
   const [viewMode, setViewMode] = useState("browse");
 
@@ -89,6 +124,31 @@ const Marketplace = () => {
   const [sellLoading, setSellLoading] = useState(false);
 
   const isLoggedIn = !!localStorage.getItem("sk_token");
+
+  // Handle uploading of product photo file
+  const handleImageFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    setUploadingImage(true);
+    try {
+      const res = await api.post("/marketplace/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data"
+        }
+      });
+      setSellForm((prev) => ({ ...prev, image: res.data.imageUrl }));
+      alert("Image uploaded successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to upload image. " + (err.response?.data?.message || err.message));
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   // Fetch products from backend
   const fetchProducts = async () => {
@@ -158,6 +218,21 @@ const Marketplace = () => {
       );
     }
 
+    // Min price filter
+    if (minPrice !== "") {
+      list = list.filter((p) => p.price >= Number(minPrice));
+    }
+
+    // Max price filter
+    if (maxPrice !== "") {
+      list = list.filter((p) => p.price <= Number(maxPrice));
+    }
+
+    // Availability filter
+    if (showInStockOnly) {
+      list = list.filter((p) => p.stock === "In Stock");
+    }
+
     if (sortBy === "price-low") {
       list.sort((a, b) => a.price - b.price);
     } else if (sortBy === "price-high") {
@@ -167,7 +242,7 @@ const Marketplace = () => {
     }
 
     return list;
-  }, [products, search, selectedCategory, sortBy]);
+  }, [products, search, selectedCategory, sortBy, minPrice, maxPrice, showInStockOnly]);
 
   // Cart actions
   const handleAddToCart = (product, e) => {
@@ -466,6 +541,71 @@ const Marketplace = () => {
             )}
           </div>
 
+          {/* Detailed Filters Row */}
+          <div 
+            style={{ 
+              display: "flex", 
+              gap: 16, 
+              alignItems: "center", 
+              margin: "-12px 0 24px 0",
+              flexWrap: "wrap",
+              background: "var(--bg-card)",
+              padding: "12px 16px",
+              borderRadius: 12,
+              border: "1px solid var(--border-color)",
+              animation: "fadeIn 0.2s ease"
+            }}
+          >
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dark)", display: "flex", alignItems: "center", gap: 4 }}>⚙️ Filters:</span>
+            
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>Min Price (₹):</span>
+              <input
+                type="number"
+                className="input"
+                style={{ width: 80, padding: "6px 10px", margin: 0, fontSize: 12.5 }}
+                placeholder="Min"
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+              />
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>Max Price (₹):</span>
+              <input
+                type="number"
+                className="input"
+                style={{ width: 90, padding: "6px 10px", margin: 0, fontSize: 12.5 }}
+                placeholder="Max"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+              />
+            </div>
+
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, cursor: "pointer", userSelect: "none", color: "var(--text-dark)", fontWeight: 600 }}>
+              <input
+                type="checkbox"
+                checked={showInStockOnly}
+                onChange={(e) => setShowInStockOnly(e.target.checked)}
+              />
+              Show In Stock Only
+            </label>
+
+            {(minPrice !== "" || maxPrice !== "" || showInStockOnly) && (
+              <button 
+                className="button" 
+                style={{ padding: "4px 10px", fontSize: 11, margin: 0, background: "#ef4444" }}
+                onClick={() => {
+                  setMinPrice("");
+                  setMaxPrice("");
+                  setShowInStockOnly(false);
+                }}
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+
           {/* Sell Form */}
           {showSellForm && (
             <div className="card" style={{ border: "2px solid #16a34a", animation: "slideDown 0.25s ease", marginBottom: 24 }}>
@@ -593,6 +733,20 @@ const Marketplace = () => {
                     onChange={(e) => setSellForm({ ...sellForm, description: e.target.value })}
                   />
 
+                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Upload Product Image (Recommended)</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageFileChange}
+                    style={{ marginBottom: 12, display: "block", fontSize: 13 }}
+                    disabled={uploadingImage}
+                  />
+                  {uploadingImage && (
+                    <div style={{ fontSize: 12, color: "var(--primary)", marginBottom: 10, fontWeight: 700 }}>
+                      ⏳ Uploading photo to server...
+                    </div>
+                  )}
+
                   <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>{t("bazaarPhotoPreset")}</label>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "6px 0 12px 0" }}>
                     {SAMPLE_IMAGES.map((img) => (
@@ -620,7 +774,7 @@ const Marketplace = () => {
                   <input
                     type="text"
                     className="input"
-                    placeholder="Custom Image URL..."
+                    placeholder="Or enter Custom Image URL..."
                     value={sellForm.image}
                     onChange={(e) => setSellForm({ ...sellForm, image: e.target.value })}
                   />
@@ -728,11 +882,35 @@ const Marketplace = () => {
                       <strong style={{ fontSize: 15, color: "var(--text-dark)", display: "block" }}>{p.name}</strong>
                       <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{language === 'mr' ? 'विक्रेता' : 'Seller'}: {p.seller}</span>
                       
-                      <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#eab308" }}>
+                      {/* Live specifications tags */}
+                      {(() => {
+                        const { specs } = parseDescriptionSpecs(p.description);
+                        return (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 2 }}>
+                            {specs.germinationRate && (
+                              <span style={{ fontSize: 10, background: "#f0fdf4", color: "#166534", padding: "2px 6px", borderRadius: 4, fontWeight: 700 }}>
+                                🌱 Germination: {specs.germinationRate}%
+                              </span>
+                            )}
+                            {specs.npkRatio && (
+                              <span style={{ fontSize: 10, background: "#eff6ff", color: "#1e40af", padding: "2px 6px", borderRadius: 4, fontWeight: 700 }}>
+                                🧪 NPK: {specs.npkRatio}
+                              </span>
+                            )}
+                            {specs.harvestDate && (
+                              <span style={{ fontSize: 10, background: "#fff7ed", color: "#9a3412", padding: "2px 6px", borderRadius: 4, fontWeight: 700 }}>
+                                🍎 Harvest: {specs.harvestDate}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#eab308", marginTop: 4 }}>
                         <span>⭐ {p.rating.toFixed(1)}</span>
                         <span style={{ color: "var(--text-muted)" }}>({p.reviews || 0} {language === 'mr' ? 'पुनरावलोकने' : 'reviews'})</span>
                       </div>
-
+ 
                       {/* Display referenced mandi prices */}
                       {refPrice && (
                         <div style={{ fontSize: 11, color: "var(--primary-hover)", background: "var(--primary-light)", padding: "4px 8px", borderRadius: 6, marginTop: 4, fontWeight: 600 }}>
@@ -812,7 +990,7 @@ const Marketplace = () => {
                     type="text"
                     className="input"
                     required
-                    placeholder="e.g. Organic Basmati Rice"
+                    placeholder="e.g. Organic Basmati Rice, Red Potatoes, Mustard seeds"
                     value={sellForm.name}
                     onChange={(e) => setSellForm({ ...sellForm, name: e.target.value })}
                   />
@@ -828,6 +1006,9 @@ const Marketplace = () => {
                         <option value="Produce">Produce (Farmer Harvest)</option>
                         <option value="Seeds">Seeds</option>
                         <option value="Fertilizers">Fertilizers</option>
+                        <option value="Tools">Tools</option>
+                        <option value="Equipment">Equipment</option>
+                        <option value="Pesticides">Pesticides</option>
                       </select>
                     </div>
                     <div>
@@ -836,7 +1017,7 @@ const Marketplace = () => {
                         type="text"
                         className="input"
                         required
-                        placeholder="e.g. /quintal"
+                        placeholder="e.g. /quintal, /kg, /bag"
                         value={sellForm.unit}
                         onChange={(e) => setSellForm({ ...sellForm, unit: e.target.value })}
                       />
@@ -852,6 +1033,47 @@ const Marketplace = () => {
                     value={sellForm.price}
                     onChange={(e) => setSellForm({ ...sellForm, price: e.target.value })}
                   />
+
+                  {/* Category-Specific Form Fields */}
+                  {sellForm.category === "Seeds" && (
+                    <div style={{ animation: "fadeIn 0.2s" }}>
+                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Seeds Germination Rate (%)</label>
+                      <input
+                        type="number"
+                        className="input"
+                        min="1"
+                        max="100"
+                        placeholder="e.g. 95"
+                        value={sellForm.germinationRate}
+                        onChange={(e) => setSellForm({ ...sellForm, germinationRate: e.target.value })}
+                      />
+                    </div>
+                  )}
+
+                  {sellForm.category === "Fertilizers" && (
+                    <div style={{ animation: "fadeIn 0.2s" }}>
+                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>NPK chemical ratio</label>
+                      <input
+                        type="text"
+                        className="input"
+                        placeholder="e.g. 19:19:19, 10:26:26"
+                        value={sellForm.npkRatio}
+                        onChange={(e) => setSellForm({ ...sellForm, npkRatio: e.target.value })}
+                      />
+                    </div>
+                  )}
+
+                  {sellForm.category === "Produce" && (
+                    <div style={{ animation: "fadeIn 0.2s" }}>
+                      <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Harvest Date</label>
+                      <input
+                        type="date"
+                        className="input"
+                        value={sellForm.harvestDate}
+                        onChange={(e) => setSellForm({ ...sellForm, harvestDate: e.target.value })}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -863,6 +1085,20 @@ const Marketplace = () => {
                     value={sellForm.description}
                     onChange={(e) => setSellForm({ ...sellForm, description: e.target.value })}
                   />
+
+                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Upload Product Image (Recommended)</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageFileChange}
+                    style={{ marginBottom: 12, display: "block", fontSize: 13 }}
+                    disabled={uploadingImage}
+                  />
+                  {uploadingImage && (
+                    <div style={{ fontSize: 12, color: "var(--primary)", marginBottom: 10, fontWeight: 700 }}>
+                      ⏳ Uploading photo to server...
+                    </div>
+                  )}
 
                   <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Select Crop Preset Photo</label>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "6px 0 12px 0" }}>
@@ -889,10 +1125,20 @@ const Marketplace = () => {
                   <input
                     type="text"
                     className="input"
-                    placeholder="Custom Image URL..."
+                    placeholder="Or enter Custom Image URL..."
                     value={sellForm.image}
                     onChange={(e) => setSellForm({ ...sellForm, image: e.target.value })}
                   />
+
+                  {sellForm.image && (
+                    <div style={{ marginBottom: 12, textAlign: "center" }}>
+                      <img 
+                        src={sellForm.image} 
+                        alt="Listing Preview" 
+                        style={{ height: 80, borderRadius: 8, objectFit: "cover", border: "1px solid var(--border-color)" }}
+                      />
+                    </div>
+                  )}
 
                   <button type="submit" className="button" style={{ width: "100%", background: "#16a34a" }} disabled={sellLoading}>
                     {sellLoading ? "Publishing..." : "Publish Listing"}
@@ -1048,12 +1294,40 @@ const Marketplace = () => {
               </span>
             </div>
 
-            <div style={{ background: "#f8fafc", padding: 12, borderRadius: 8, marginBottom: 16, borderLeft: "4px solid var(--primary)" }}>
-              <strong>📋 Details & Specifications:</strong>
-              <p style={{ fontSize: 13, color: "#475569", margin: "4px 0 0 0", lineHeight: 1.5, whiteSpace: "pre-line" }}>
-                {selectedProduct.description}
-              </p>
-            </div>
+            {(() => {
+              const { cleanDesc, specs } = parseDescriptionSpecs(selectedProduct.description);
+              return (
+                <div style={{ background: "#f8fafc", padding: 12, borderRadius: 8, marginBottom: 16, borderLeft: "4px solid var(--primary)" }}>
+                  <strong>📋 Details & Description:</strong>
+                  <p style={{ fontSize: 13, color: "#475569", margin: "4px 0 12px 0", lineHeight: 1.5, whiteSpace: "pre-line" }}>
+                    {cleanDesc || "Fresh farm produce directly listed by farmer."}
+                  </p>
+                  
+                  {(specs.germinationRate || specs.npkRatio || specs.harvestDate) && (
+                    <div style={{ borderTop: "1px dashed #cbd5e1", paddingTop: 10, display: "flex", flexWrap: "wrap", gap: 10 }}>
+                      {specs.germinationRate && (
+                        <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "6px 10px", borderRadius: 6 }}>
+                          <span style={{ display: "block", fontSize: 10, color: "#166534", fontWeight: 700, textTransform: "uppercase" }}>Germination Rate</span>
+                          <strong style={{ fontSize: 14, color: "#14532d" }}>{specs.germinationRate}%</strong>
+                        </div>
+                      )}
+                      {specs.npkRatio && (
+                        <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", padding: "6px 10px", borderRadius: 6 }}>
+                          <span style={{ display: "block", fontSize: 10, color: "#1e40af", fontWeight: 700, textTransform: "uppercase" }}>NPK Ratio</span>
+                          <strong style={{ fontSize: 14, color: "#1e3a8a" }}>{specs.npkRatio}</strong>
+                        </div>
+                      )}
+                      {specs.harvestDate && (
+                        <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", padding: "6px 10px", borderRadius: 6 }}>
+                          <span style={{ display: "block", fontSize: 10, color: "#9a3412", fontWeight: 700, textTransform: "uppercase" }}>Harvest Date</span>
+                          <strong style={{ fontSize: 14, color: "#7c2d12" }}>{specs.harvestDate}</strong>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Bulk Discount Info */}
             <div style={{ background: "#fffbeb", border: "1px solid #fef3c7", padding: 12, borderRadius: 8, marginBottom: 16 }}>

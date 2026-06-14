@@ -1,6 +1,94 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import CropDiseaseDetectionSection from "../components/CropDiseaseDetectionSection";
+import api from "../api";
+
+const WeatherWidget = () => {
+  const { language } = useLanguage();
+  const [weather, setWeather] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchWidgetWeather = async () => {
+      try {
+        const city = localStorage.getItem("sk_last_city") || "New Delhi";
+        const res = await api.get("/weather", { params: { location: city } });
+        setWeather(res.data);
+      } catch (err) {
+        console.error("Failed to load weather widget:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchWidgetWeather();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="card" style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: 20, marginBottom: 24, minHeight: 80 }}>
+        <div className="weather-spinner" style={{ width: 20, height: 20, borderWidth: 3 }} />
+        <span style={{ marginLeft: 12, fontSize: 13, color: "var(--text-muted)", fontWeight: 600 }}>Loading live weather...</span>
+      </div>
+    );
+  }
+
+  if (!weather || !weather.current) return null;
+
+  const { current, location } = weather;
+
+  return (
+    <div 
+      className="card" 
+      style={{ 
+        display: "flex", 
+        flexDirection: "row", 
+        justifyContent: "space-between", 
+        alignItems: "center", 
+        padding: "16px 20px", 
+        marginBottom: 24, 
+        background: "var(--bg-card)",
+        border: "1px solid var(--border-color)",
+        flexWrap: "wrap",
+        gap: 16
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <span style={{ fontSize: 32 }}>{current.icon}</span>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <strong style={{ fontSize: 18, color: "var(--text-dark)" }}>{current.temperature}°C</strong>
+            <span style={{ fontSize: 11, color: "var(--text-muted)", background: "var(--primary-light)", padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>
+              {current.condition}
+            </span>
+          </div>
+          <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>
+            📍 {location} • Feels like {current.feelsLike}°C
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 20, flexWrap: "wrap", fontSize: 12.5, color: "var(--text-dark)" }}>
+        <div>
+          <span style={{ color: "var(--text-muted)" }}>Humidity: </span>
+          <strong>{current.humidity}%</strong>
+        </div>
+        <div>
+          <span style={{ color: "var(--text-muted)" }}>Wind: </span>
+          <strong>{current.windSpeed} km/h</strong>
+        </div>
+        <div>
+          <span style={{ color: "var(--text-muted)" }}>Rain: </span>
+          <strong>{current.precipitation} mm</strong>
+        </div>
+      </div>
+
+      <Link to="/weather" style={{ fontSize: 13, fontWeight: 700, color: "var(--primary)", textDecoration: "none" }}>
+        Full Forecast →
+      </Link>
+    </div>
+  );
+};
 
 const Dashboard = () => {
   const { language } = useLanguage();
@@ -18,6 +106,9 @@ const Dashboard = () => {
             : "Welcome back to Smart Kisan! Explore AI advisory tools, update your crop calendars, check mandi price changes, or discuss with fellow farmers."}
         </p>
       </div>
+
+      {/* Live Weather Widget */}
+      <WeatherWidget />
 
       <h2 style={{ marginBottom: 16 }}>
         {language === "mr" ? "कृषी सल्लागार संच" : "Agri Advisory Suite"}

@@ -43,6 +43,8 @@ const Navbar = () => {
                 <NavLink to="/chat" className={navLinkClass}>{t('chat')}</NavLink>
                 <NavLink to="/ai-tools" className={navLinkClass}>{t('aiCenter')}</NavLink>
                 <NavLink to="/marketplace" className={navLinkClass}>{t('bazaar')}</NavLink>
+                <NavLink to="/weather" className={navLinkClass}>{t('weather')}</NavLink>
+                <NavLink to="/market" className={navLinkClass}>{t('mandiPrices')}</NavLink>
                 <NavLink to="/forum" className={navLinkClass}>{t('community')}</NavLink>
                 <NavLink to="/recommendations" className={navLinkClass}>{t('recommendations')}</NavLink>
               </>
