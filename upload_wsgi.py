@@ -58,6 +58,9 @@ if os.path.exists(frontend_zip):
         with open('/home/Krishna3114/node_stderr.log', 'a') as log_f:
             log_f.write(f"Frontend extract error: {str(e)}\\n")
 
+# Kill any existing node processes to ensure we run the new code
+subprocess.run(['pkill', '-f', 'node server.js'])
+
 if not is_port_open(NODE_PORT):
     env = os.environ.copy()
     env['PORT'] = str(NODE_PORT)

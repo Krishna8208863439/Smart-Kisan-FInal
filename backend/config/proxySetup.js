@@ -1,5 +1,6 @@
 import http from "http";
 import https from "https";
+import tls from "tls";
 import { URL } from "url";
 
 const originalFetch = global.fetch;
@@ -34,7 +35,7 @@ async function proxyFetch(urlString, options = {}) {
         }
 
         // Establish TLS connection over the established TCP socket
-        const tlsSocket = https.connect({
+        const tlsSocket = tls.connect({
           socket: socket,
           servername: targetUrl.hostname
         }, () => {
