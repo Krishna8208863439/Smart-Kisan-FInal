@@ -277,6 +277,25 @@ export const ProductMock = {
     db.products.push(newProduct);
     writeDb(db);
     return newProduct;
+  },
+  deleteMany: async (filter) => {
+    const db = readDb();
+    const beforeLength = db.products.length;
+    if (!filter || Object.keys(filter).length === 0) {
+      db.products = [];
+    } else {
+      db.products = db.products.filter((p) => {
+        if (filter.sellerId && filter.sellerId.$exists === false) {
+          return p.sellerId !== undefined && p.sellerId !== null;
+        }
+        for (const key in filter) {
+          if (p[key] !== filter[key]) return true;
+        }
+        return false;
+      });
+    }
+    writeDb(db);
+    return { deletedCount: beforeLength - db.products.length };
   }
 };
 

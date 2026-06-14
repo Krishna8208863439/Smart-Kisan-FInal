@@ -62,10 +62,11 @@ const SEED_PRODUCTS = [
     price: 850,
     unit: "/kg",
     stock: "In Stock",
-    image: "http://localhost:5000/uploads/organic_wheat_seeds.png"
+    image: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=300&q=80",
+    description: "Certified high-yielding organic wheat seeds suitable for rabi season sowing. Treated for natural disease resistance. [Germination Rate: 96%]"
   },
   {
-    name: "Bio-Fertilizer NPK",
+    name: "Bio-Fertilizer NPK Blend",
     category: "Fertilizers",
     seller: "FarmTech India",
     rating: 4.8,
@@ -73,10 +74,11 @@ const SEED_PRODUCTS = [
     price: 1200,
     unit: "/25kg bag",
     stock: "In Stock",
-    image: "http://localhost:5000/uploads/bio_fertilizer_npk.png"
+    image: "https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?auto=format&fit=crop&w=300&q=80",
+    description: "Balanced macronutrient formula containing organic nitrogen, phosphorus, and potash compounds. Promotes healthy root growth and vegetative development. [NPK Formula: 19:19:19]"
   },
   {
-    name: "Drip Irrigation Kit",
+    name: "Drip Irrigation Kit (1 Acre)",
     category: "Tools",
     seller: "Irrigation Pro",
     rating: 4.6,
@@ -84,7 +86,8 @@ const SEED_PRODUCTS = [
     price: 15000,
     unit: "/set",
     stock: "In Stock",
-    image: "http://localhost:5000/uploads/drip_irrigation_kit.png"
+    image: "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=300&q=80",
+    description: "Complete drip line kit with drippers, filters, valves, lateral pipes, and micro-sprinklers. Saves up to 60% water."
   },
   {
     name: "Hybrid Maize Seeds",
@@ -95,7 +98,8 @@ const SEED_PRODUCTS = [
     price: 950,
     unit: "/kg",
     stock: "In Stock",
-    image: "http://localhost:5000/uploads/hybrid_maize_seeds.png"
+    image: "https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?auto=format&fit=crop&w=300&q=80",
+    description: "Premium hybrid corn seeds optimized for dry-land cultivation. Early maturing variety. [Germination Rate: 94%]"
   },
   {
     name: "Liquid Micro-Nutrient Mix",
@@ -106,10 +110,11 @@ const SEED_PRODUCTS = [
     price: 480,
     unit: "/litre",
     stock: "In Stock",
-    image: "http://localhost:5000/uploads/liquid_micronutrient.png"
+    image: "https://images.unsplash.com/photo-1605000797499-95a51c7769ae?auto=format&fit=crop&w=300&q=80",
+    description: "Foliar spray liquid nutrition rich in zinc, iron, boron, and chelated trace minerals. [NPK Formula: 5:10:5]"
   },
   {
-    name: "Hand Sprayer Pump",
+    name: "Hand Sprayer Pump (16L)",
     category: "Equipment",
     seller: "Kisan Equip Co.",
     rating: 4.1,
@@ -117,7 +122,8 @@ const SEED_PRODUCTS = [
     price: 2200,
     unit: "/unit",
     stock: "In Stock",
-    image: "http://localhost:5000/uploads/hand_sprayer_pump.png"
+    image: "https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?auto=format&fit=crop&w=300&q=80",
+    description: "Ergonomic 16-liter manual knapsack sprayer with adjustable brass nozzles and heavy-duty battery backup."
   },
   {
     name: "Eco Pesticide (Neem Based)",
@@ -128,16 +134,151 @@ const SEED_PRODUCTS = [
     price: 650,
     unit: "/litre",
     stock: "In Stock",
-    image: "http://localhost:5000/uploads/eco_pesticide.png"
+    image: "https://images.unsplash.com/photo-1563514223727-6fc964d306a0?auto=format&fit=crop&w=300&q=80",
+    description: "Pure cold-pressed neem oil formulation containing 1500ppm Azadirachtin. Controls sucking pests naturally."
+  },
+  {
+    name: "Premium Cotton Seeds",
+    category: "Seeds",
+    seller: "Green Agro Solutions",
+    rating: 4.7,
+    reviews: 165,
+    price: 1100,
+    unit: "/kg",
+    stock: "In Stock",
+    image: "https://images.unsplash.com/photo-1594761053147-3729e248b6c5?auto=format&fit=crop&w=300&q=80",
+    description: "High-yield cotton seeds for rainfed farming. Highly resistant to bollworm. [Germination Rate: 98%]"
+  },
+  {
+    name: "Organic Vermicompost",
+    category: "Fertilizers",
+    seller: "EcoHumus Ltd.",
+    rating: 4.9,
+    reviews: 312,
+    price: 450,
+    unit: "/50kg bag",
+    stock: "In Stock",
+    image: "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=300&q=80",
+    description: "Nutrient-rich natural organic vermicompost prepared from premium cow dung and plant waste. [NPK Formula: 3:1:2]"
+  },
+  {
+    name: "Soil pH & Moisture Meter",
+    category: "Tools",
+    seller: "SmartFarm Sensors",
+    rating: 4.5,
+    reviews: 78,
+    price: 1800,
+    unit: "/unit",
+    stock: "In Stock",
+    image: "https://images.unsplash.com/photo-1516253593875-bd7ba052fbc5?auto=format&fit=crop&w=300&q=80",
+    description: "3-in-1 soil tester for measuring pH level, moisture percentage, and ambient sunlight intensity."
+  },
+  {
+    name: "Solar Pest Insect Trap",
+    category: "Equipment",
+    seller: "Kisan Tech",
+    rating: 4.4,
+    reviews: 53,
+    price: 3200,
+    unit: "/unit",
+    stock: "In Stock",
+    image: "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&w=300&q=80",
+    description: "Automated solar-powered insect trap with UV light attraction sensor. Extremely effective for crop orchards."
+  },
+  {
+    name: "Natural Bio-Herbicide",
+    category: "Pesticides",
+    seller: "SafeCrop Bio",
+    rating: 4.2,
+    reviews: 41,
+    price: 890,
+    unit: "/litre",
+    stock: "In Stock",
+    image: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=300&q=80",
+    description: "Organic selective herbicide that controls broadleaf weeds without damaging local crops or soil health."
+  },
+  {
+    name: "Fresh Basmati Rice (Surplus)",
+    category: "Produce",
+    seller: "Rajesh Patil (Farmer)",
+    rating: 5.0,
+    reviews: 15,
+    price: 75,
+    unit: "/kg",
+    stock: "In Stock",
+    image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=300&q=80",
+    description: "Aroma-rich premium extra long grain Basmati rice from organic fields. [Harvest Date: 05/10/2026]"
+  },
+  {
+    name: "Fresh Red Potatoes (Bulk)",
+    category: "Produce",
+    seller: "Suresh Mandloi (Farmer)",
+    rating: 4.8,
+    reviews: 24,
+    price: 18,
+    unit: "/kg",
+    stock: "In Stock",
+    image: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=300&q=80",
+    description: "Freshly dug red potatoes, medium to large sizing. Perfect for wholesale distribution. [Harvest Date: 05/15/2026]"
+  },
+  {
+    name: "Organic Alphonso Mangoes",
+    category: "Produce",
+    seller: "Vikram Dev (Farmer)",
+    rating: 5.0,
+    reviews: 32,
+    price: 650,
+    unit: "/box (12pcs)",
+    stock: "In Stock",
+    image: "https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=300&q=80",
+    description: "Sweet and highly aromatic chemical-free export grade Alphonso mangoes from Devgad orchards. [Harvest Date: 06/01/2026]"
+  },
+  {
+    name: "Organic Turmeric Rhizomes",
+    category: "Produce",
+    seller: "Amit Rao (Farmer)",
+    rating: 4.9,
+    reviews: 19,
+    price: 120,
+    unit: "/kg",
+    stock: "In Stock",
+    image: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=300&q=80",
+    description: "Fresh and heavy turmeric roots containing high curcumin value. Harvested naturally. [Harvest Date: 04/22/2026]"
+  },
+  {
+    name: "Solar Water Pump System (3HP)",
+    category: "Equipment",
+    seller: "SolarAgro India",
+    rating: 4.7,
+    reviews: 34,
+    price: 45000,
+    unit: "/set",
+    stock: "In Stock",
+    image: "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&w=300&q=80",
+    description: "High discharge submersible solar water pumping system complete with panels, controller, and mounting structures."
+  },
+  {
+    name: "High Yield Mustard Seeds",
+    category: "Seeds",
+    seller: "AgriGrow Seeds",
+    rating: 4.6,
+    reviews: 112,
+    price: 140,
+    unit: "/kg",
+    stock: "In Stock",
+    image: "https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?auto=format&fit=crop&w=300&q=80",
+    description: "Early maturity black mustard seeds with high oil concentration percentage. [Germination Rate: 95%]"
   }
 ];
 
-// Helper to seed products if database is empty
+// Helper to seed products if database is empty or outdated
 async function seedProductsIfNeeded() {
   const count = await Product.countDocuments();
-  if (count === 0) {
+  if (count < 12) {
+    // Clear default products first to prevent duplicates
+    await Product.deleteMany({ sellerId: { $exists: false } });
     await Product.insertMany(SEED_PRODUCTS);
-    console.log("Database seeded with default products!");
+    console.log("Database seeded with updated maximum products list!");
   }
 }
 
