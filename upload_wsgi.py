@@ -1,6 +1,9 @@
 import requests
 
 content = """import os
+os.environ['no_proxy'] = '127.0.0.1,localhost,krishna3114.pythonanywhere.com'
+os.environ['NO_PROXY'] = '127.0.0.1,localhost,krishna3114.pythonanywhere.com'
+
 import sys
 import subprocess
 import socket
@@ -22,6 +25,38 @@ def is_port_open(port):
         return False
     finally:
         s.close()
+
+# Extract backend.zip if it exists
+backend_zip = '/home/Krishna3114/backend.zip'
+if os.path.exists(backend_zip):
+    try:
+        import zipfile
+        os.makedirs('/home/Krishna3114/smart-kisan-backend', exist_ok=True)
+        with zipfile.ZipFile(backend_zip, 'r') as zip_ref:
+            zip_ref.extractall('/home/Krishna3114/smart-kisan-backend')
+        os.remove(backend_zip)
+        subprocess.run(
+            ['/home/Krishna3114/.nvm/versions/node/v18.20.8/bin/npm', 'install', '--production'],
+            cwd='/home/Krishna3114/smart-kisan-backend',
+            stdout=open('/home/Krishna3114/node_stdout.log', 'a'),
+            stderr=open('/home/Krishna3114/node_stderr.log', 'a')
+        )
+    except Exception as e:
+        with open('/home/Krishna3114/node_stderr.log', 'a') as log_f:
+            log_f.write(f"Backend extract error: {str(e)}\\n")
+
+# Extract dist.zip if it exists
+frontend_zip = '/home/Krishna3114/dist.zip'
+if os.path.exists(frontend_zip):
+    try:
+        import zipfile
+        os.makedirs('/home/Krishna3114/smart-kisan-frontend', exist_ok=True)
+        with zipfile.ZipFile(frontend_zip, 'r') as zip_ref:
+            zip_ref.extractall('/home/Krishna3114/smart-kisan-frontend')
+        os.remove(frontend_zip)
+    except Exception as e:
+        with open('/home/Krishna3114/node_stderr.log', 'a') as log_f:
+            log_f.write(f"Frontend extract error: {str(e)}\\n")
 
 if not is_port_open(NODE_PORT):
     env = os.environ.copy()
@@ -54,14 +89,19 @@ def proxy_request(environ, start_response):
     for key, value in environ.items():
         if key.startswith('HTTP_'):
             header_name = key[5:].replace('_', '-').title()
-            headers[header_name] = value
+            if header_name.lower() == 'host':
+                continue
+            if value and str(value).strip():
+                headers[header_name] = value
         elif key in ('CONTENT_TYPE', 'CONTENT_LENGTH'):
             header_name = key.replace('_', '-').title()
-            headers[header_name] = value
+            if value and str(value).strip():
+                headers[header_name] = value
     method = environ.get('REQUEST_METHOD', 'GET')
     req = urllib.request.Request(url, data=req_data, headers=headers, method=method)
     try:
-        with urllib.request.urlopen(req, timeout=15) as response:
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        with opener.open(req, timeout=15) as response:
             resp_headers = []
             for name, val in response.headers.items():
                 if name.lower() not in ('transfer-encoding', 'connection', 'content-length'):
