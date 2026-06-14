@@ -74,7 +74,7 @@ const SEED_PRODUCTS = [
     price: 1200,
     unit: "/25kg bag",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?auto=format&fit=crop&w=300&q=80",
+    image: "https://images.unsplash.com/photo-1628352081506-83c43123ed6d?auto=format&fit=crop&w=300&q=80",
     description: "Balanced macronutrient formula containing organic nitrogen, phosphorus, and potash compounds. Promotes healthy root growth and vegetative development. [NPK Formula: 19:19:19]"
   },
   {
@@ -86,7 +86,7 @@ const SEED_PRODUCTS = [
     price: 15000,
     unit: "/set",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=300&q=80",
+    image: "https://images.unsplash.com/photo-1563514223727-6fc964d306a0?auto=format&fit=crop&w=300&q=80",
     description: "Complete drip line kit with drippers, filters, valves, lateral pipes, and micro-sprinklers. Saves up to 60% water."
   },
   {
@@ -98,7 +98,7 @@ const SEED_PRODUCTS = [
     price: 950,
     unit: "/kg",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?auto=format&fit=crop&w=300&q=80",
+    image: "https://images.unsplash.com/photo-1551754625-70c9986d934a?auto=format&fit=crop&w=300&q=80",
     description: "Premium hybrid corn seeds optimized for dry-land cultivation. Early maturing variety. [Germination Rate: 94%]"
   },
   {
@@ -110,7 +110,7 @@ const SEED_PRODUCTS = [
     price: 480,
     unit: "/litre",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1605000797499-95a51c7769ae?auto=format&fit=crop&w=300&q=80",
+    image: "https://images.unsplash.com/photo-1615811361523-6bd03d7748e7?auto=format&fit=crop&w=300&q=80",
     description: "Foliar spray liquid nutrition rich in zinc, iron, boron, and chelated trace minerals. [NPK Formula: 5:10:5]"
   },
   {
@@ -170,7 +170,7 @@ const SEED_PRODUCTS = [
     price: 1800,
     unit: "/unit",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1516253593875-bd7ba052fbc5?auto=format&fit=crop&w=300&q=80",
+    image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=300&q=80",
     description: "3-in-1 soil tester for measuring pH level, moisture percentage, and ambient sunlight intensity."
   },
   {
@@ -182,7 +182,7 @@ const SEED_PRODUCTS = [
     price: 3200,
     unit: "/unit",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&w=300&q=80",
+    image: "https://images.unsplash.com/photo-1613665813446-82a78c468a1d?auto=format&fit=crop&w=300&q=80",
     description: "Automated solar-powered insect trap with UV light attraction sensor. Extremely effective for crop orchards."
   },
   {
@@ -194,7 +194,7 @@ const SEED_PRODUCTS = [
     price: 890,
     unit: "/litre",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=300&q=80",
+    image: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=300&q=80",
     description: "Organic selective herbicide that controls broadleaf weeds without damaging local crops or soil health."
   },
   {
@@ -254,7 +254,7 @@ const SEED_PRODUCTS = [
     price: 45000,
     unit: "/set",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&w=300&q=80",
+    image: "https://images.unsplash.com/photo-1605000797499-95a51c7769ae?auto=format&fit=crop&w=300&q=80",
     description: "High discharge submersible solar water pumping system complete with panels, controller, and mounting structures."
   },
   {
