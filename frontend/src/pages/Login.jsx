@@ -140,14 +140,7 @@ const Login = () => {
         <div 
           className="login-split-left" 
           style={{ 
-            background: `url('/farmer.png') no-repeat center center`,
-            backgroundSize: "cover",
-            position: "relative",
-            minHeight: "100%",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            padding: "40px"
+            backgroundImage: `url('/farmer.png')`
           }}
         >
         </div>

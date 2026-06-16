@@ -1309,13 +1309,16 @@ label {
 }
 
 .login-split-left {
-  background: url('/farmer.png') no-repeat center center;
   background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
   color: white;
   padding: 48px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  min-height: 100%;
+  position: relative;
 }
 
 .login-split-right {
@@ -1578,7 +1581,12 @@ label {
 
   /* Login */
   .login-split-layout { grid-template-columns: 1fr; }
-  .login-split-left { display: none; }
+  .login-split-left { 
+    display: block;
+    min-height: 240px; 
+    padding: 0;
+    border-bottom: 4px solid var(--primary);
+  }
   .login-split-right { padding: 28px 20px; }
 
   /* Dashboard grid */
