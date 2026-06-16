@@ -140,7 +140,7 @@ const Login = () => {
         <div 
           className="login-split-left" 
           style={{ 
-            background: `linear-gradient(rgba(21, 128, 61, 0.7), rgba(13, 148, 136, 0.8)), url('/farmer.png') no-repeat center center`,
+            background: `url('/farmer.png') no-repeat center center`,
             backgroundSize: "cover",
             position: "relative",
             minHeight: "100%",
