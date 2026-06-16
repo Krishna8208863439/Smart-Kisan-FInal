@@ -1586,6 +1586,7 @@ label {
     min-height: 240px; 
     padding: 0;
     border-bottom: 4px solid var(--primary);
+    background-position: center 15%;
   }
   .login-split-right { padding: 28px 20px; }
 
