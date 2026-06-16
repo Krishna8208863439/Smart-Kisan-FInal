@@ -150,57 +150,6 @@ const Login = () => {
             padding: "40px"
           }}
         >
-          <div style={{
-            background: "rgba(255, 255, 255, 0.12)",
-            backdropFilter: "blur(12px)",
-            borderRadius: "16px",
-            padding: "24px",
-            color: "white",
-            border: "1px solid rgba(255, 255, 255, 0.25)",
-            boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.3)"
-          }}>
-            <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8, display: "flex", alignItems: "center", gap: 10 }}>
-              🌾 Smart Kisan
-            </h2>
-            <p style={{ fontSize: 13.5, opacity: 0.95, marginBottom: 16 }}>
-              Log in to access your agricultural suite and features:
-            </p>
-            
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 16px", marginBottom: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5 }}>
-                <span>📊</span> <strong>Dashboard</strong>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5 }}>
-                <span>🤖</span> <strong>Kisan AI Chat</strong>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5 }}>
-                <span>🛠️</span> <strong>AI Center</strong>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5 }}>
-                <span>🛒</span> <strong>Farmers Bazaar</strong>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5 }}>
-                <span>👥</span> <strong>Community Hub</strong>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5 }}>
-                <span>☀️</span> <strong>Weather</strong>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5 }}>
-                <span>📈</span> <strong>Mandi Prices</strong>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5 }}>
-                <span>🌱</span> <strong>Crop Advisor</strong>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5 }}>
-                <span>🌐</span> <strong>मराठी (Marathi)</strong>
-              </div>
-            </div>
-
-            <div style={{ borderTop: "1px solid rgba(255, 255, 255, 0.2)", paddingTop: 12, fontSize: 12, opacity: 0.9 }}>
-              <span style={{ display: "block", marginBottom: 6 }}>📲 PWA support with offline functionality</span>
-              <span style={{ display: "block" }}>🌙 Dark Mode & premium theme controls</span>
-            </div>
-          </div>
         </div>
 
         {/* Right Side: Auth wizard */}
