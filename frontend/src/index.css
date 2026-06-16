@@ -1310,7 +1310,7 @@ label {
 
 .login-split-left {
   background: linear-gradient(rgba(21, 128, 61, 0.8), rgba(13, 148, 136, 0.85)),
-              url('https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1000&q=80') no-repeat center center;
+              url('/farmer.png') no-repeat center center;
   background-size: cover;
   color: white;
   padding: 48px;

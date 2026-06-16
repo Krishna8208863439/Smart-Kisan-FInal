@@ -136,11 +136,11 @@ const Login = () => {
     <div className="app-container">
       <div className="login-split-layout">
         
-        {/* Left Side: Farm Landscape Image with Features list and credentials */}
+        {/* Left Side: Farmer Image with Features list and credentials */}
         <div 
           className="login-split-left" 
           style={{ 
-            background: `linear-gradient(rgba(21, 128, 61, 0.7), rgba(13, 148, 136, 0.8)), url('${import.meta.env.VITE_API_URL || "http://localhost:5000"}/uploads/lush_green_farm.png') no-repeat center center`,
+            background: `linear-gradient(rgba(21, 128, 61, 0.7), rgba(13, 148, 136, 0.8)), url('/farmer.png') no-repeat center center`,
             backgroundSize: "cover",
             position: "relative",
             minHeight: "100%",
@@ -270,22 +270,6 @@ const Login = () => {
                   {loading ? "Verifying Credentials..." : "Log In Securely 🚀"}
                 </button>
               </form>
-
-              {/* Farmer Image Section */}
-              <div style={{ marginTop: 24, display: "flex", justifyContent: "center", alignItems: "center" }}>
-                <img 
-                  src="/farmer.png" 
-                  alt="Farmer" 
-                  style={{ 
-                    maxWidth: "280px", 
-                    width: "100%",
-                    height: "auto", 
-                    borderRadius: "12px", 
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)" 
-                  }} 
-                />
-              </div>
-
 
               <div style={{ margin: "20px 0" }}></div>
 
