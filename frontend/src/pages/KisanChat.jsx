@@ -43,10 +43,10 @@ const KisanChat = () => {
 
   useEffect(() => {
     const welcomeText = language === 'mr'
-      ? "नमस्ते! किसान एआई सहाय्यकामध्ये आपले स्वागत आहे. आज मी आपल्या शेतीच्या निर्णयांमध्ये कशी मदत करू शकतो?"
+      ? "नमस्ते शेतकरी बंधू आणि भगिनींनो! किसान एआय कोपायलट मध्ये आपले स्वागत आहे. देशासाठी अन्न पिकवणाऱ्या आपल्या कष्टाला माझा सलाम. आज मी आपल्या पिकांबद्दल, शेतीबद्दल किंवा खत नियोजनाबद्दल कशी मदत करू शकतो?"
       : language === 'hi'
-      ? "नमस्ते! किसान एआई असिस्टेंट में आपका स्वागत है। आज मैं आपकी कृषि निर्णयों में कैसे मदद कर सकता हूँ?"
-      : "Namaste! Welcome to Kisan AI Assistant. How can I help you today with your farming decisions?";
+      ? "नमस्ते किसान भाई/बहन! किसान एआई कोपायलट में आपका स्वागत है। हमारे देश को अन्न देने के लिए आपका बहुत-बहुत धन्यवाद। आज मैं आपकी फसलों, मिट्टी या खेती के निर्णयों में कैसे मदद कर सकता हूँ?"
+      : "Namaste Kisan Bhai/Behan! Welcome to Kisan AI Copilot, your dedicated agricultural assistant. Thank you for your hard work in feeding our nation. How can I help you today with your crops, soil, or farming decisions?";
     
     setMessages([
       {
@@ -227,7 +227,7 @@ const KisanChat = () => {
                 <div>{m.text}</div>
                 {m.source && (
                   <div style={{ fontSize: 9, opacity: 0.7, textAlign: "right", marginTop: 4 }}>
-                    {language === 'mr' ? 'द्वारे' : 'via'} {m.source === "gemini" ? "Google Gemini" : (language === 'mr' ? "स्थानिक किसान डेटाबेस" : "Local Kisan Database")}
+                    {language === 'mr' ? 'द्वारे' : 'via'} {m.source === "gemini" ? "Google Gemini" : m.source === "groq" ? "Groq LLM" : (language === 'mr' ? "स्थानिक किसान डेटाबेस" : "Local Kisan Database")}
                   </div>
                 )}
               </div>
