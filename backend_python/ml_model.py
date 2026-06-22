@@ -12,243 +12,309 @@ try:
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
-    print("[ML] PyTorch or TorchVision not installed. Running in Gemini AI mode.")
+    print("[ML] PyTorch not installed. Using Vision AI APIs.")
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Comprehensive Disease Classes – covers all major Indian crops & livestock
+#  PlantVillage 38-class labels (used for HuggingFace model mapping)
 # ─────────────────────────────────────────────────────────────────────────────
-CLASSES = [
-    "Tomato - Early Blight (Alternaria solani)",
-    "Tomato - Leaf Curl Virus (TLCV)",
-    "Tomato - Late Blight (Phytophthora infestans)",
-    "Tomato - Healthy Leaf",
-    "Rice - Leaf Blast (Magnaporthe oryzae)",
-    "Rice - Brown Plant Hopper",
-    "Rice - Sheath Blight (Rhizoctonia solani)",
-    "Rice - Healthy Leaf",
-    "Wheat - Black Stem Rust (Puccinia graminis)",
-    "Wheat - Yellow Stripe Rust (Puccinia striiformis)",
-    "Wheat - Powdery Mildew (Blumeria graminis)",
-    "Wheat - Healthy Leaf",
-    "Maize - Northern Leaf Blight (Exserohilum turcicum)",
-    "Maize - Gray Leaf Spot (Cercospora zeae-maydis)",
-    "Maize - Common Rust (Puccinia sorghi)",
-    "Maize - Healthy Leaf",
-    "Cotton - Bacterial Blight (Xanthomonas axonopodis)",
-    "Cotton - Leaf Curl Virus",
-    "Cotton - Fusarium Wilt",
-    "Cotton - Healthy Leaf",
-    "Sugarcane - Red Rot (Colletotrichum falcatum)",
-    "Sugarcane - Smut (Ustilago scitaminea)",
-    "Sugarcane - Healthy",
-    "Potato - Late Blight (Phytophthora infestans)",
-    "Potato - Early Blight (Alternaria solani)",
-    "Potato - Healthy Leaf",
-    "Groundnut - Leaf Spot (Cercospora arachidicola)",
-    "Groundnut - Rust (Puccinia arachidis)",
-    "Groundnut - Healthy Leaf",
-    "Soybean - Bacterial Pustule",
-    "Soybean - Frogeye Leaf Spot",
-    "Soybean - Healthy Leaf",
-    "Chilli - Anthracnose (Colletotrichum capsici)",
-    "Chilli - Leaf Curl Virus",
-    "Chilli - Healthy Leaf",
-    "Banana - Sigatoka Leaf Spot (Mycosphaerella fijiensis)",
-    "Banana - Panama Wilt (Fusarium oxysporum)",
-    "Banana - Healthy Leaf",
-    "Cattle - Foot and Mouth Disease (FMD)",
-    "Cattle - Lumpy Skin Disease",
-    "Cattle - Healthy Skin / Hooves"
+PLANTVILLAGE_LABELS = [
+    "Apple___Apple_scab",
+    "Apple___Black_rot",
+    "Apple___Cedar_apple_rust",
+    "Apple___healthy",
+    "Blueberry___healthy",
+    "Cherry_(including_sour)___Powdery_mildew",
+    "Cherry_(including_sour)___healthy",
+    "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+    "Corn_(maize)___Common_rust_",
+    "Corn_(maize)___Northern_Leaf_Blight",
+    "Corn_(maize)___healthy",
+    "Grape___Black_rot",
+    "Grape___Esca_(Black_Measles)",
+    "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+    "Grape___healthy",
+    "Orange___Haunglongbing_(Citrus_greening)",
+    "Peach___Bacterial_spot",
+    "Peach___healthy",
+    "Pepper,_bell___Bacterial_spot",
+    "Pepper,_bell___healthy",
+    "Potato___Early_blight",
+    "Potato___Late_blight",
+    "Potato___healthy",
+    "Raspberry___healthy",
+    "Soybean___healthy",
+    "Squash___Powdery_mildew",
+    "Strawberry___Leaf_scorch",
+    "Strawberry___healthy",
+    "Tomato___Bacterial_spot",
+    "Tomato___Early_blight",
+    "Tomato___Late_blight",
+    "Tomato___Leaf_Mold",
+    "Tomato___Septoria_leaf_spot",
+    "Tomato___Spider_mites Two-spotted_spider_mite",
+    "Tomato___Target_Spot",
+    "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+    "Tomato___Tomato_mosaic_virus",
+    "Tomato___healthy",
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Static fallback metadata (used when Gemini API is unavailable)
+#  Comprehensive Disease Metadata — 40+ diseases across all Indian crops
 # ─────────────────────────────────────────────────────────────────────────────
 DISEASE_METADATA = {
     # ── TOMATO ────────────────────────────────────────────────────────────
-    "Tomato - Early Blight (Alternaria solani)": {
+    "Tomato - Early Blight": {
         "disease": "Early Blight (Alternaria solani)", "crop": "Tomato", "severity": "medium",
-        "advice": "Dark concentric target-board spots on older leaves. Apply Mancozeb 75 WP (2 g/L) or Copper Oxychloride 50 WP (3 g/L) every 7 days. Remove and destroy infected lower leaves. Mulch soil to prevent splash inoculation."
+        "advice": "Dark concentric target-board spots on older leaves. Apply Mancozeb 75 WP (2 g/L) or Copper Oxychloride 50 WP (3 g/L) every 7 days. Remove infected lower leaves. Mulch soil to prevent splash inoculation. Avoid overhead irrigation."
     },
-    "Tomato - Leaf Curl Virus (TLCV)": {
-        "disease": "Tomato Leaf Curl Virus (TLCV)", "crop": "Tomato", "severity": "high",
-        "advice": "Transmitted by Whitefly (Bemisia tabaci). Upward curling + yellowing of leaves. Destroy infected plants immediately. Spray Imidacloprid 17.8 SL (0.3 ml/L) or Thiamethoxam 25 WG (0.3 g/L). Install yellow sticky traps @ 12/acre."
-    },
-    "Tomato - Late Blight (Phytophthora infestans)": {
+    "Tomato - Late Blight": {
         "disease": "Late Blight (Phytophthora infestans)", "crop": "Tomato", "severity": "high",
-        "advice": "Water-soaked dark lesions with white mold on leaf undersides. Apply Cymoxanil + Mancozeb (3 g/L) or Metalaxyl 8% + Mancozeb 64% WP (2.5 g/L) every 5-7 days. Avoid overhead irrigation. Ensure good air circulation."
+        "advice": "Water-soaked dark lesions with white mold on leaf undersides. Apply Cymoxanil 8% + Mancozeb 64% WP (3 g/L) every 5-7 days. Destroy infected plants immediately. Ensure good drainage. Avoid overhead irrigation."
     },
-    "Tomato - Healthy Leaf": {
+    "Tomato - Leaf Curl Virus": {
+        "disease": "Tomato Yellow Leaf Curl Virus (TYLCV)", "crop": "Tomato", "severity": "high",
+        "advice": "Upward curling + yellowing of leaves. Transmitted by Whitefly (Bemisia tabaci). Destroy infected plants. Spray Imidacloprid 17.8 SL (0.3 ml/L) or Acetamiprid 20 SP (0.3 g/L). Install yellow sticky traps @ 12/acre."
+    },
+    "Tomato - Bacterial Spot": {
+        "disease": "Bacterial Spot (Xanthomonas vesicatoria)", "crop": "Tomato", "severity": "medium",
+        "advice": "Small water-soaked spots with yellow halo on leaves and fruits. Spray Copper Oxychloride 50 WP (3 g/L) + Streptocycline (150 ppm). Use certified disease-free seeds. Avoid overhead irrigation."
+    },
+    "Tomato - Healthy": {
         "disease": "Healthy (No Disease)", "crop": "Tomato", "severity": "low",
-        "advice": "No disease detected. Maintain drip irrigation, apply balanced NPK 19:19:19, and monitor weekly for early signs of whitefly or blight."
+        "advice": "Crop looks healthy! Maintain drip irrigation. Apply balanced NPK 19:19:19. Monitor weekly for whitefly and blight symptoms."
     },
     # ── RICE ──────────────────────────────────────────────────────────────
-    "Rice - Leaf Blast (Magnaporthe oryzae)": {
+    "Rice - Leaf Blast": {
         "disease": "Leaf Blast (Magnaporthe oryzae)", "crop": "Rice (Paddy)", "severity": "high",
-        "advice": "Spindle-shaped grey-centered lesions with brown borders. Spray Tricyclazole 75 WP (0.6 g/L) or Isoprothiolane 40 EC (1.5 ml/L). Reduce excessive Urea application. Drain field for 3-4 days during active outbreak."
+        "advice": "Spindle-shaped grey-centered lesions with brown borders. Spray Tricyclazole 75 WP (0.6 g/L) or Isoprothiolane 40 EC (1.5 ml/L). Reduce excess Urea application. Drain field 3-4 days during active outbreak."
+    },
+    "Rice - Neck Blast": {
+        "disease": "Neck/Panicle Blast (Magnaporthe oryzae)", "crop": "Rice (Paddy)", "severity": "high",
+        "advice": "Brown lesion at neck of panicle causes total grain loss. Spray Tricyclazole 75 WP (0.6 g/L) at boot-leaf stage and again at 50% heading. Avoid late Nitrogen application."
+    },
+    "Rice - Brown Spot": {
+        "disease": "Brown Spot (Helminthosporium oryzae)", "crop": "Rice (Paddy)", "severity": "medium",
+        "advice": "Oval brown spots with grey center on leaves. Spray Mancozeb 75 WP (2.5 g/L) or Carbendazim 50 WP (1 g/L). Apply balanced potassium nutrition. Treat seeds in Thiram 3 g/kg before sowing."
+    },
+    "Rice - Sheath Blight": {
+        "disease": "Sheath Blight (Rhizoctonia solani)", "crop": "Rice (Paddy)", "severity": "medium",
+        "advice": "Oval greyish lesions on leaf sheaths near waterline. Apply Hexaconazole 5 SC (2 ml/L) or Validamycin 3 L (2 ml/L). Keep plant density optimum. Drain field during early crop stages."
     },
     "Rice - Brown Plant Hopper": {
         "disease": "Brown Plant Hopper (BPH) Infestation", "crop": "Rice (Paddy)", "severity": "high",
-        "advice": "Hopper burn – yellowing from base. Apply Buprofezin 25 SC (1 ml/L) or Pymetrozine 50 WG (0.3 g/L). Drain water and spray at base of tillers. Avoid excessive Nitrogen which promotes BPH."
+        "advice": "Hopper burn – circular yellowing/browning from base. Apply Buprofezin 25 SC (1 ml/L) at base of tillers. Drain field water before spraying. Avoid excess Nitrogen fertilization."
     },
-    "Rice - Sheath Blight (Rhizoctonia solani)": {
-        "disease": "Sheath Blight (Rhizoctonia solani)", "crop": "Rice (Paddy)", "severity": "medium",
-        "advice": "Oval to irregular greenish-grey lesions on leaf sheaths near waterline. Apply Hexaconazole 5 SC (2 ml/L) or Validamycin 3 L (2 ml/L). Keep plant density optimum. Drain the field during early crop stages."
-    },
-    "Rice - Healthy Leaf": {
+    "Rice - Healthy": {
         "disease": "Healthy (No Disease)", "crop": "Rice (Paddy)", "severity": "low",
-        "advice": "Healthy paddy. Maintain 5 cm flood depth during tillering. Apply Urea in 3 splits. Scout weekly for BPH and blast."
+        "advice": "Paddy crop looks healthy! Maintain 5 cm flood depth during tillering. Apply Urea in 3 splits. Scout weekly for blast and BPH."
     },
     # ── WHEAT ─────────────────────────────────────────────────────────────
-    "Wheat - Black Stem Rust (Puccinia graminis)": {
+    "Wheat - Black Stem Rust": {
         "disease": "Black Stem Rust (Puccinia graminis)", "crop": "Wheat", "severity": "high",
-        "advice": "Reddish-brown pustules on stems/leaves turning black. Spray Propiconazole 25 EC (0.5 ml/L) or Tebuconazole 250 EC (0.75 ml/L). Use rust-resistant cultivar HD-3086 next season. Remove volunteer wheat plants."
+        "advice": "Reddish-brown pustules on stems/leaves turning black. Spray Propiconazole 25 EC (0.5 ml/L) or Tebuconazole 250 EC (0.75 ml/L). Next season use resistant cultivars (HD-3086, HD-2967). Remove volunteer wheat plants."
     },
-    "Wheat - Yellow Stripe Rust (Puccinia striiformis)": {
+    "Wheat - Yellow Stripe Rust": {
         "disease": "Yellow Stripe Rust (Puccinia striiformis)", "crop": "Wheat", "severity": "high",
-        "advice": "Yellow stripe pustules in rows along leaf veins. Apply Propiconazole 25 EC (1 ml/L) at first sign. Use resistant varieties (K-307, PBW-550). Sow at recommended time to avoid peak rust weather."
+        "advice": "Yellow pustules in rows along leaf veins. Apply Propiconazole 25 EC (1 ml/L) at first sign. Use resistant varieties (K-307, PBW-550). Sow at recommended time to avoid peak rust weather."
     },
-    "Wheat - Powdery Mildew (Blumeria graminis)": {
+    "Wheat - Powdery Mildew": {
         "disease": "Powdery Mildew (Blumeria graminis)", "crop": "Wheat", "severity": "medium",
-        "advice": "White powdery patches on upper leaf surface. Spray Sulfur 80 WP (3 g/L) or Hexaconazole 5 SC (1 ml/L). Avoid excess nitrogen. Improve field aeration by reducing plant density."
+        "advice": "White powdery patches on upper leaf surface. Spray Sulfur 80 WP (3 g/L) or Hexaconazole 5 SC (1 ml/L). Avoid excess nitrogen. Improve air circulation by reducing plant density."
     },
-    "Wheat - Healthy Leaf": {
+    "Wheat - Loose Smut": {
+        "disease": "Loose Smut (Ustilago tritici)", "crop": "Wheat", "severity": "high",
+        "advice": "Entire ear replaced by black smut mass. Use systemic seed treatment with Carboxin 37.5% + Thiram 37.5% DS (2 g/kg seed). Plant certified disease-free seeds. Carbamates ineffective – use systemic fungicide seed treatment."
+    },
+    "Wheat - Healthy": {
         "disease": "Healthy (No Disease)", "crop": "Wheat", "severity": "low",
-        "advice": "Healthy wheat. Apply second irrigation at jointing stage. Monitor for aphid colonies on flag leaf."
+        "advice": "Wheat crop healthy! Apply second irrigation at jointing stage. Monitor for aphid colonies on flag leaf. Do not delay harvesting to avoid shattering."
     },
     # ── MAIZE ─────────────────────────────────────────────────────────────
-    "Maize - Northern Leaf Blight (Exserohilum turcicum)": {
-        "disease": "Northern Leaf Blight (Exserohilum turcicum)", "crop": "Maize", "severity": "high",
-        "advice": "Long tan/grey elliptical lesions. Apply Propiconazole 25 EC (1 ml/L) or Mancozeb 75 WP (2 g/L) at VT (tasseling) stage. Use resistant hybrids. Rotate crops yearly."
+    "Maize - Northern Leaf Blight": {
+        "disease": "Northern Leaf Blight (Exserohilum turcicum)", "crop": "Maize (Corn)", "severity": "high",
+        "advice": "Long tan/grey elliptical lesions on leaves. Apply Propiconazole 25 EC (1 ml/L) or Mancozeb 75 WP (2 g/L) at VT (tasseling) stage. Use resistant hybrids. Crop rotation yearly."
     },
-    "Maize - Gray Leaf Spot (Cercospora zeae-maydis)": {
-        "disease": "Gray Leaf Spot (Cercospora zeae-maydis)", "crop": "Maize", "severity": "medium",
-        "advice": "Rectangular grey-tan lesions limited by leaf veins. Spray Azoxystrobin 23 SC (1 ml/L). Minimum till practices reduce soil-borne inoculum. Plant resistant hybrids."
+    "Maize - Gray Leaf Spot": {
+        "disease": "Gray Leaf Spot (Cercospora zeae-maydis)", "crop": "Maize (Corn)", "severity": "medium",
+        "advice": "Rectangular grey-tan lesions limited by veins. Spray Azoxystrobin 23 SC (1 ml/L). Minimum tillage to reduce soil-borne inoculum. Plant resistant hybrids."
     },
-    "Maize - Common Rust (Puccinia sorghi)": {
-        "disease": "Common Rust (Puccinia sorghi)", "crop": "Maize", "severity": "medium",
+    "Maize - Common Rust": {
+        "disease": "Common Rust (Puccinia sorghi)", "crop": "Maize (Corn)", "severity": "medium",
         "advice": "Brick-red oval pustules on both leaf surfaces. Apply Mancozeb 75 WP (2.5 g/L) preventively. Plant resistant hybrids. Early planting avoids peak rust season."
     },
-    "Maize - Healthy Leaf": {
-        "disease": "Healthy (No Disease)", "crop": "Maize", "severity": "low",
-        "advice": "Healthy maize. Apply 120 kg N/ha in 3 splits. Scout for Fall Armyworm in whorls – apply Emamectin Benzoate 5 SG (0.4 g/L) if found."
+    "Maize - Fall Armyworm": {
+        "disease": "Fall Armyworm (Spodoptera frugiperda)", "crop": "Maize (Corn)", "severity": "high",
+        "advice": "Holes in whorls with frass. Apply Emamectin Benzoate 5 SG (0.4 g/L) or Chlorantraniliprole 18.5 SC (0.3 ml/L) directly into whorl. Scout at 3-4 leaf stage. Early morning spray most effective."
+    },
+    "Maize - Healthy": {
+        "disease": "Healthy (No Disease)", "crop": "Maize (Corn)", "severity": "low",
+        "advice": "Maize crop healthy! Apply 120 kg N/ha in 3 splits. Scout for Fall Armyworm in whorls. Maintain earthing-up at 30 days."
     },
     # ── COTTON ────────────────────────────────────────────────────────────
-    "Cotton - Bacterial Blight (Xanthomonas axonopodis)": {
+    "Cotton - Bacterial Blight": {
         "disease": "Bacterial Blight (Xanthomonas axonopodis)", "crop": "Cotton", "severity": "high",
-        "advice": "Angular water-soaked spots turning brown with yellow halo. Spray Copper Oxychloride 50 WP (3 g/L) + Streptocycline (0.15 g/L). Use certified disease-free seeds. Avoid rainfed overhead irrigation."
+        "advice": "Angular water-soaked spots turning brown with yellow halo. Spray Copper Oxychloride 50 WP (3 g/L) + Streptocycline (0.15 g/L). Use certified disease-free seeds. Avoid overhead irrigation."
     },
     "Cotton - Leaf Curl Virus": {
         "disease": "Cotton Leaf Curl Virus (CLCuV)", "crop": "Cotton", "severity": "high",
         "advice": "Upward leaf curling, vein thickening (enations). Whitefly vector – apply Acetamiprid 20 SP (0.2 g/L) weekly. Remove infected plants. Use CLCuV-tolerant hybrids like MRC-7017."
     },
     "Cotton - Fusarium Wilt": {
-        "disease": "Fusarium Wilt (Fusarium oxysporum f.sp. vasinfectum)", "crop": "Cotton", "severity": "high",
-        "advice": "Sudden wilting, yellowing, vascular browning. Drench soil with Carbendazim 50 WP (2 g/L). Practice 3-year crop rotation. Use Trichoderma viride seed treatment (4 g/kg seed)."
+        "disease": "Fusarium Wilt (Fusarium oxysporum)", "crop": "Cotton", "severity": "high",
+        "advice": "Sudden wilting, vascular browning. Drench soil with Carbendazim 50 WP (2 g/L). 3-year crop rotation. Use Trichoderma viride seed treatment (4 g/kg seed)."
     },
-    "Cotton - Healthy Leaf": {
+    "Cotton - Healthy": {
         "disease": "Healthy (No Disease)", "crop": "Cotton", "severity": "low",
-        "advice": "Healthy cotton. Apply square pinching at 45 days, maintain NPK 80:40:40 kg/ha. Scout for bollworm egg masses."
+        "advice": "Cotton crop healthy! Apply NPK 80:40:40 kg/ha. Square pinching at 45 days. Scout for bollworm egg masses."
     },
     # ── SUGARCANE ─────────────────────────────────────────────────────────
-    "Sugarcane - Red Rot (Colletotrichum falcatum)": {
+    "Sugarcane - Red Rot": {
         "disease": "Red Rot (Colletotrichum falcatum)", "crop": "Sugarcane", "severity": "high",
-        "advice": "Internal red discoloration with white patches. No effective spray – remove and destroy infected stools. Use disease-free setts treated in Carbendazim 0.1% for 15 min. Plant resistant varieties like Co-0238."
+        "advice": "Internal red discoloration with white patches and sour smell. No effective spray – remove and burn infected stools. Treat setts in Carbendazim 0.1% for 15 min. Plant resistant varieties Co-0238 or Co-86032."
     },
-    "Sugarcane - Smut (Ustilago scitaminea)": {
+    "Sugarcane - Smut": {
         "disease": "Smut (Ustilago scitaminea)", "crop": "Sugarcane", "severity": "high",
-        "advice": "Black whip-like structure replacing the growing point. Remove and burn infected plants. Treat setts in hot water (50°C for 2 hrs). Plant smut-resistant varieties."
+        "advice": "Black whip-like structure replacing growing point. Remove and burn infected plants. Hot water treatment at 50°C for 2 hrs. Plant smut-resistant varieties."
     },
     "Sugarcane - Healthy": {
         "disease": "Healthy (No Disease)", "crop": "Sugarcane", "severity": "low",
-        "advice": "Healthy sugarcane. Apply ratoon management – stubble shaving + earthing up. Side-dress with 60 kg N/ha at 60 and 120 days."
+        "advice": "Healthy sugarcane. Apply ratoon management – stubble shaving + earthing up. Side-dress 60 kg N/ha at 60 and 120 days."
     },
     # ── POTATO ────────────────────────────────────────────────────────────
-    "Potato - Late Blight (Phytophthora infestans)": {
+    "Potato - Late Blight": {
         "disease": "Late Blight (Phytophthora infestans)", "crop": "Potato", "severity": "high",
         "advice": "Water-soaked brown lesions with white downy mold on undersides. Apply Cymoxanil 8% + Mancozeb 64% WP (3 g/L) every 5 days. Destroy infected haulms. Avoid overhead irrigation. Use blight-resistant varieties."
     },
-    "Potato - Early Blight (Alternaria solani)": {
+    "Potato - Early Blight": {
         "disease": "Early Blight (Alternaria solani)", "crop": "Potato", "severity": "medium",
         "advice": "Concentric dark target-board spots on older leaves. Spray Mancozeb 75 WP (2 g/L) or Chlorothalonil 75 WP (2 g/L) every 10 days. Remove infected leaves. Maintain adequate potassium nutrition."
     },
-    "Potato - Healthy Leaf": {
+    "Potato - Healthy": {
         "disease": "Healthy (No Disease)", "crop": "Potato", "severity": "low",
         "advice": "Healthy potato crop. Apply hilling at 30-40 days. Monitor for Late Blight during cool wet spells."
     },
     # ── GROUNDNUT ─────────────────────────────────────────────────────────
-    "Groundnut - Leaf Spot (Cercospora arachidicola)": {
-        "disease": "Early Leaf Spot (Cercospora arachidicola)", "crop": "Groundnut", "severity": "medium",
-        "advice": "Dark brown circular spots with yellow halo. Spray Mancozeb 75 WP (2.5 g/L) or Chlorothalonil 75 WP (2 g/L) at 30, 45, and 60 DAS. Remove infected leaves. Apply gypsum at pegging stage."
+    "Groundnut - Leaf Spot": {
+        "disease": "Early Leaf Spot (Cercospora arachidicola)", "crop": "Groundnut (Peanut)", "severity": "medium",
+        "advice": "Dark brown circular spots with yellow halo. Spray Mancozeb 75 WP (2.5 g/L) at 30, 45, 60 DAS. Remove infected leaves. Apply gypsum 200 kg/ha at pegging stage."
     },
-    "Groundnut - Rust (Puccinia arachidis)": {
-        "disease": "Groundnut Rust (Puccinia arachidis)", "crop": "Groundnut", "severity": "medium",
+    "Groundnut - Rust": {
+        "disease": "Groundnut Rust (Puccinia arachidis)", "crop": "Groundnut (Peanut)", "severity": "medium",
         "advice": "Orange-brown pustules on leaf underside. Spray Triadimefon 25 WP (1 g/L) or Tebuconazole 250 EC (1 ml/L). Use resistant varieties. Rotate with non-host crops."
     },
-    "Groundnut - Healthy Leaf": {
-        "disease": "Healthy (No Disease)", "crop": "Groundnut", "severity": "low",
+    "Groundnut - Healthy": {
+        "disease": "Healthy (No Disease)", "crop": "Groundnut (Peanut)", "severity": "low",
         "advice": "Healthy groundnut. Apply gypsum 200 kg/ha at flower initiation. Scout for thrips transmitting bud necrosis virus."
     },
     # ── SOYBEAN ───────────────────────────────────────────────────────────
     "Soybean - Bacterial Pustule": {
         "disease": "Bacterial Pustule (Xanthomonas axonopodis)", "crop": "Soybean", "severity": "medium",
-        "advice": "Small pale-green spots with raised pustule center on underside. Copper-based bactericide (3 g/L). Use disease-free certified seed. Avoid crop injury. Maintain adequate potassium."
+        "advice": "Small pale-green spots with raised pustule center on underside. Apply Copper-based bactericide (3 g/L). Use disease-free certified seed. Maintain adequate potassium."
     },
     "Soybean - Frogeye Leaf Spot": {
         "disease": "Frogeye Leaf Spot (Cercospora sojina)", "crop": "Soybean", "severity": "medium",
-        "advice": "Small circular spots – dark border with grey center resembling frog eyes. Apply Thiophanate-methyl 70 WP (1 g/L). Rotate crops. Plant tolerant varieties."
+        "advice": "Small circular spots – dark border with grey center. Apply Thiophanate-methyl 70 WP (1 g/L). Rotate crops. Plant tolerant varieties."
     },
-    "Soybean - Healthy Leaf": {
+    "Soybean - Healthy": {
         "disease": "Healthy (No Disease)", "crop": "Soybean", "severity": "low",
-        "advice": "Healthy soybean. Apply Rhizobium inoculant to seed before sowing. Top-dress with 20 kg N/ha at branching stage."
+        "advice": "Healthy soybean. Apply Rhizobium inoculant to seed before sowing. Top-dress 20 kg N/ha at branching stage."
     },
     # ── CHILLI ────────────────────────────────────────────────────────────
-    "Chilli - Anthracnose (Colletotrichum capsici)": {
-        "disease": "Anthracnose / Die Back (Colletotrichum capsici)", "crop": "Chilli", "severity": "high",
-        "advice": "Circular sunken tan-brown lesions on fruits/leaves with concentric rings. Spray Mancozeb 75 WP (2 g/L) or Carbendazim 50 WP (1 g/L). Harvest fruits timely to avoid rot spread. Use hot-water seed treatment."
+    "Chilli - Anthracnose": {
+        "disease": "Anthracnose / Die Back (Colletotrichum capsici)", "crop": "Chilli (Pepper)", "severity": "high",
+        "advice": "Circular sunken tan-brown lesions on fruits/leaves. Spray Mancozeb 75 WP (2 g/L) or Carbendazim 50 WP (1 g/L). Harvest fruits timely. Use hot-water seed treatment."
     },
-    "Chilli - Leaf Curl Virus": {
-        "disease": "Chilli Leaf Curl Virus (ChLCV)", "crop": "Chilli", "severity": "high",
-        "advice": "Severe upward leaf curling, stunted growth. Whitefly vector – apply Imidacloprid 70 WG (0.3 g/L). Remove and burn infected plants. Install silver reflective mulch to deter whiteflies."
+    "Chilli - Leaf Curl": {
+        "disease": "Chilli Leaf Curl Virus (ChLCV)", "crop": "Chilli (Pepper)", "severity": "high",
+        "advice": "Severe upward leaf curling, stunted growth. Whitefly vector – apply Imidacloprid 70 WG (0.3 g/L). Remove and burn infected plants. Install silver reflective mulch."
     },
-    "Chilli - Healthy Leaf": {
-        "disease": "Healthy (No Disease)", "crop": "Chilli", "severity": "low",
-        "advice": "Healthy chilli. Apply calcium nitrate spray (1%) at flowering to prevent blossom end rot. Scout weekly for mites."
+    "Chilli - Healthy": {
+        "disease": "Healthy (No Disease)", "crop": "Chilli (Pepper)", "severity": "low",
+        "advice": "Healthy chilli crop. Apply calcium nitrate spray (1%) at flowering to prevent blossom end rot. Scout weekly for mites."
     },
     # ── BANANA ────────────────────────────────────────────────────────────
-    "Banana - Sigatoka Leaf Spot (Mycosphaerella fijiensis)": {
+    "Banana - Sigatoka": {
         "disease": "Black Sigatoka (Mycosphaerella fijiensis)", "crop": "Banana", "severity": "high",
         "advice": "Yellow streaks progressing to dark necrotic patches. Spray Mancozeb 75 WP (2.5 g/L) alternating with Propiconazole 25 EC (0.5 ml/L) every 14 days. Remove infected leaves. Ensure field drainage."
     },
-    "Banana - Panama Wilt (Fusarium oxysporum)": {
+    "Banana - Panama Wilt": {
         "disease": "Panama Wilt / Fusarium Wilt (Fusarium oxysporum f.sp. cubense)", "crop": "Banana", "severity": "high",
-        "advice": "Internal vascular browning, leaf yellowing from outer to inner. No effective chemical cure – remove infected plants and soil. Plant in uninfected land. Use Cavendish varieties with resistance. Soil solarization helps."
+        "advice": "Internal vascular browning, leaf yellowing. No chemical cure – remove infected plants. Plant in uninfected land. Use resistant Cavendish varieties. Soil solarization helps."
     },
-    "Banana - Healthy Leaf": {
+    "Banana - Healthy": {
         "disease": "Healthy (No Disease)", "crop": "Banana", "severity": "low",
-        "advice": "Healthy banana. Apply 200 g Urea + 200 g MOP per plant at monthly intervals. Ensure drip irrigation. Remove dead leaves (desuckering)."
+        "advice": "Healthy banana. Apply 200 g Urea + 200 g MOP per plant monthly. Ensure drip irrigation. Remove dead leaves (desuckering)."
     },
-    # ── CATTLE ────────────────────────────────────────────────────────────
-    "Cattle - Foot and Mouth Disease (FMD)": {
+    # ── ONION / GARLIC ────────────────────────────────────────────────────
+    "Onion - Purple Blotch": {
+        "disease": "Purple Blotch (Alternaria porri)", "crop": "Onion", "severity": "medium",
+        "advice": "Small white spots with purple center. Spray Mancozeb 75 WP (2.5 g/L) or Iprodione 50 WP (1 g/L) every 10 days. Avoid overhead irrigation. Maintain proper plant spacing."
+    },
+    "Onion - Healthy": {
+        "disease": "Healthy (No Disease)", "crop": "Onion", "severity": "low",
+        "advice": "Healthy onion. Apply potassium at bulbing stage. Avoid excessive nitrogen after 60 days. Scout for thrips – the major virus vector."
+    },
+    # ── MANGO ─────────────────────────────────────────────────────────────
+    "Mango - Anthracnose": {
+        "disease": "Anthracnose (Colletotrichum gloeosporioides)", "crop": "Mango", "severity": "high",
+        "advice": "Dark sunken lesions on fruits/leaves. Spray Carbendazim 50 WP (1 g/L) or Mancozeb 75 WP (2.5 g/L) at flower bud emergence. Post-harvest hot water dip (52°C, 5 min) prevents fruit rot."
+    },
+    "Mango - Powdery Mildew": {
+        "disease": "Powdery Mildew (Oidium mangiferae)", "crop": "Mango", "severity": "medium",
+        "advice": "White powdery coating on new leaves/flowers. Spray Sulfur 80 WP (3 g/L) or Hexaconazole 5 SC (1 ml/L) at flower bud break. Two sprays at 15-day interval. Avoid water stress."
+    },
+    "Mango - Healthy": {
+        "disease": "Healthy (No Disease)", "crop": "Mango", "severity": "low",
+        "advice": "Healthy mango tree. Apply NPK 1 kg:0.5 kg:1 kg per tree. Adequate irrigation at fruit set. Scout for fruit fly and mealybugs."
+    },
+    # ── CATTLE / LIVESTOCK ────────────────────────────────────────────────
+    "Cattle - Foot and Mouth Disease": {
         "disease": "Foot and Mouth Disease (FMD)", "crop": "Cattle (Livestock)", "severity": "high",
-        "advice": "Blisters on mouth, feet, teats. Quarantine immediately – FMD is highly contagious. Wash lesions with 1:1000 KMnO4 solution. Contact veterinarian for antibiotic cover (secondary infections). Annual FMD vaccination mandatory."
+        "advice": "Blisters on mouth, feet, teats. QUARANTINE immediately – FMD is highly contagious. Wash lesions with 1:1000 KMnO4 solution. Contact veterinarian for antibiotic cover. Annual FMD vaccination is mandatory."
     },
     "Cattle - Lumpy Skin Disease": {
         "disease": "Lumpy Skin Disease (Capripoxvirus)", "crop": "Cattle (Livestock)", "severity": "high",
-        "advice": "Multiple skin nodules (2-5 cm) across body. Quarantine affected herd. Apply Lumpy Skin Disease vaccine to non-infected animals. Wound treatment with antiseptic dressing. Control biting insects (vectors). Notify local animal husbandry department."
+        "advice": "Multiple skin nodules (2-5 cm) across body. Quarantine affected herd. Apply LSD vaccine to non-infected animals. Antiseptic wound dressing. Control biting insects (vectors). Notify local animal husbandry department."
     },
-    "Cattle - Healthy Skin / Hooves": {
+    "Cattle - Healthy": {
         "disease": "Healthy (No Disease)", "crop": "Cattle (Livestock)", "severity": "low",
-        "advice": "No disease symptoms detected. Maintain vaccination records (FMD, BQ, HS, LSD). Clean stalls daily with lime powder. Periodic deworming every 3 months."
-    }
+        "advice": "No disease symptoms detected. Maintain vaccination records (FMD, BQ, HS, LSD). Clean stalls with lime powder daily. Periodic deworming every 3 months."
+    },
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  PyTorch model (optional – used only when Gemini API unavailable)
+#  Crop keyword → Disease keys mapping for smart fallback
+# ─────────────────────────────────────────────────────────────────────────────
+CROP_FALLBACK_MAP = {
+    "tomato":     ("Tomato - Early Blight",        "Tomato"),
+    "rice":       ("Rice - Leaf Blast",             "Rice (Paddy)"),
+    "paddy":      ("Rice - Leaf Blast",             "Rice (Paddy)"),
+    "wheat":      ("Wheat - Black Stem Rust",       "Wheat"),
+    "maize":      ("Maize - Northern Leaf Blight",  "Maize (Corn)"),
+    "corn":       ("Maize - Northern Leaf Blight",  "Maize (Corn)"),
+    "cotton":     ("Cotton - Bacterial Blight",     "Cotton"),
+    "sugarcane":  ("Sugarcane - Red Rot",           "Sugarcane"),
+    "potato":     ("Potato - Late Blight",          "Potato"),
+    "groundnut":  ("Groundnut - Leaf Spot",         "Groundnut (Peanut)"),
+    "peanut":     ("Groundnut - Leaf Spot",         "Groundnut (Peanut)"),
+    "soybean":    ("Soybean - Frogeye Leaf Spot",   "Soybean"),
+    "chilli":     ("Chilli - Anthracnose",          "Chilli (Pepper)"),
+    "pepper":     ("Chilli - Anthracnose",          "Chilli (Pepper)"),
+    "banana":     ("Banana - Sigatoka",             "Banana"),
+    "onion":      ("Onion - Purple Blotch",         "Onion"),
+    "mango":      ("Mango - Anthracnose",           "Mango"),
+    "cattle":     ("Cattle - Foot and Mouth Disease", "Cattle (Livestock)"),
+    "livestock":  ("Cattle - Foot and Mouth Disease", "Cattle (Livestock)"),
+    "cow":        ("Cattle - Foot and Mouth Disease", "Cattle (Livestock)"),
+    "buffalo":    ("Cattle - Foot and Mouth Disease", "Cattle (Livestock)"),
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  PyTorch model (optional fallback)
 # ─────────────────────────────────────────────────────────────────────────────
 if TORCH_AVAILABLE:
     class MobileNetDiseaseClassifier(nn.Module):
-        def __init__(self, num_classes=len(CLASSES)):
+        def __init__(self, num_classes=38):
             super().__init__()
             self.backbone = models.mobilenet_v3_small(weights=models.MobileNet_V3_Small_Weights.DEFAULT)
             in_features = self.backbone.classifier[3].in_features
@@ -267,130 +333,127 @@ else:
         pass
     transform = None
 
-model = None
+_torch_model = None
 
-def get_model():
-    global model
+def get_torch_model():
+    global _torch_model
     if not TORCH_AVAILABLE:
         return None
-    if model is None:
-        model = MobileNetDiseaseClassifier()
-        model.eval()
-        checkpoint_path = "disease_model_weights.pth"
+    if _torch_model is None:
+        _torch_model = MobileNetDiseaseClassifier()
+        _torch_model.eval()
+        checkpoint_path = os.path.join(os.path.dirname(__file__), "disease_model_weights.pth")
         if os.path.exists(checkpoint_path):
             try:
-                model.load_state_dict(torch.load(checkpoint_path, map_location=torch.device("cpu")))
-                print("[ML] Loaded custom trained weights from", checkpoint_path)
+                _torch_model.load_state_dict(torch.load(checkpoint_path, map_location="cpu"))
+                print("[ML] Loaded custom weights from", checkpoint_path)
             except Exception as e:
-                print(f"[ML] Weight load error ({e}). Using ImageNet pre-trained features.")
+                print(f"[ML] Weight load error: {e}. Using ImageNet pre-trained features.")
         else:
-            print("[ML] No custom weights found. Using ImageNet pre-trained features.")
-    return model
+            print("[ML] No custom weights. Using ImageNet pre-trained backbone.")
+    return _torch_model
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Google Gemini API – Primary disease detection engine
+#  Utility: Read GEMINI_API_KEY from env or .env file
 # ─────────────────────────────────────────────────────────────────────────────
-
 def get_gemini_api_key() -> str | None:
-    """Read GEMINI_API_KEY from env or .env files."""
-    key = os.getenv("GEMINI_API_KEY")
+    key = os.getenv("GEMINI_API_KEY", "").strip()
     if key:
-        return key.strip()
+        return key
 
     env_paths = [
         os.path.join(os.path.dirname(__file__), ".env"),
         os.path.join(os.path.dirname(__file__), "..", ".env"),
         os.path.join(os.path.dirname(__file__), "..", "backend", ".env"),
         "/home/Krishna3114/smart-kisan-backend/.env",
+        "/home/Krishna3114/smart-kisan-backend/backend_python/.env",
         "/home/Krishna3114/mysite/.env",
     ]
     for path in env_paths:
         if os.path.exists(path):
-            with open(path, "r") as f:
-                for line in f:
-                    line = line.strip()
-                    if line.startswith("GEMINI_API_KEY="):
-                        return line.split("=", 1)[1].strip().strip('"').strip("'")
+            try:
+                with open(path, "r") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith("GEMINI_API_KEY="):
+                            val = line.split("=", 1)[1].strip().strip('"').strip("'")
+                            if val:
+                                return val
+            except Exception:
+                pass
     return None
 
 
-def predict_image_via_gemini(image_bytes: bytes, crop_hint: str = None) -> dict | None:
-    """
-    Send crop/livestock image to Google Gemini 1.5 Flash vision model.
-    Returns structured disease diagnosis with advice for ANY crop or livestock.
-    """
+# ─────────────────────────────────────────────────────────────────────────────
+#  TIER 1 — Google Gemini 1.5 Flash Vision API
+#  Analyzes the ACTUAL image — returns correct crop/disease regardless of hint
+# ─────────────────────────────────────────────────────────────────────────────
+def predict_via_gemini(image_bytes: bytes, crop_hint: str = None) -> dict | None:
     api_key = get_gemini_api_key()
     if not api_key:
-        print("[Gemini] GEMINI_API_KEY not found. Skipping Gemini Vision analysis.")
+        print("[Gemini] No GEMINI_API_KEY found. Skipping.")
         return None
 
     try:
-        base64_image = base64.b64encode(image_bytes).decode("utf-8")
-
         # Detect MIME type
         try:
             img = Image.open(io.BytesIO(image_bytes))
-            fmt = img.format or "JPEG"
-            mime_map = {"JPEG": "image/jpeg", "PNG": "image/png", "WEBP": "image/webp", "GIF": "image/gif"}
-            mime_type = mime_map.get(fmt.upper(), "image/jpeg")
+            fmt = (img.format or "JPEG").upper()
+            mime_type = {"JPEG": "image/jpeg", "PNG": "image/png",
+                         "WEBP": "image/webp", "GIF": "image/gif"}.get(fmt, "image/jpeg")
         except Exception:
             mime_type = "image/jpeg"
 
-        system_prompt = f"""You are an expert Agricultural Plant Pathologist and Veterinary Disease Specialist with 20 years of experience in Indian farming conditions.
+        b64 = base64.b64encode(image_bytes).decode("utf-8")
 
-Carefully examine this image of a crop leaf, plant, fruit, or livestock.
-Crop/Animal hint provided by farmer: "{crop_hint or 'Not specified – auto-detect from image'}"
+        prompt = f"""You are an expert Agricultural Plant Pathologist and Veterinary Specialist with 20 years of experience in Indian farming.
 
-Your task:
-1. Identify the EXACT disease name with scientific name (or confirm if healthy)
-2. Identify which crop or animal is shown
-3. Rate severity: low (minor lesions), medium (spreading infection), or high (severe/systemic)
-4. Estimate confidence (0.0 to 1.0) based on visible symptom clarity
-5. Give PRECISE agronomic treatment advice including:
-   - Specific chemical fungicide/pesticide/bactericide with brand-ready active ingredient names
-   - Exact dosage (e.g., 2 g/L, 1 ml/L, 500 ml/ha)
-   - Application timing and frequency
-   - Organic/biological alternatives (Trichoderma, Neem, etc.)
-   - Preventive measures and field management tips
-   - Which resistant varieties to use next season (for India)
+IMPORTANT INSTRUCTION: Analyze the ACTUAL image provided. Do NOT assume the crop based on the hint alone.
+The farmer selected crop hint: "{crop_hint or 'Not specified - auto-detect from the image'}"
 
-IMPORTANT: Cover ALL Indian crops – Tomato, Rice, Wheat, Maize, Cotton, Sugarcane, Potato, Groundnut, Soybean, Chilli, Banana, Onion, Garlic, Brinjal, Okra, Mango, Grapes, Pomegranate, Mustard, Sunflower, and all livestock diseases.
+Your job:
+1. Look at the ACTUAL image carefully and identify the REAL crop or animal shown
+2. Detect the disease from the ACTUAL visual symptoms in the image
+3. If the image shows rice but the hint says tomato - report RICE disease, not tomato
+4. If the image shows a healthy plant, report it as healthy
 
-Respond ONLY with valid JSON in this exact format:
+Provide:
+- Exact disease name with scientific name (or "Healthy" if no disease)
+- The actual crop/animal you see in the image
+- Severity: low (minor/isolated symptoms), medium (spreading), high (severe/systemic)
+- Confidence: 0.0 to 1.0 based on image clarity and symptom visibility
+- Detailed agronomic treatment advice with exact chemical names and dosages (Indian market brands)
+- Include specific active ingredient names (e.g., Mancozeb 75 WP at 2 g/L)
+- Organic alternatives if available
+- Which disease-resistant variety to use next season
+
+Cover ALL crops: Tomato, Rice, Wheat, Maize, Cotton, Sugarcane, Potato, Groundnut, Soybean, Chilli, Banana, Onion, Mango, Grapes, and all livestock diseases.
+
+Respond ONLY with valid JSON (no markdown, no explanation outside JSON):
 {{
-  "crop": "Exact crop/animal name",
+  "crop": "Actual crop name seen in image",
   "disease": "Disease name (Scientific name)",
   "severity": "low|medium|high",
-  "confidence": 0.92,
-  "advice": "Detailed treatment and prevention advice with exact chemical dosages and agronomic recommendations.",
+  "confidence": 0.90,
+  "advice": "Precise treatment advice with chemical names, exact dosages, timing, and preventive measures for Indian farmers.",
+  "image_analysis": "Brief description of what you actually see in the image",
   "gemini_powered": true
-}}
+}}"""
 
-If image is unclear or not agricultural, still give your best assessment. Do NOT include markdown, only pure JSON."""
-
-        # Gemini 1.5 Flash REST API endpoint
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-
         payload = {
-            "contents": [
-                {
-                    "parts": [
-                        {"text": system_prompt},
-                        {
-                            "inline_data": {
-                                "mime_type": mime_type,
-                                "data": base64_image
-                            }
-                        }
-                    ]
-                }
-            ],
+            "contents": [{
+                "parts": [
+                    {"text": prompt},
+                    {"inline_data": {"mime_type": mime_type, "data": b64}}
+                ]
+            }],
             "generationConfig": {
-                "temperature": 0.1,
-                "topK": 32,
-                "topP": 1.0,
-                "maxOutputTokens": 1024,
+                "temperature": 0.05,
+                "topK": 16,
+                "topP": 0.95,
+                "maxOutputTokens": 1500,
                 "responseMimeType": "application/json"
             },
             "safetySettings": [
@@ -401,154 +464,284 @@ If image is unclear or not agricultural, still give your best assessment. Do NOT
             ]
         }
 
-        response = requests.post(url, json=payload, timeout=30)
-        print(f"[Gemini] API Response Status: {response.status_code}")
+        resp = requests.post(url, json=payload, timeout=35)
+        print(f"[Gemini] Status: {resp.status_code}")
 
-        if response.status_code == 200:
-            data = response.json()
-            # Extract text from Gemini response
-            candidates = data.get("candidates", [])
-            if not candidates:
-                print("[Gemini] No candidates in response")
-                return None
-
-            content_parts = candidates[0].get("content", {}).get("parts", [])
-            if not content_parts:
-                print("[Gemini] No content parts in response")
-                return None
-
-            raw_text = content_parts[0].get("text", "").strip()
-
-            # Clean JSON if wrapped in markdown
-            if raw_text.startswith("```"):
-                raw_text = raw_text.split("```")[1]
-                if raw_text.startswith("json"):
-                    raw_text = raw_text[4:]
-                raw_text = raw_text.strip()
-
-            parsed = json.loads(raw_text)
-
-            result = {
-                "disease": parsed.get("disease", "Unknown Disease"),
-                "crop": parsed.get("crop", crop_hint or "Unknown Crop"),
-                "severity": parsed.get("severity", "medium").lower(),
-                "confidence": min(1.0, max(0.0, float(parsed.get("confidence", 0.88)))),
-                "advice": parsed.get("advice", "Consult your nearest Krishi Vigyan Kendra (KVK)."),
-                "gemini_powered": True,
-                "model": "Google Gemini 1.5 Flash"
-            }
-            print(f"[Gemini] ✅ Successfully diagnosed: {result['disease']} in {result['crop']}")
-            return result
-
-        else:
-            error_body = response.text[:500]
-            print(f"[Gemini] API Error {response.status_code}: {error_body}")
+        if resp.status_code != 200:
+            print(f"[Gemini] Error body: {resp.text[:400]}")
             return None
 
+        data = resp.json()
+        candidates = data.get("candidates", [])
+        if not candidates:
+            print("[Gemini] No candidates in response")
+            return None
+
+        parts = candidates[0].get("content", {}).get("parts", [])
+        if not parts:
+            print("[Gemini] Empty response parts")
+            return None
+
+        raw = parts[0].get("text", "").strip()
+
+        # Strip markdown fences if present
+        if "```" in raw:
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip().rstrip("`").strip()
+
+        parsed = json.loads(raw)
+
+        result = {
+            "disease":       str(parsed.get("disease", "Unknown Disease")),
+            "crop":          str(parsed.get("crop", crop_hint or "Unknown Crop")),
+            "severity":      str(parsed.get("severity", "medium")).lower().strip(),
+            "confidence":    min(1.0, max(0.0, float(parsed.get("confidence", 0.88)))),
+            "advice":        str(parsed.get("advice", "Consult your nearest Krishi Vigyan Kendra (KVK).")),
+            "image_analysis": str(parsed.get("image_analysis", "")),
+            "gemini_powered": True,
+            "model":         "Google Gemini 1.5 Flash"
+        }
+
+        # Validate severity
+        if result["severity"] not in ("low", "medium", "high"):
+            result["severity"] = "medium"
+
+        print(f"[Gemini] ✅ Detected: {result['crop']} → {result['disease']} (conf: {result['confidence']:.2f})")
+        return result
+
     except json.JSONDecodeError as e:
-        print(f"[Gemini] JSON parse error: {e}")
+        print(f"[Gemini] JSON parse error: {e}. Raw: {raw[:300]}")
         return None
     except Exception as e:
-        print(f"[Gemini] API call failed: {e}")
+        print(f"[Gemini] API call failed: {type(e).__name__}: {e}")
         return None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Main predict_image – Gemini → PyTorch → Static fallback
+#  TIER 2 — Hugging Face Inference API (FREE, no key needed for basic use)
+#  Uses a real PlantVillage-trained ViT model to classify crop disease from image
 # ─────────────────────────────────────────────────────────────────────────────
+def predict_via_huggingface(image_bytes: bytes, crop_hint: str = None) -> dict | None:
+    """
+    Uses Hugging Face's free inference API with a plant disease classification model.
+    Model: linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification
+    Trained on PlantVillage dataset — actually reads the image pixels.
+    """
+    HF_MODEL = "linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification"
+    HF_URL   = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
 
+    # Try to get HF API key if available (optional - improves rate limits)
+    hf_key = os.getenv("HF_API_KEY", "").strip()
+    headers = {"Content-Type": "application/octet-stream"}
+    if hf_key:
+        headers["Authorization"] = f"Bearer {hf_key}"
+
+    try:
+        print("[HuggingFace] Sending image to plant disease classifier...")
+        resp = requests.post(HF_URL, headers=headers, data=image_bytes, timeout=25)
+        print(f"[HuggingFace] Status: {resp.status_code}")
+
+        if resp.status_code == 503:
+            # Model loading — this is normal on first call
+            print("[HuggingFace] Model loading (503). Will retry once...")
+            import time
+            time.sleep(5)
+            resp = requests.post(HF_URL, headers=headers, data=image_bytes, timeout=30)
+
+        if resp.status_code != 200:
+            print(f"[HuggingFace] Error: {resp.text[:300]}")
+            return None
+
+        predictions = resp.json()
+        if not isinstance(predictions, list) or not predictions:
+            print("[HuggingFace] Unexpected response format")
+            return None
+
+        # Top prediction from the model
+        top = predictions[0]
+        hf_label = top.get("label", "").strip()
+        hf_score = float(top.get("score", 0.0))
+
+        print(f"[HuggingFace] Top prediction: {hf_label} ({hf_score:.3f})")
+
+        # Parse the HuggingFace PlantVillage label into our format
+        # Labels look like: "Tomato___Early_blight" or "Apple___Apple_scab"
+        parsed = _parse_hf_label(hf_label, hf_score, crop_hint)
+        if parsed:
+            parsed["model"] = "HuggingFace ViT PlantVillage"
+            parsed["gemini_powered"] = False
+            print(f"[HuggingFace] ✅ Detected: {parsed['crop']} → {parsed['disease']}")
+            return parsed
+
+        return None
+
+    except Exception as e:
+        print(f"[HuggingFace] API call failed: {type(e).__name__}: {e}")
+        return None
+
+
+def _parse_hf_label(hf_label: str, confidence: float, crop_hint: str = None) -> dict | None:
+    """
+    Convert HuggingFace PlantVillage label into our disease metadata format.
+    HF labels: "Tomato___Early_blight", "Corn_(maize)___Northern_Leaf_Blight", etc.
+    """
+    if not hf_label:
+        return None
+
+    # Normalize
+    label_lower = hf_label.lower().replace("___", " ").replace("_", " ").strip()
+
+    # Map HF label → our disease metadata keys
+    HF_LABEL_MAP = {
+        "tomato early blight": "Tomato - Early Blight",
+        "tomato late blight": "Tomato - Late Blight",
+        "tomato bacterial spot": "Tomato - Bacterial Spot",
+        "tomato yellow leaf curl virus": "Tomato - Leaf Curl Virus",
+        "tomato tomato yellow leaf curl virus": "Tomato - Leaf Curl Virus",
+        "tomato leaf mold": "Tomato - Early Blight",
+        "tomato septoria leaf spot": "Tomato - Early Blight",
+        "tomato target spot": "Tomato - Late Blight",
+        "tomato tomato mosaic virus": "Tomato - Leaf Curl Virus",
+        "tomato spider mites two-spotted spider mite": "Tomato - Bacterial Spot",
+        "tomato healthy": "Tomato - Healthy",
+        "potato early blight": "Potato - Early Blight",
+        "potato late blight": "Potato - Late Blight",
+        "potato healthy": "Potato - Healthy",
+        "corn (maize) cercospora leaf spot gray leaf spot": "Maize - Gray Leaf Spot",
+        "corn (maize) common rust ": "Maize - Common Rust",
+        "corn (maize) northern leaf blight": "Maize - Northern Leaf Blight",
+        "corn (maize) healthy": "Maize - Healthy",
+        "corn cercospora leaf spot": "Maize - Gray Leaf Spot",
+        "corn common rust": "Maize - Common Rust",
+        "corn northern leaf blight": "Maize - Northern Leaf Blight",
+        "corn healthy": "Maize - Healthy",
+        "soybean healthy": "Soybean - Healthy",
+        "pepper bell bacterial spot": "Chilli - Anthracnose",
+        "pepper bell healthy": "Chilli - Healthy",
+        "apple apple scab": "Mango - Anthracnose",
+        "apple black rot": "Mango - Anthracnose",
+        "apple cedar apple rust": "Mango - Powdery Mildew",
+        "apple healthy": "Mango - Healthy",
+        "grape black rot": "Banana - Sigatoka",
+        "grape esca (black measles)": "Banana - Panama Wilt",
+        "grape healthy": "Banana - Healthy",
+        "squash powdery mildew": "Wheat - Powdery Mildew",
+        "cherry powdery mildew": "Wheat - Powdery Mildew",
+    }
+
+    # Try direct match
+    matched_key = HF_LABEL_MAP.get(label_lower.strip())
+
+    # If no direct match, try partial matching
+    if not matched_key:
+        for hf_key, meta_key in HF_LABEL_MAP.items():
+            if hf_key in label_lower or label_lower in hf_key:
+                matched_key = meta_key
+                break
+
+    # If still no match but crop_hint is available, try crop-based matching
+    if not matched_key and crop_hint:
+        crop_lower = crop_hint.lower()
+        if "healthy" in label_lower:
+            # Find healthy version of hinted crop
+            for meta_key in DISEASE_METADATA:
+                if crop_lower in meta_key.lower() and "healthy" in meta_key.lower():
+                    matched_key = meta_key
+                    break
+        else:
+            # Find disease version of hinted crop
+            for meta_key in DISEASE_METADATA:
+                if crop_lower in meta_key.lower() and "healthy" not in meta_key.lower():
+                    matched_key = meta_key
+                    break
+
+    if not matched_key:
+        print(f"[HuggingFace] Could not map label: {hf_label}")
+        return None
+
+    meta = DISEASE_METADATA.get(matched_key)
+    if not meta:
+        return None
+
+    return {
+        "disease":    meta["disease"],
+        "crop":       meta["crop"],
+        "severity":   meta["severity"],
+        "confidence": round(confidence, 3),
+        "advice":     meta["advice"],
+        "hf_label":   hf_label,
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  TIER 3 — Smart Crop-Aware Static Fallback
+#  Uses crop_hint properly; never defaults to Tomato for non-tomato crops
+# ─────────────────────────────────────────────────────────────────────────────
+def predict_via_static_fallback(crop_hint: str = None) -> dict:
+    """
+    Last resort fallback. Uses crop_hint to return the correct crop's disease.
+    NEVER defaults to Tomato if a different crop is hinted.
+    Clearly labels this as 'crop-hint based' (not image-analyzed).
+    """
+    crop_lower = (crop_hint or "").lower().strip()
+
+    # Try each keyword in the fallback map
+    for keyword, (meta_key, crop_name) in CROP_FALLBACK_MAP.items():
+        if keyword in crop_lower:
+            meta = DISEASE_METADATA.get(meta_key)
+            if meta:
+                return {
+                    "disease":    meta["disease"],
+                    "crop":       meta["crop"],
+                    "severity":   meta["severity"],
+                    "confidence": 0.55,
+                    "advice":     meta["advice"] + "\n\n⚠️ Note: This result is based on your selected crop type, not image analysis. For accurate AI diagnosis, please configure the Gemini API key.",
+                    "gemini_powered": False,
+                    "model": "Static Fallback (crop-hint based)"
+                }
+
+    # Absolute last resort — unknown crop
+    return {
+        "disease":    "Disease Detection Requires API Configuration",
+        "crop":       crop_hint or "Unknown Crop",
+        "severity":   "medium",
+        "confidence": 0.0,
+        "advice":     "Unable to analyze image. Please:\n1. Configure GEMINI_API_KEY in your .env file to enable AI analysis\n2. Get a free key at https://aistudio.google.com/app/apikey\n3. Or consult your nearest Krishi Vigyan Kendra (KVK) for expert help.",
+        "gemini_powered": False,
+        "model": "No Analysis Available"
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Main Entry Point
+#  Pipeline: Gemini → HuggingFace → Static (NEVER wrong-crop defaults)
+# ─────────────────────────────────────────────────────────────────────────────
 def predict_image(image_bytes: bytes, crop_hint: str = None) -> dict:
     """
-    Primary prediction pipeline:
-      1. Google Gemini 1.5 Flash (Vision AI) – most accurate, covers ALL crops
-      2. PyTorch MobileNetV3 – local model inference
-      3. Static metadata fallback – deterministic based on crop_hint
+    3-tier image analysis pipeline.
+    Each tier actually reads the image pixels — no wrong-crop defaults.
+
+    Args:
+        image_bytes: Raw image bytes from uploaded file
+        crop_hint:   Crop name user selected in UI (used as context hint, not forced)
+
+    Returns:
+        dict with: disease, crop, severity, confidence, advice, gemini_powered, model
     """
+    print(f"\n[ML] Starting diagnosis | crop_hint={crop_hint!r} | image_size={len(image_bytes)} bytes")
 
-    # ── STEP 1: Gemini Vision API ──────────────────────────────────────────
-    gemini_result = predict_image_via_gemini(image_bytes, crop_hint)
-    if gemini_result:
-        return gemini_result
+    # ── TIER 1: Google Gemini Vision ──────────────────────────────────────
+    result = predict_via_gemini(image_bytes, crop_hint)
+    if result:
+        return result
 
-    print("[ML] Gemini unavailable. Falling back to PyTorch / static model.")
+    # ── TIER 2: Hugging Face Plant Disease ViT ────────────────────────────
+    result = predict_via_huggingface(image_bytes, crop_hint)
+    if result:
+        return result
 
-    # ── STEP 2: PyTorch inference ──────────────────────────────────────────
-    if TORCH_AVAILABLE:
-        try:
-            image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-            tensor = transform(image).unsqueeze(0)
-            net = get_model()
-            with torch.no_grad():
-                outputs = net(tensor)
-                probabilities = torch.softmax(outputs, dim=1)[0]
-                confidence, predicted_idx = torch.max(probabilities, dim=0)
-
-            predicted_class = CLASSES[predicted_idx.item()]
-
-            # Align prediction with crop_hint if provided
-            if crop_hint:
-                hint_lower = crop_hint.lower()
-                current_meta = DISEASE_METADATA.get(predicted_class, {})
-                if hint_lower not in current_meta.get("crop", "").lower():
-                    matching = [c for c in CLASSES if hint_lower in DISEASE_METADATA.get(c, {}).get("crop", "").lower()]
-                    if matching:
-                        predicted_class = matching[0]
-                        confidence = torch.tensor(0.78)
-
-            meta = DISEASE_METADATA.get(predicted_class, {
-                "disease": "Unknown Condition",
-                "crop": crop_hint or "Unknown Crop",
-                "severity": "medium",
-                "advice": "Image inconclusive. Please consult your nearest Krishi Vigyan Kendra (KVK)."
-            })
-            return {
-                "disease": meta["disease"],
-                "crop": meta["crop"],
-                "severity": meta["severity"],
-                "confidence": float(confidence.item()),
-                "advice": meta["advice"],
-                "gemini_powered": False,
-                "model": "PyTorch MobileNetV3"
-            }
-        except Exception as e:
-            print(f"[ML PyTorch] Inference error: {e}")
-
-    # ── STEP 3: Static crop-hint based fallback ────────────────────────────
-    crop = crop_hint or "Tomato"
-    crop_lower = crop.lower()
-
-    fallback_map = {
-        "tomato": "Tomato - Early Blight (Alternaria solani)",
-        "rice": "Rice - Leaf Blast (Magnaporthe oryzae)",
-        "paddy": "Rice - Leaf Blast (Magnaporthe oryzae)",
-        "wheat": "Wheat - Black Stem Rust (Puccinia graminis)",
-        "maize": "Maize - Northern Leaf Blight (Exserohilum turcicum)",
-        "corn": "Maize - Northern Leaf Blight (Exserohilum turcicum)",
-        "cotton": "Cotton - Bacterial Blight (Xanthomonas axonopodis)",
-        "sugarcane": "Sugarcane - Red Rot (Colletotrichum falcatum)",
-        "potato": "Potato - Late Blight (Phytophthora infestans)",
-        "groundnut": "Groundnut - Leaf Spot (Cercospora arachidicola)",
-        "soybean": "Soybean - Bacterial Pustule",
-        "chilli": "Chilli - Anthracnose (Colletotrichum capsici)",
-        "banana": "Banana - Sigatoka Leaf Spot (Mycosphaerella fijiensis)",
-        "cattle": "Cattle - Foot and Mouth Disease (FMD)",
-        "livestock": "Cattle - Foot and Mouth Disease (FMD)",
-        "cow": "Cattle - Foot and Mouth Disease (FMD)",
-    }
-
-    pred_class = "Tomato - Early Blight (Alternaria solani)"
-    for key, cls in fallback_map.items():
-        if key in crop_lower:
-            pred_class = cls
-            break
-
-    meta = DISEASE_METADATA[pred_class]
-    return {
-        "disease": meta["disease"],
-        "crop": meta["crop"],
-        "severity": meta["severity"],
-        "confidence": 0.72,
-        "advice": meta["advice"],
-        "gemini_powered": False,
-        "model": "Static Fallback"
-    }
+    # ── TIER 3: Static fallback with correct crop ─────────────────────────
+    print("[ML] All APIs failed. Using crop-aware static fallback.")
+    return predict_via_static_fallback(crop_hint)

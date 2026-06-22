@@ -141,6 +141,7 @@ const AgriHealthPortal = () => {
     setDiagLoading(true);
     setScanStep(0);
     setDiagResult(null);
+    setDiagStatus("");
 
     // Scan steps animation
     const interval = setInterval(() => {
@@ -158,30 +159,56 @@ const AgriHealthPortal = () => {
       formData.append("region", regionHint);
 
       const res = await axios.post(`${PY_API_URL}/diagnose`, formData, {
-        headers: { "Content-Type": "multipart/form-data" }
+        headers: { "Content-Type": "multipart/form-data" },
+        timeout: 45000   // 45s — Gemini + HuggingFace may take time
       });
 
       clearInterval(interval);
       if (res.data.success) {
         setDiagResult(res.data);
-        setDiagStatus("Diagnosis completed successfully.");
+        const modelUsed = res.data.ai_model || "AI Analysis";
+        setDiagStatus(`Diagnosis completed via ${modelUsed}.`);
       }
     } catch (err) {
       clearInterval(interval);
-      console.error(err);
-      setDiagStatus("FastAPI server connection failed. Showing simulated result.");
-      // Fallback
+      console.error("[Diagnosis Error]", err);
+
+      // ✅ FIX: dynamic fallback based on actual selected crop — NOT hardcoded Tomato
+      const cropFallbackAdvice = {
+        Tomato: { disease: "Early Blight (Alternaria solani)", severity: "medium", advice: "Dark concentric spots on leaves. Apply Mancozeb 75 WP (2 g/L) every 7 days. Remove infected lower leaves." },
+        Rice:   { disease: "Leaf Blast (Magnaporthe oryzae)", severity: "high", advice: "Spindle-shaped grey lesions. Spray Tricyclazole 75 WP (0.6 g/L). Reduce excess Nitrogen." },
+        Wheat:  { disease: "Black Stem Rust (Puccinia graminis)", severity: "high", advice: "Reddish-brown pustules on stems. Spray Propiconazole 25 EC (0.5 ml/L). Use resistant varieties next season." },
+        Maize:  { disease: "Northern Leaf Blight (Exserohilum turcicum)", severity: "high", advice: "Long grey elliptical lesions. Apply Propiconazole 25 EC (1 ml/L) at tasseling. Use resistant hybrids." },
+        Cotton: { disease: "Bacterial Blight (Xanthomonas axonopodis)", severity: "high", advice: "Angular brown spots with yellow halo. Spray Copper Oxychloride 50 WP (3 g/L). Avoid overhead irrigation." },
+        Sugarcane: { disease: "Red Rot (Colletotrichum falcatum)", severity: "high", advice: "Internal red discoloration. Remove infected stools. Use disease-free setts treated in Carbendazim 0.1%." },
+        Potato: { disease: "Late Blight (Phytophthora infestans)", severity: "high", advice: "Brown lesions with white mold. Apply Cymoxanil 8% + Mancozeb 64% WP (3 g/L) every 5 days." },
+        Groundnut: { disease: "Leaf Spot (Cercospora arachidicola)", severity: "medium", advice: "Dark brown spots with yellow halo. Spray Mancozeb 75 WP (2.5 g/L) at 30, 45, 60 DAS." },
+        Soybean: { disease: "Frogeye Leaf Spot (Cercospora sojina)", severity: "medium", advice: "Grey-centered spots with dark borders. Apply Thiophanate-methyl 70 WP (1 g/L). Rotate crops." },
+        Chilli: { disease: "Anthracnose (Colletotrichum capsici)", severity: "high", advice: "Sunken brown lesions on fruits. Spray Mancozeb 75 WP (2 g/L). Harvest timely to prevent spread." },
+        Banana: { disease: "Sigatoka Leaf Spot (Mycosphaerella fijiensis)", severity: "high", advice: "Yellow streaks becoming necrotic. Spray Mancozeb 75 WP (2.5 g/L) every 14 days. Remove infected leaves." },
+        Onion:  { disease: "Purple Blotch (Alternaria porri)", severity: "medium", advice: "White spots with purple center. Spray Mancozeb 75 WP (2.5 g/L) every 10 days." },
+        Mango:  { disease: "Anthracnose (Colletotrichum gloeosporioides)", severity: "high", advice: "Dark sunken lesions on fruits. Spray Carbendazim 50 WP (1 g/L) at flower bud emergence." },
+        Brinjal: { disease: "Phomopsis Blight (Phomopsis vexans)", severity: "medium", advice: "Circular brown spots on leaves and fruits. Spray Mancozeb 75 WP (2.5 g/L) or Carbendazim 50 WP (1 g/L)." },
+        Cattle: { disease: "Foot and Mouth Disease (FMD)", severity: "high", advice: "Blisters on mouth and feet. QUARANTINE immediately. Contact veterinarian. Apply KMnO4 wash on lesions." },
+      };
+
+      const fallback = cropFallbackAdvice[cropHint] || cropFallbackAdvice["Tomato"];
+      setDiagStatus("⚠️ Backend server unreachable. Showing crop-specific offline reference.");
       setDiagResult({
         crop: cropHint,
-        disease: "Tomato Early Blight (Alternaria solani)",
-        severity: "medium",
-        confidence: 0.88,
-        advice: "Causes concentric dark rings. Apply Copper Oxychloride 50 WP (3g/L) immediately. Increase plant spacing to reduce humidity."
+        disease: fallback.disease,
+        severity: fallback.severity,
+        confidence: 0.55,
+        advice: fallback.advice,
+        gemini_powered: false,
+        ai_model: "Offline Reference",
+        image_analysis: `Server offline. Crop-specific reference for ${cropHint} shown.`
       });
     } finally {
       setDiagLoading(false);
     }
   };
+
 
   const printPrescription = () => {
     if (!diagResult) return;
@@ -528,6 +555,40 @@ const AgriHealthPortal = () => {
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+                {/* AI Model Source Badge */}
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  background: diagResult.gemini_powered
+                    ? "linear-gradient(135deg, #e0f2fe, #dcfce7)"
+                    : diagResult.ai_model === "HuggingFace ViT PlantVillage"
+                    ? "linear-gradient(135deg, #fef3c7, #fff7ed)"
+                    : "var(--bg-main)",
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  border: diagResult.gemini_powered ? "1px solid #0ea5e9" : "1px solid var(--border-color)"
+                }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>
+                    {diagResult.gemini_powered ? "🤖 Google Gemini 1.5 Flash"
+                      : diagResult.ai_model === "HuggingFace ViT PlantVillage" ? "🌿 HuggingFace Plant Disease ViT"
+                      : diagResult.ai_model === "Offline Reference" ? "📴 Offline Reference"
+                      : "📊 " + (diagResult.ai_model || "AI Analysis")}
+                  </span>
+                  {diagResult.gemini_powered && (
+                    <span style={{
+                      fontSize: 10, background: "linear-gradient(135deg, #1a73e8, #0d9488)",
+                      color: "white", padding: "2px 8px", borderRadius: 10, fontWeight: 700
+                    }}>✨ Gemini AI</span>
+                  )}
+                </div>
+
+                {/* Image Analysis Description */}
+                {diagResult.image_analysis && (
+                  <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", padding: "8px 12px", borderRadius: 8, fontSize: 12, color: "#64748b", fontStyle: "italic" }}>
+                    👁️ <strong>AI Saw:</strong> {diagResult.image_analysis}
+                  </div>
+                )}
+
                 {/* Confidence */}
                 <div style={{ display: "flex", gap: 12, alignItems: "center", background: "var(--bg-main)", padding: 12, borderRadius: 8 }}>
                   <div style={{ fontWeight: 800, fontSize: 20, color: "var(--primary)" }}>
