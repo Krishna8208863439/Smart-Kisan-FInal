@@ -62,7 +62,7 @@ const SEED_PRODUCTS = [
     price: 850,
     unit: "/kg",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=300&q=80",
+    image: "/uploads/organic_wheat_seeds.png",
     description: "Certified high-yielding organic wheat seeds suitable for rabi season sowing. Treated for natural disease resistance. [Germination Rate: 96%]"
   },
   {
@@ -74,7 +74,7 @@ const SEED_PRODUCTS = [
     price: 1200,
     unit: "/25kg bag",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1628352081506-83c43123ed6d?auto=format&fit=crop&w=300&q=80",
+    image: "/uploads/bio_fertilizer_npk.png",
     description: "Balanced macronutrient formula containing organic nitrogen, phosphorus, and potash compounds. Promotes healthy root growth and vegetative development. [NPK Formula: 19:19:19]"
   },
   {
@@ -86,7 +86,7 @@ const SEED_PRODUCTS = [
     price: 15000,
     unit: "/set",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1563514223727-6fc964d306a0?auto=format&fit=crop&w=300&q=80",
+    image: "/uploads/drip_irrigation_kit.png",
     description: "Complete drip line kit with drippers, filters, valves, lateral pipes, and micro-sprinklers. Saves up to 60% water."
   },
   {
@@ -98,7 +98,7 @@ const SEED_PRODUCTS = [
     price: 950,
     unit: "/kg",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1551754625-70c9986d934a?auto=format&fit=crop&w=300&q=80",
+    image: "/uploads/hybrid_maize_seeds.png",
     description: "Premium hybrid corn seeds optimized for dry-land cultivation. Early maturing variety. [Germination Rate: 94%]"
   },
   {
@@ -110,7 +110,7 @@ const SEED_PRODUCTS = [
     price: 480,
     unit: "/litre",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1615811361523-6bd03d7748e7?auto=format&fit=crop&w=300&q=80",
+    image: "/uploads/liquid_micronutrient.png",
     description: "Foliar spray liquid nutrition rich in zinc, iron, boron, and chelated trace minerals. [NPK Formula: 5:10:5]"
   },
   {
@@ -122,7 +122,7 @@ const SEED_PRODUCTS = [
     price: 2200,
     unit: "/unit",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?auto=format&fit=crop&w=300&q=80",
+    image: "/uploads/hand_sprayer_pump.png",
     description: "Ergonomic 16-liter manual knapsack sprayer with adjustable brass nozzles and heavy-duty battery backup."
   },
   {
@@ -134,7 +134,7 @@ const SEED_PRODUCTS = [
     price: 650,
     unit: "/litre",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1563514223727-6fc964d306a0?auto=format&fit=crop&w=300&q=80",
+    image: "/uploads/eco_pesticide.png",
     description: "Pure cold-pressed neem oil formulation containing 1500ppm Azadirachtin. Controls sucking pests naturally."
   },
   {
@@ -206,7 +206,7 @@ const SEED_PRODUCTS = [
     price: 75,
     unit: "/kg",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=300&q=80",
+    image: "/uploads/Ripening-heads-rice-Oryza-sativa-1781186046446-329740.webp",
     description: "Aroma-rich premium extra long grain Basmati rice from organic fields. [Harvest Date: 05/10/2026]"
   },
   {
@@ -273,8 +273,8 @@ const SEED_PRODUCTS = [
 
 // Helper to seed products if database is empty or outdated
 async function seedProductsIfNeeded() {
-  const count = await Product.countDocuments();
-  if (count < 12) {
+  const count = await Product.countDocuments({ sellerId: { $exists: false } });
+  if (count < SEED_PRODUCTS.length) {
     // Clear default products first to prevent duplicates
     await Product.deleteMany({ sellerId: { $exists: false } });
     await Product.insertMany(SEED_PRODUCTS);
