@@ -98,6 +98,12 @@ if os.path.exists(backend_zip):
     try:
         import zipfile
         os.makedirs('/home/Krishna3114/smart-kisan-backend', exist_ok=True)
+        # Delete old uploaded files that might contain wrong images
+        uploads_path = '/home/Krishna3114/smart-kisan-backend/uploads'
+        if os.path.exists(uploads_path):
+            import shutil
+            shutil.rmtree(uploads_path)
+            os.makedirs(uploads_path, exist_ok=True)
         with zipfile.ZipFile(backend_zip, 'r') as zip_ref:
             zip_ref.extractall('/home/Krishna3114/smart-kisan-backend')
         os.remove(backend_zip)
