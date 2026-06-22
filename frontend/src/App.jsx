@@ -13,6 +13,7 @@ import Forum from "./pages/Forum";
 import AITools from "./pages/AITools";
 import Marketplace from "./pages/Marketplace";
 import KisanChat from "./pages/KisanChat";
+import AgriHealthPortal from "./pages/AgriHealthPortal";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { ThemeProvider } from "./context/ThemeContext";
 import { LanguageProvider } from "./context/LanguageContext";
@@ -59,6 +60,7 @@ const App = () => {
             <Route path="/market" element={<ProtectedRoute><Market /></ProtectedRoute>} />
             <Route path="/forum" element={<ProtectedRoute><Forum /></ProtectedRoute>} />
             <Route path="/ai-tools" element={<ProtectedRoute><AITools /></ProtectedRoute>} />
+            <Route path="/agri-health" element={<ProtectedRoute><AgriHealthPortal /></ProtectedRoute>} />
             <Route path="/marketplace" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />
             <Route path="/chat" element={<ProtectedRoute><KisanChat /></ProtectedRoute>} />
             <Route path="/login" element={<Login />} />

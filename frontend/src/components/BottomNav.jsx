@@ -5,6 +5,7 @@ const NAV_ITEMS = [
   { to: '/', icon: '🏠', label: 'Home', end: true },
   { to: '/chat', icon: '🤖', label: 'Chat', authRequired: true },
   { to: '/ai-tools', icon: '🛠️', label: 'AI', authRequired: true },
+  { to: '/agri-health', icon: '🏥', label: 'Health', authRequired: true },
   { to: '/marketplace', icon: '🛒', label: 'Market', authRequired: true },
   { to: '/forum', icon: '👥', label: 'Community', authRequired: true },
 ];

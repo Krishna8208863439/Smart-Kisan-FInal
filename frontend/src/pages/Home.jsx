@@ -40,6 +40,7 @@ const Home = () => {
   // Dynamic Features List (Translated)
   const FEATURES = [
     { icon: "🤖", title: t("chat"), desc: language === 'en' ? "Multilingual farming assistant in Hindi, English & 6+ languages" : "हिंदी, इंग्रजी आणि ६+ भाषांमध्ये बहुभाषिक शेती सहाय्यक", link: "/chat", color: "#dcfce7" },
+    { icon: "🏥", title: language === 'en' ? "Agri-Health Portal" : "कृषी-आरोग्य पोर्टल", desc: language === 'en' ? "Plant & livestock disease diagnostics, soil advisory and alert systems" : "वनस्पती आणि जनावरांचे रोग निदान, माती सल्ला आणि रोग चेतावणी संदेश", link: "/agri-health", color: "#ffe4e6" },
     { icon: "🔬", title: language === 'en' ? "Disease Detection" : "रोग निदान", desc: language === 'en' ? "Upload leaf photos for instant AI-powered disease diagnosis" : "तात्काळ एआय-आधारित पीक रोग निदानासाठी पानावरील फोटो अपलोड करा", link: "/dashboard", color: "#fef3c7" },
     { icon: "📅", title: language === 'en' ? "Crop Planner" : "पीक नियोजक", desc: t("cropPlannerDesc"), link: "/ai-tools", color: "#dbeafe" },
     { icon: "🛒", title: t("bazaar"), desc: language === 'en' ? "Buy seeds, sell surplus crops — zero commission peer trading" : "बियाणे खरेदी करा, पीक विक्री करा — शून्य मध्यस्थी थेट व्यापार", link: "/marketplace", color: "#fce7f3" },
