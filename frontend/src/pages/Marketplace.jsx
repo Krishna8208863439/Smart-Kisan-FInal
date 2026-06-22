@@ -340,6 +340,11 @@ const Marketplace = () => {
   const cartTotal = cartTotalBeforeDiscount - cartDiscount;
 
   const handleCheckout = async () => {
+    if (!isLoggedIn) {
+      alert("Please log in to complete your purchase.");
+      window.location.href = "/login";
+      return;
+    }
     try {
       const res = await api.post("/marketplace/checkout", {
         cartItems: cart.map((i) => ({ productId: i.product._id, quantity: i.quantity }))
@@ -1557,7 +1562,7 @@ const Marketplace = () => {
                 </div>
               </div>
               <button className="button" style={{ width: "100%", background: "#f59e0b", fontSize: 15, margin: 0 }} onClick={handleCheckout}>
-                Complete Purchase 🚀
+                {isLoggedIn ? (language === "mr" ? "खरेदी पूर्ण करा 🚀" : "Complete Purchase 🚀") : (language === "mr" ? "खरेदी करण्यासाठी लॉग इन करा 🔑" : "Log in to Purchase 🔑")}
               </button>
             </footer>
           )}

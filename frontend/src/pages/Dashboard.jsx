@@ -141,6 +141,7 @@ const Dashboard = () => {
   // State for Merchant Dashboard
   const [products, setProducts] = useState([]);
   const [buyRequests, setBuyRequests] = useState([]);
+  const [contracts, setContracts] = useState([]);
   const [loadingMerchant, setLoadingMerchant] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showRequestForm, setShowRequestForm] = useState(false);
@@ -170,6 +171,8 @@ const Dashboard = () => {
       setProducts(prodRes.data);
       const reqRes = await api.get("/marketplace/buy-requests");
       setBuyRequests(reqRes.data);
+      const contractRes = await api.get("/marketplace/contracts");
+      setContracts(contractRes.data);
     } catch (err) {
       console.error("Error loading merchant data:", err);
     } finally {
@@ -243,8 +246,43 @@ const Dashboard = () => {
     }
   };
 
-  const handleBuyProduce = (product) => {
-    alert(`📞 Contacting Farmer: ${product.seller}\nDirect phone: +91 99887 76655\nReference Product: ${product.name}\n(Wholesale trade offer sent successfully!)`);
+  const handleUpdateContractStatus = async (id, nextStatus) => {
+    try {
+      await api.patch(`/marketplace/contracts/${id}`, { status: nextStatus });
+      alert(`Contract status updated to: ${nextStatus}`);
+      fetchMerchantData();
+    } catch (err) {
+      alert("Failed to update status");
+    }
+  };
+
+  const handleBuyProduce = async (product) => {
+    try {
+      const cleanName = product.name;
+      const cleanPrice = product.price;
+      const cleanUnit = product.unit ? product.unit.replace(/^\//, "") : "kg";
+      const qtyInput = window.prompt(`Enter wholesale quantity (in ${cleanUnit}) to buy:`, "50");
+      if (!qtyInput) return;
+      const quantity = Number(qtyInput);
+      if (isNaN(quantity) || quantity <= 0) {
+        alert("Please enter a valid quantity.");
+        return;
+      }
+      
+      await api.post("/marketplace/contracts", {
+        cropName: cleanName,
+        quantity: quantity,
+        unit: cleanUnit,
+        price: cleanPrice,
+        sellerName: product.seller
+      });
+      
+      alert(`🎉 Bulk Purchase Contract created successfully!\n\nContract negotiated with Farmer ${product.seller} for ${quantity} ${cleanUnit} of ${cleanName} at total contract value ₹${(cleanPrice * quantity).toLocaleString()}.\n\nView details in your Wholesale Contracts Ledger below!`);
+      fetchMerchantData();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to create contract: " + (err.response?.data?.message || err.message));
+    }
   };
 
   if (isMerchant) {
@@ -289,6 +327,13 @@ const Dashboard = () => {
             <strong style={{ fontSize: 24, color: "#0284c7" }}>{buyRequests.length}</strong>
             <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 4 }}>
               {language === "mr" ? "सक्रिय खरेदी मागण्या" : "Active B2B Buy Requests"}
+            </div>
+          </div>
+          <div className="card" style={{ textAlign: "center", padding: 20 }}>
+            <div style={{ fontSize: 28 }}>📜</div>
+            <strong style={{ fontSize: 24, color: "#7c3aed" }}>{contracts.length}</strong>
+            <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 4 }}>
+              {language === "mr" ? "घाऊक करार" : "Wholesale Contracts"}
             </div>
           </div>
         </div>
@@ -566,6 +611,148 @@ const Dashboard = () => {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+
+        {/* ===== Wholesale B2B Contracts Ledger ===== */}
+        <div className="card" style={{ marginBottom: 24, overflowX: "auto" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <h3 style={{ margin: 0 }}>
+              📜 {language === "mr" ? "घाऊक करार खातेवही (B2B Contracts)" : "Wholesale B2B Contracts Ledger"}
+            </h3>
+            <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>
+              {contracts.length} {language === "mr" ? "करार" : "contract(s)"}
+            </span>
+          </div>
+
+          {contracts.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)" }}>
+              <div style={{ fontSize: 40, marginBottom: 8 }}>🤝</div>
+              <p style={{ fontSize: 14 }}>
+                {language === "mr"
+                  ? "अद्याप कोणतेही घाऊक करार नाहीत. शेतकऱ्यांच्या पीक ऑफर्समधून 'खरेदी करा' दाबून नवीन करार तयार करा."
+                  : "No wholesale contracts yet. Click \"Buy Bulk\" on a farmer's crop offer above to create one."}
+              </p>
+            </div>
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: "var(--bg-app)", borderBottom: "2px solid var(--border-color)" }}>
+                  {["Contract ID", "Crop / Item", "Farmer (Seller)", "Qty & Unit", "Contract Value", "Status", "Actions"].map(h => (
+                    <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {contracts.map((c, idx) => {
+                  const statusColors = {
+                    Pending: { bg: "#fef3c7", color: "#92400e" },
+                    Approved: { bg: "#dbeafe", color: "#1e40af" },
+                    "In Transit": { bg: "#ede9fe", color: "#4c1d95" },
+                    Completed: { bg: "#dcfce7", color: "#14532d" },
+                    Cancelled: { bg: "#fee2e2", color: "#7f1d1d" }
+                  };
+                  const statusStyle = statusColors[c.status] || { bg: "#f1f5f9", color: "#475569" };
+                  const contractValue = c.price && c.quantity ? `₹${(Number(c.price) * Number(c.quantity)).toLocaleString("en-IN")}` : "—";
+                  const shortId = c._id ? String(c._id).slice(-8).toUpperCase() : `C-${idx + 1}`;
+
+                  return (
+                    <tr
+                      key={c._id || idx}
+                      style={{
+                        borderBottom: "1px solid var(--border-color)",
+                        background: idx % 2 === 0 ? "var(--bg-card)" : "var(--bg-app)",
+                        transition: "background 0.15s"
+                      }}
+                    >
+                      {/* Contract ID */}
+                      <td style={{ padding: "10px 12px", fontFamily: "monospace", fontWeight: 700, color: "var(--primary)", fontSize: 11 }}>
+                        #{shortId}
+                      </td>
+                      {/* Crop */}
+                      <td style={{ padding: "10px 12px", fontWeight: 600, color: "var(--text-dark)" }}>
+                        {c.cropName || "—"}
+                      </td>
+                      {/* Seller */}
+                      <td style={{ padding: "10px 12px", color: "var(--text-muted)" }}>
+                        {c.sellerName || "—"}
+                      </td>
+                      {/* Qty */}
+                      <td style={{ padding: "10px 12px", fontWeight: 600 }}>
+                        {c.quantity} {c.unit || ""}
+                      </td>
+                      {/* Value */}
+                      <td style={{ padding: "10px 12px", fontWeight: 700, color: "#16a34a" }}>
+                        {contractValue}
+                      </td>
+                      {/* Status Badge */}
+                      <td style={{ padding: "10px 12px" }}>
+                        <span style={{
+                          display: "inline-block",
+                          padding: "3px 10px",
+                          borderRadius: 20,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          background: statusStyle.bg,
+                          color: statusStyle.color,
+                          whiteSpace: "nowrap"
+                        }}>
+                          {c.status}
+                        </span>
+                      </td>
+                      {/* Actions */}
+                      <td style={{ padding: "10px 12px" }}>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "nowrap" }}>
+                          {c.status === "Pending" && (
+                            <>
+                              <button
+                                className="button"
+                                style={{ padding: "3px 8px", fontSize: 11, margin: 0, background: "#0284c7", whiteSpace: "nowrap" }}
+                                onClick={() => handleUpdateContractStatus(c._id, "Approved")}
+                              >
+                                ✅ Approve
+                              </button>
+                              <button
+                                className="button"
+                                style={{ padding: "3px 8px", fontSize: 11, margin: 0, background: "#ef4444", whiteSpace: "nowrap" }}
+                                onClick={() => handleUpdateContractStatus(c._id, "Cancelled")}
+                              >
+                                ✖ Cancel
+                              </button>
+                            </>
+                          )}
+                          {c.status === "Approved" && (
+                            <button
+                              className="button"
+                              style={{ padding: "3px 8px", fontSize: 11, margin: 0, background: "#7c3aed", whiteSpace: "nowrap" }}
+                              onClick={() => handleUpdateContractStatus(c._id, "In Transit")}
+                            >
+                              🚚 Dispatch
+                            </button>
+                          )}
+                          {c.status === "In Transit" && (
+                            <button
+                              className="button"
+                              style={{ padding: "3px 8px", fontSize: 11, margin: 0, background: "#16a34a", whiteSpace: "nowrap" }}
+                              onClick={() => handleUpdateContractStatus(c._id, "Completed")}
+                            >
+                              ✅ Complete
+                            </button>
+                          )}
+                          {(c.status === "Completed" || c.status === "Cancelled") && (
+                            <span style={{ fontSize: 11, color: "var(--text-muted)", fontStyle: "italic" }}>
+                              {c.status === "Completed" ? "🎉 Done" : "❌ Closed"}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           )}
         </div>
 
