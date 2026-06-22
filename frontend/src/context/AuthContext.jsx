@@ -10,16 +10,18 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem("sk_token");
     const name = localStorage.getItem("sk_name");
     const email = localStorage.getItem("sk_email");
+    const role = localStorage.getItem("sk_role");
     if (token && name && email) {
-      setUser({ name, email });
+      setUser({ name, email, role: role || "farmer" });
     }
   }, []);
 
-  const saveAuth = ({ token, name, email }) => {
+  const saveAuth = ({ token, name, email, role }) => {
     localStorage.setItem("sk_token", token);
     localStorage.setItem("sk_name", name);
     localStorage.setItem("sk_email", email);
-    setUser({ name, email });
+    localStorage.setItem("sk_role", role || "farmer");
+    setUser({ name, email, role: role || "farmer" });
   };
 
   const login = async (email, password) => {
@@ -42,6 +44,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("sk_token");
     localStorage.removeItem("sk_name");
     localStorage.removeItem("sk_email");
+    localStorage.removeItem("sk_role");
     setUser(null);
   };
 

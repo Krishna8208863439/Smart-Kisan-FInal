@@ -1,6 +1,7 @@
 import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
 import Product from "../models/Product.js";
+import BuyRequest from "../models/BuyRequest.js";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -390,6 +391,62 @@ router.delete("/:id", protect, async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Failed to delete listing" });
+  }
+});
+
+// ========== B2B BUY REQUESTS (MERCHANTS) ==========
+
+// GET /api/marketplace/buy-requests
+router.get("/buy-requests", async (req, res) => {
+  try {
+    const requests = await BuyRequest.find().sort({ createdAt: -1 });
+    return res.json(requests);
+  } catch (error) {
+    console.error("Error fetching buy requests:", error);
+    return res.status(500).json({ message: "Failed to fetch buy requests" });
+  }
+});
+
+// POST /api/marketplace/buy-requests
+router.post("/buy-requests", protect, async (req, res) => {
+  try {
+    const { cropName, quantity, unit, targetPrice, description } = req.body;
+    if (!cropName || !quantity || !unit || !targetPrice) {
+      return res.status(400).json({ message: "Please provide all required fields." });
+    }
+
+    if (req.user.role !== "merchant") {
+      return res.status(403).json({ message: "Only registered Merchants can post buy requests." });
+    }
+
+    const buyRequest = await BuyRequest.create({
+      cropName,
+      quantity: Number(quantity),
+      unit,
+      targetPrice: Number(targetPrice),
+      merchant: req.user.name,
+      merchantId: req.user._id,
+      description: description || "Looking to buy wholesale quantity crop produce."
+    });
+
+    return res.status(201).json(buyRequest);
+  } catch (error) {
+    console.error("Error creating buy request:", error);
+    return res.status(500).json({ message: "Failed to post buy request" });
+  }
+});
+
+// DELETE /api/marketplace/buy-requests/:id
+router.delete("/buy-requests/:id", protect, async (req, res) => {
+  try {
+    const request = await BuyRequest.findOneAndDelete({ _id: req.params.id, merchantId: req.user._id });
+    if (!request) {
+      return res.status(404).json({ message: "Buy request not found or unauthorized" });
+    }
+    return res.json({ message: "Buy request removed successfully" });
+  } catch (error) {
+    console.error("Error deleting buy request:", error);
+    return res.status(500).json({ message: "Failed to delete buy request" });
   }
 });
 

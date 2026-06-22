@@ -11,7 +11,7 @@ const initializeDbFile = () => {
   if (!fs.existsSync(DB_FILE)) {
     fs.writeFileSync(
       DB_FILE,
-      JSON.stringify({ users: [], posts: [], calendars: [], products: [] }, null, 2)
+      JSON.stringify({ users: [], posts: [], calendars: [], products: [], buyRequests: [] }, null, 2)
     );
   }
 };
@@ -20,10 +20,12 @@ const readDb = () => {
   initializeDbFile();
   try {
     const data = fs.readFileSync(DB_FILE, "utf8");
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    if (!parsed.buyRequests) parsed.buyRequests = [];
+    return parsed;
   } catch (err) {
     console.error("Error reading memory DB file:", err);
-    return { users: [], posts: [], calendars: [], products: [] };
+    return { users: [], posts: [], calendars: [], products: [], buyRequests: [] };
   }
 };
 
@@ -361,6 +363,41 @@ export const CropCalendarMock = {
     if (index === -1) return null;
 
     const removed = db.calendars.splice(index, 1)[0];
+    writeDb(db);
+    return removed;
+  }
+};
+
+// BuyRequest Mock Model
+export const BuyRequestMock = {
+  find: () => {
+    const db = readDb();
+    if (!db.buyRequests) db.buyRequests = [];
+    return new MemoryQuery(Promise.resolve(db.buyRequests));
+  },
+  create: async (reqData) => {
+    const db = readDb();
+    if (!db.buyRequests) db.buyRequests = [];
+    const newRequest = {
+      _id: generateId(),
+      ...reqData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    db.buyRequests.push(newRequest);
+    writeDb(db);
+    return newRequest;
+  },
+  findOneAndDelete: async (filter) => {
+    const db = readDb();
+    if (!db.buyRequests) db.buyRequests = [];
+    const index = db.buyRequests.findIndex((r) => {
+      const matchId = String(r._id) === String(filter._id);
+      if (!r.merchantId) return matchId;
+      return matchId && String(r.merchantId) === String(filter.merchantId);
+    });
+    if (index === -1) return null;
+    const removed = db.buyRequests.splice(index, 1)[0];
     writeDb(db);
     return removed;
   }
