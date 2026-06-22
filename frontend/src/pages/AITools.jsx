@@ -144,10 +144,10 @@ const AITools = () => {
 
     try {
       const formData = new FormData();
-      formData.append("image", diseaseFile);
       if (diseaseCropHint) {
         formData.append("crop", diseaseCropHint);
       }
+      formData.append("image", diseaseFile);
       
       const response = await api.post("/crop-disease/analyze", formData, {
         headers: { "Content-Type": "multipart/form-data" }

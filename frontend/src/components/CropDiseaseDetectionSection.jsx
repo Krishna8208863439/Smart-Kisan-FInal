@@ -182,8 +182,8 @@ const CropDiseaseDetectionSection = () => {
       setResult(null);
 
       const formData = new FormData();
-      formData.append("image", file);
       formData.append("crop", cropHint);   // Always sends the selected crop
+      formData.append("image", file);
 
       const response = await api.post("/crop-disease/analyze", formData, {
         headers: { "Content-Type": "multipart/form-data" },

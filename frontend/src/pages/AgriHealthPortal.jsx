@@ -154,9 +154,9 @@ const AgriHealthPortal = () => {
 
     try {
       const formData = new FormData();
-      formData.append("image", selectedFile);
       formData.append("crop", cropHint);
       formData.append("region", regionHint);
+      formData.append("image", selectedFile);
 
       const headers = { "Content-Type": "multipart/form-data" };
       const token = localStorage.getItem("sk_token");
