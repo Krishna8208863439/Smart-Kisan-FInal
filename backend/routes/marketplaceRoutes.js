@@ -86,7 +86,7 @@ const SEED_PRODUCTS = [
     price: 15000,
     unit: "/set",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1592417817098-8f3d6eb19675?auto=format&fit=crop&w=600&q=80",
+    image: "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&w=600&q=80",
     description: "Complete drip line kit with drippers, filters, valves, lateral pipes, and micro-sprinklers. Saves up to 60% water. [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
@@ -98,7 +98,7 @@ const SEED_PRODUCTS = [
     price: 950,
     unit: "/kg",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?auto=format&fit=crop&w=600&q=80",
+    image: "https://images.unsplash.com/photo-1530026405186-ed1ea0ac7a63?auto=format&fit=crop&w=600&q=80",
     description: "Premium hybrid corn seeds optimized for dry-land cultivation. Early maturing variety. [Germination Rate: 94%] [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
@@ -110,7 +110,7 @@ const SEED_PRODUCTS = [
     price: 480,
     unit: "/litre",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=600&q=80",
+    image: "https://images.unsplash.com/photo-1523301343968-6a6ebf63c672?auto=format&fit=crop&w=600&q=80",
     description: "Foliar spray liquid nutrition rich in zinc, iron, boron, and chelated trace minerals. [NPK Formula: 5:10:5] [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
@@ -134,7 +134,7 @@ const SEED_PRODUCTS = [
     price: 650,
     unit: "/litre",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1563514227147-6d2ff665a6a0?auto=format&fit=crop&w=600&q=80",
+    image: "https://images.unsplash.com/photo-1599599810769-bcde5a160d32?auto=format&fit=crop&w=600&q=80",
     description: "Pure cold-pressed neem oil formulation containing 1500ppm Azadirachtin. Controls sucking pests naturally. [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
@@ -146,7 +146,7 @@ const SEED_PRODUCTS = [
     price: 1100,
     unit: "/kg",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1593113630400-ea4288922497?auto=format&fit=crop&w=600&q=80",
+    image: "https://images.unsplash.com/photo-1604928141064-207ec6f57e42?auto=format&fit=crop&w=600&q=80",
     description: "High-yield cotton seeds for rainfed farming. Highly resistant to bollworm. [Germination Rate: 98%] [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
@@ -266,17 +266,21 @@ const SEED_PRODUCTS = [
     price: 140,
     unit: "/kg",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?auto=format&fit=crop&w=600&q=80",
+    image: "https://images.unsplash.com/photo-1528825871115-3581a5387919?auto=format&fit=crop&w=600&q=80",
     description: "Early maturity black mustard seeds with high oil concentration percentage. [Germination Rate: 95%]"
   }
 ];
 
 // Helper to seed products if database is empty or outdated
 async function seedProductsIfNeeded() {
+  const outdatedProduct = await Product.findOne({
+    sellerId: { $exists: false },
+    image: { $regex: /1530595467537|1599819811279|1592417817098|1416879595882|1593113630400|1563514227147/ }
+  });
   const oldProduct = await Product.findOne({ sellerId: { $exists: false }, image: { $regex: /^\/uploads\// } });
   const count = await Product.countDocuments({ sellerId: { $exists: false } });
   
-  if (oldProduct || count < SEED_PRODUCTS.length) {
+  if (outdatedProduct || oldProduct || count < SEED_PRODUCTS.length) {
     // Clear default products first to prevent duplicates
     await Product.deleteMany({ sellerId: { $exists: false } });
     await Product.insertMany(SEED_PRODUCTS);

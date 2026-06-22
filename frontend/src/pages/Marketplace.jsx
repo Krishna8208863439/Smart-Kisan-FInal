@@ -34,12 +34,45 @@ const SAMPLE_IMAGES = [
   { label: "Potato", url: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=300&q=80" },
   { label: "Rice", url: "https://images.unsplash.com/photo-1536304997881-a372c179924b?auto=format&fit=crop&w=300&q=80" },
   { label: "Tomato", url: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=300&q=80" },
-  { label: "Mustard", url: "https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?auto=format&fit=crop&w=300&q=80" },
+  { label: "Mustard", url: "https://images.unsplash.com/photo-1528825871115-3581a5387919?auto=format&fit=crop&w=300&q=80" },
   { label: "Chilli", url: "https://images.unsplash.com/photo-1596797038530-2c107229654b?auto=format&fit=crop&w=300&q=80" }
 ];
 
+const getFallbackImage = (product) => {
+  if (!product) return "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=300&q=80";
+  const name = (product.name || "").toLowerCase();
+  const cat = (product.category || "").toLowerCase();
+  if (name.includes("tomato")) return "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=300&q=80";
+  if (name.includes("wheat")) return "https://images.unsplash.com/photo-1506619216599-9d16d0903dfd?auto=format&fit=crop&w=300&q=80";
+  if (name.includes("potato")) return "https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=300&q=80";
+  if (name.includes("rice")) return "https://images.unsplash.com/photo-1536304997881-a372c179924b?auto=format&fit=crop&w=300&q=80";
+  if (name.includes("mustard")) return "https://images.unsplash.com/photo-1528825871115-3581a5387919?auto=format&fit=crop&w=300&q=80";
+  if (name.includes("chilli") || name.includes("chili")) return "https://images.unsplash.com/photo-1596797038530-2c107229654b?auto=format&fit=crop&w=300&q=80";
+  if (name.includes("cotton")) return "https://images.unsplash.com/photo-1604928141064-207ec6f57e42?auto=format&fit=crop&w=300&q=80";
+  
+  if (cat === "seeds") return "https://images.unsplash.com/photo-1523301343968-6a6ebf63c672?auto=format&fit=crop&w=300&q=80";
+  if (cat === "fertilizers") return "https://images.unsplash.com/photo-1628352081506-83c43123ed6d?auto=format&fit=crop&w=300&q=80";
+  if (cat === "tools" || cat === "equipment") return "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&w=300&q=80";
+  if (cat === "pesticides") return "https://images.unsplash.com/photo-1599599810769-bcde5a160d32?auto=format&fit=crop&w=300&q=80";
+  
+  return "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=300&q=80";
+};
+
 const getProductImageUrl = (url) => {
   if (!url) return "";
+  
+  // Intercept known bad/incorrect sample images (bear, motorcycle, or deleted/broken ones)
+  if (
+    url.includes("1530595467537") ||
+    url.includes("1599819811279") ||
+    url.includes("1592417817098") ||
+    url.includes("1416879595882") ||
+    url.includes("1593113630400") ||
+    url.includes("1563514227147")
+  ) {
+    return ""; // Force fallback
+  }
+
   const backendBase = import.meta.env.VITE_API_URL || "http://localhost:5000";
   if (url.startsWith("http://localhost:5000")) {
     return url.replace("http://localhost:5000", backendBase);
@@ -857,9 +890,13 @@ const Marketplace = () => {
                     {/* Image */}
                     <div style={{ position: "relative", height: 150, borderRadius: 8, overflow: "hidden", background: "#f1f5f9" }}>
                       <img
-                        src={getProductImageUrl(p.image) || "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=300&q=80"}
+                        src={getProductImageUrl(p.image) || getFallbackImage(p)}
                         alt={p.name}
                         style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = getFallbackImage(p);
+                        }}
                       />
                       <span 
                         style={{
@@ -1219,9 +1256,13 @@ const Marketplace = () => {
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <img 
-                        src={getProductImageUrl(p.image) || "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=100&q=80"}
+                        src={getProductImageUrl(p.image) || getFallbackImage(p)}
                         alt={p.name} 
                         style={{ width: 50, height: 50, borderRadius: 6, objectFit: "cover" }}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = getFallbackImage(p);
+                        }}
                       />
                       <div>
                         <strong style={{ fontSize: 15, display: "block" }}>{p.name}</strong>
@@ -1309,9 +1350,13 @@ const Marketplace = () => {
 
             <div style={{ height: 220, borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
               <img 
-                src={getProductImageUrl(selectedProduct.image) || "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=600&q=80"} 
+                src={getProductImageUrl(selectedProduct.image) || getFallbackImage(selectedProduct)} 
                 alt={selectedProduct.name}
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = getFallbackImage(selectedProduct);
+                }}
               />
             </div>
 
@@ -1461,9 +1506,13 @@ const Marketplace = () => {
                 {cart.map((item) => (
                   <div key={item.product._id} style={{ background: "white", border: "1px solid var(--border-color)", padding: 10, borderRadius: 8, display: "flex", gap: 10 }}>
                     <img
-                      src={getProductImageUrl(item.product.image) || "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=100&q=80"}
+                      src={getProductImageUrl(item.product.image) || getFallbackImage(item.product)}
                       alt={item.product.name}
                       style={{ width: 55, height: 55, borderRadius: 4, objectFit: "cover" }}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = getFallbackImage(item.product);
+                      }}
                     />
                     <div style={{ flex: 1 }}>
                       <strong style={{ fontSize: 13, display: "block", color: "var(--text-dark)" }}>{item.product.name}</strong>
