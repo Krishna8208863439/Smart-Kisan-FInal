@@ -16,4 +16,18 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem("sk_token");
+      localStorage.removeItem("sk_name");
+      localStorage.removeItem("sk_email");
+      localStorage.removeItem("sk_role");
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

@@ -11,7 +11,7 @@ const initializeDbFile = () => {
   if (!fs.existsSync(DB_FILE)) {
     fs.writeFileSync(
       DB_FILE,
-      JSON.stringify({ users: [], posts: [], calendars: [], products: [], buyRequests: [] }, null, 2)
+      JSON.stringify({ users: [], posts: [], calendars: [], products: [], buyRequests: [], contracts: [] }, null, 2)
     );
   }
 };
@@ -22,10 +22,11 @@ const readDb = () => {
     const data = fs.readFileSync(DB_FILE, "utf8");
     const parsed = JSON.parse(data);
     if (!parsed.buyRequests) parsed.buyRequests = [];
+    if (!parsed.contracts) parsed.contracts = [];
     return parsed;
   } catch (err) {
     console.error("Error reading memory DB file:", err);
-    return { users: [], posts: [], calendars: [], products: [], buyRequests: [] };
+    return { users: [], posts: [], calendars: [], products: [], buyRequests: [], contracts: [] };
   }
 };
 
@@ -400,5 +401,50 @@ export const BuyRequestMock = {
     const removed = db.buyRequests.splice(index, 1)[0];
     writeDb(db);
     return removed;
+  }
+};
+
+// Contract Mock Model
+export const ContractMock = {
+  find: (filter) => {
+    const db = readDb();
+    if (!db.contracts) db.contracts = [];
+    let result = db.contracts;
+    if (filter && filter.buyerId) {
+      result = result.filter((c) => String(c.buyerId) === String(filter.buyerId));
+    } else if (filter && filter.sellerName) {
+      result = result.filter((c) => c.sellerName === filter.sellerName);
+    }
+    return new MemoryQuery(Promise.resolve(result));
+  },
+  create: async (contractData) => {
+    const db = readDb();
+    if (!db.contracts) db.contracts = [];
+    const newContract = {
+      _id: generateId(),
+      status: "Pending",
+      ...contractData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    db.contracts.push(newContract);
+    writeDb(db);
+    return newContract;
+  },
+  findByIdAndUpdate: async (id, update) => {
+    const db = readDb();
+    if (!db.contracts) db.contracts = [];
+    const index = db.contracts.findIndex((c) => String(c._id) === String(id));
+    if (index === -1) return null;
+    
+    const setFields = update.$set || update;
+    const updated = {
+      ...db.contracts[index],
+      ...setFields,
+      updatedAt: new Date().toISOString()
+    };
+    db.contracts[index] = updated;
+    writeDb(db);
+    return updated;
   }
 };

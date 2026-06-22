@@ -158,8 +158,18 @@ const AgriHealthPortal = () => {
       formData.append("crop", cropHint);
       formData.append("region", regionHint);
 
+      const headers = { "Content-Type": "multipart/form-data" };
+      const token = localStorage.getItem("sk_token");
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      const geminiKey = localStorage.getItem("sk_gemini_key");
+      if (geminiKey) {
+        headers["x-gemini-key"] = geminiKey.trim();
+      }
+
       const res = await axios.post(`${PY_API_URL}/diagnose`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers,
         timeout: 45000   // 45s — Gemini + HuggingFace may take time
       });
 

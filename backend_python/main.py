@@ -3,7 +3,7 @@ import shutil
 import json
 from datetime import datetime, timedelta
 from typing import Optional
-from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Form, status
+from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Form, status, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -60,6 +60,7 @@ async def diagnose_crop_disease(
     crop: Optional[str] = Form(None),
     region: Optional[str] = Form(None),
     user_id: Optional[int] = Form(None),
+    x_gemini_key: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
     """
@@ -87,7 +88,7 @@ async def diagnose_crop_disease(
          img_bytes = f.read()
 
     # 2. Run PyTorch inference
-    prediction = predict_image(img_bytes, crop_hint=crop)
+    prediction = predict_image(img_bytes, crop_hint=crop, filename=image.filename, custom_key=x_gemini_key)
 
     # 3. Save report to Relational Database
     report = DiseaseReport(

@@ -2,6 +2,7 @@ import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
 import Product from "../models/Product.js";
 import BuyRequest from "../models/BuyRequest.js";
+import Contract from "../models/Contract.js";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -447,6 +448,76 @@ router.delete("/buy-requests/:id", protect, async (req, res) => {
   } catch (error) {
     console.error("Error deleting buy request:", error);
     return res.status(500).json({ message: "Failed to delete buy request" });
+  }
+});
+
+// ========== B2B WHOLESALE CONTRACTS ==========
+
+// GET /api/marketplace/contracts
+router.get("/contracts", protect, async (req, res) => {
+  try {
+    let filter = {};
+    if (req.user.role === "merchant") {
+      filter.buyerId = req.user._id;
+    } else {
+      filter.sellerName = req.user.name;
+    }
+    const contracts = await Contract.find(filter).sort({ createdAt: -1 });
+    return res.json(contracts);
+  } catch (error) {
+    console.error("Error fetching contracts:", error);
+    return res.status(500).json({ message: "Failed to fetch contracts" });
+  }
+});
+
+// POST /api/marketplace/contracts
+router.post("/contracts", protect, async (req, res) => {
+  try {
+    const { cropName, quantity, unit, price, sellerName } = req.body;
+    if (!cropName || !quantity || !unit || !price || !sellerName) {
+      return res.status(400).json({ message: "Please provide all required fields." });
+    }
+
+    if (req.user.role !== "merchant") {
+      return res.status(403).json({ message: "Only registered Merchants can initiate bulk contracts." });
+    }
+
+    const contract = await Contract.create({
+      cropName,
+      quantity: Number(quantity),
+      unit,
+      price: Number(price),
+      sellerName,
+      buyerName: req.user.name,
+      buyerId: req.user._id,
+      status: "Pending"
+    });
+
+    return res.status(201).json(contract);
+  } catch (error) {
+    console.error("Error creating contract:", error);
+    return res.status(500).json({ message: "Failed to create wholesale contract" });
+  }
+});
+
+// PATCH /api/marketplace/contracts/:id
+router.patch("/contracts/:id", protect, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!status) {
+      return res.status(400).json({ message: "Status is required." });
+    }
+
+    // A contract status can be updated by the buyer or seller.
+    const contract = await Contract.findByIdAndUpdate(req.params.id, { status });
+    if (!contract) {
+      return res.status(404).json({ message: "Contract not found." });
+    }
+
+    return res.json({ message: "Contract status updated successfully", contract });
+  } catch (error) {
+    console.error("Error updating contract status:", error);
+    return res.status(500).json({ message: "Failed to update contract status" });
   }
 });
 

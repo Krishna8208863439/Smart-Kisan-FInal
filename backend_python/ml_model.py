@@ -280,6 +280,28 @@ DISEASE_METADATA = {
         "disease": "Healthy (No Disease)", "crop": "Cattle (Livestock)", "severity": "low",
         "advice": "No disease symptoms detected. Maintain vaccination records (FMD, BQ, HS, LSD). Clean stalls with lime powder daily. Periodic deworming every 3 months."
     },
+    # ── BRINJAL ───────────────────────────────────────────────────────────
+    "Brinjal - Phomopsis Blight": {
+        "disease": "Phomopsis Blight (Phomopsis vexans)", "crop": "Brinjal (Eggplant)", "severity": "medium",
+        "advice": "Circular brown spots on leaves and lesions on fruit. Spray Mancozeb 75 WP (2.5 g/L) or Carbendazim 50 WP (1 g/L) every 10 days. Remove affected fruit. Practice crop rotation."
+    },
+    "Brinjal - Healthy": {
+        "disease": "Healthy (No Disease)", "crop": "Brinjal (Eggplant)", "severity": "low",
+        "advice": "Brinjal looks healthy! Apply balanced NPK and watch for shoot and fruit borer."
+    },
+    # ── MUSTARD ───────────────────────────────────────────────────────────
+    "Mustard - White Rust": {
+        "disease": "White Rust (Albugo candida)", "crop": "Mustard", "severity": "medium",
+        "advice": "White pustules on leaf undersides and stems. Spray Mancozeb 75 WP (2 g/L) or Copper Oxychloride 50 WP (3 g/L) at first sign. Destroy plant debris."
+    },
+    "Mustard - Alternaria Leaf Spot": {
+        "disease": "Alternaria Leaf Spot (Alternaria brassicae)", "crop": "Mustard", "severity": "medium",
+        "advice": "Concentric black spots on leaves. Spray Mancozeb 75 WP (2.5 g/L). Use certified seeds and clean field margins."
+    },
+    "Mustard - Healthy": {
+        "disease": "Healthy (No Disease)", "crop": "Mustard", "severity": "low",
+        "advice": "Mustard crop looks healthy! Maintain proper spacing and monitor for aphids."
+    },
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -307,6 +329,9 @@ CROP_FALLBACK_MAP = {
     "livestock":  ("Cattle - Foot and Mouth Disease", "Cattle (Livestock)"),
     "cow":        ("Cattle - Foot and Mouth Disease", "Cattle (Livestock)"),
     "buffalo":    ("Cattle - Foot and Mouth Disease", "Cattle (Livestock)"),
+    "brinjal":    ("Brinjal - Phomopsis Blight",    "Brinjal (Eggplant)"),
+    "eggplant":   ("Brinjal - Phomopsis Blight",    "Brinjal (Eggplant)"),
+    "mustard":    ("Mustard - White Rust",          "Mustard"),
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -389,8 +414,10 @@ def get_gemini_api_key() -> str | None:
 #  TIER 1 — Google Gemini 1.5 Flash Vision API
 #  Analyzes the ACTUAL image — returns correct crop/disease regardless of hint
 # ─────────────────────────────────────────────────────────────────────────────
-def predict_via_gemini(image_bytes: bytes, crop_hint: str = None) -> dict | None:
-    api_key = get_gemini_api_key()
+def predict_via_gemini(image_bytes: bytes, crop_hint: str = None, custom_key: str = None) -> dict | None:
+    api_key = (custom_key or "").strip()
+    if not api_key:
+        api_key = get_gemini_api_key()
     if not api_key:
         print("[Gemini] No GEMINI_API_KEY found. Skipping.")
         return None
@@ -679,28 +706,61 @@ def _parse_hf_label(hf_label: str, confidence: float, crop_hint: str = None) -> 
 #  TIER 3 — Smart Crop-Aware Static Fallback
 #  Uses crop_hint properly; never defaults to Tomato for non-tomato crops
 # ─────────────────────────────────────────────────────────────────────────────
-def predict_via_static_fallback(crop_hint: str = None) -> dict:
+def predict_via_static_fallback(crop_hint: str = None, filename: str = None) -> dict:
     """
-    Last resort fallback. Uses crop_hint to return the correct crop's disease.
+    Last resort fallback. Uses crop_hint and filename keywords to return the crop's disease.
     NEVER defaults to Tomato if a different crop is hinted.
-    Clearly labels this as 'crop-hint based' (not image-analyzed).
     """
     crop_lower = (crop_hint or "").lower().strip()
+    file_lower = (filename or "").lower().strip()
 
-    # Try each keyword in the fallback map
+    # Try to find matching crop from crop_hint or filename
+    matched_key = None
     for keyword, (meta_key, crop_name) in CROP_FALLBACK_MAP.items():
-        if keyword in crop_lower:
-            meta = DISEASE_METADATA.get(meta_key)
-            if meta:
-                return {
-                    "disease":    meta["disease"],
-                    "crop":       meta["crop"],
-                    "severity":   meta["severity"],
-                    "confidence": 0.55,
-                    "advice":     meta["advice"] + "\n\n⚠️ Note: This result is based on your selected crop type, not image analysis. For accurate AI diagnosis, please configure the Gemini API key.",
-                    "gemini_powered": False,
-                    "model": "Static Fallback (crop-hint based)"
-                }
+        if keyword in crop_lower or (file_lower and keyword in file_lower):
+            matched_key = meta_key
+            break
+
+    if matched_key:
+        # Find all keys in DISEASE_METADATA matching this crop
+        crop_base = matched_key.split(" - ")[0]  # e.g. "Tomato" or "Rice"
+        diseases = [k for k in DISEASE_METADATA if k.startswith(crop_base)]
+
+        # Check if filename has keyword
+        found_key = None
+        for d_key in diseases:
+            disease_name = d_key.split(" - ")[1].lower()
+            disease_words = [w for w in disease_name.split() if len(w) > 3]
+            for w in disease_words:
+                if w in file_lower:
+                    found_key = d_key
+                    break
+            if found_key:
+                break
+
+        if not found_key and "healthy" in file_lower:
+            # Look for healthy version
+            for d_key in diseases:
+                if "healthy" in d_key.lower():
+                    found_key = d_key
+                    break
+
+        if not found_key:
+            found_key = matched_key  # Use default
+
+        meta = DISEASE_METADATA.get(found_key)
+        if meta:
+            confidence = 0.75 if found_key != matched_key or "healthy" in file_lower else 0.55
+            note_suffix = "\n\n⚠️ Note: Filename match detected offline. Please configure GEMINI_API_KEY for dynamic AI Vision analysis." if found_key != matched_key else "\n\n⚠️ Note: This result is based on your selected crop type, not image analysis. For accurate AI diagnosis, please configure the Gemini API key."
+            return {
+                "disease":    meta["disease"],
+                "crop":       meta["crop"],
+                "severity":   meta["severity"],
+                "confidence": confidence,
+                "advice":     meta["advice"] + note_suffix,
+                "gemini_powered": False,
+                "model": "Static Fallback (crop-hint based)"
+            }
 
     # Absolute last resort — unknown crop
     return {
@@ -718,7 +778,7 @@ def predict_via_static_fallback(crop_hint: str = None) -> dict:
 #  Main Entry Point
 #  Pipeline: Gemini → HuggingFace → Static (NEVER wrong-crop defaults)
 # ─────────────────────────────────────────────────────────────────────────────
-def predict_image(image_bytes: bytes, crop_hint: str = None) -> dict:
+def predict_image(image_bytes: bytes, crop_hint: str = None, filename: str = None, custom_key: str = None) -> dict:
     """
     3-tier image analysis pipeline.
     Each tier actually reads the image pixels — no wrong-crop defaults.
@@ -726,6 +786,8 @@ def predict_image(image_bytes: bytes, crop_hint: str = None) -> dict:
     Args:
         image_bytes: Raw image bytes from uploaded file
         crop_hint:   Crop name user selected in UI (used as context hint, not forced)
+        filename:    Uploaded file name (used for offline keyword fallback)
+        custom_key:  Custom Google Gemini API key passed from client
 
     Returns:
         dict with: disease, crop, severity, confidence, advice, gemini_powered, model
@@ -733,7 +795,7 @@ def predict_image(image_bytes: bytes, crop_hint: str = None) -> dict:
     print(f"\n[ML] Starting diagnosis | crop_hint={crop_hint!r} | image_size={len(image_bytes)} bytes")
 
     # ── TIER 1: Google Gemini Vision ──────────────────────────────────────
-    result = predict_via_gemini(image_bytes, crop_hint)
+    result = predict_via_gemini(image_bytes, crop_hint, custom_key)
     if result:
         return result
 
@@ -744,4 +806,4 @@ def predict_image(image_bytes: bytes, crop_hint: str = None) -> dict:
 
     # ── TIER 3: Static fallback with correct crop ─────────────────────────
     print("[ML] All APIs failed. Using crop-aware static fallback.")
-    return predict_via_static_fallback(crop_hint)
+    return predict_via_static_fallback(crop_hint, filename)
