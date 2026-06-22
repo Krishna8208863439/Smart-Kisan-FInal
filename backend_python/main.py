@@ -10,8 +10,15 @@ from sqlalchemy.orm import Session
 import requests
 from twilio.rest import Client
 
+# Load .env file if present (local development)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 from database import init_db, get_db, DiseaseReport, CropLog, WeatherCache, User
-from ml_model import predict_image
+from ml_model import predict_image, get_gemini_api_key
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -106,8 +113,46 @@ async def diagnose_crop_disease(
         "confidence": report.confidence,
         "advice": report.advice,
         "imageUrl": report.image_url,
-        "createdAt": report.created_at.isoformat()
+        "createdAt": report.created_at.isoformat(),
+        "gemini_powered": prediction.get("gemini_powered", False),
+        "ai_model": prediction.get("model", "Static Fallback")
     }
+
+
+# --- Gemini API Status Endpoint ---
+@app.get("/api/gemini-test")
+def test_gemini_connection():
+    """Check if Gemini API key is configured and reachable."""
+    api_key = get_gemini_api_key()
+    if not api_key:
+        return {
+            "status": "not_configured",
+            "message": "GEMINI_API_KEY not found. Set it in your .env file or environment variables.",
+            "gemini_enabled": False
+        }
+    # Quick ping to Gemini REST API
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+        res = requests.get(url, timeout=8)
+        if res.status_code == 200:
+            return {
+                "status": "connected",
+                "message": "Google Gemini API is active and responding.",
+                "gemini_enabled": True,
+                "model": "gemini-1.5-flash"
+            }
+        else:
+            return {
+                "status": "error",
+                "message": f"Gemini API returned HTTP {res.status_code}. Check your API key.",
+                "gemini_enabled": False
+            }
+    except Exception as e:
+        return {
+            "status": "unreachable",
+            "message": f"Could not reach Gemini API: {str(e)}",
+            "gemini_enabled": False
+        }
 
 
 # --- MODULE B: Smart Crop Advisory System ---

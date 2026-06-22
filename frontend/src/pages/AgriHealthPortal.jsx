@@ -23,10 +23,10 @@ const AgriHealthPortal = () => {
   const fileInputRef = useRef(null);
 
   const scanSteps = [
-    "Initializing MobileNetV3 visual indexing...",
-    "Isolating crop leaf lesions & spot vectors...",
-    "Executing transfer learning classification layers...",
-    "Synthesizing customized agronomic recommendations..."
+    "🤖 Connecting to Google Gemini 1.5 Flash Vision AI...",
+    "🔬 Analyzing leaf morphology, lesion patterns & color signatures...",
+    "🌿 Cross-referencing with 200+ crop disease database...",
+    "💊 Synthesizing precision agronomic treatment recommendations..."
   ];
 
   // Module B: Advisory States
@@ -310,10 +310,29 @@ const AgriHealthPortal = () => {
     <div className="app-container">
       {/* Title Panel */}
       <div className="card" style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #15803d 100%)", color: "white", padding: 28, borderRadius: 16 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0 }}>🏥 {currLabel.title}</h1>
-        <p style={{ opacity: 0.9, marginTop: 6, marginBottom: 0, fontSize: 14 }}>
-          {currLabel.subtitle}
-        </p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+          <div>
+            <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0 }}>🏥 {currLabel.title}</h1>
+            <p style={{ opacity: 0.9, marginTop: 6, marginBottom: 0, fontSize: 14 }}>
+              {currLabel.subtitle}
+            </p>
+          </div>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 6,
+            background: "rgba(255,255,255,0.15)",
+            backdropFilter: "blur(10px)",
+            padding: "8px 14px",
+            borderRadius: 20,
+            border: "1px solid rgba(255,255,255,0.3)",
+            fontSize: 12,
+            fontWeight: 700,
+            color: "white",
+            whiteSpace: "nowrap"
+          }}>
+            <span>🤖</span>
+            <span>Powered by Google Gemini 1.5 Flash</span>
+          </div>
+        </div>
       </div>
 
       {/* Tabs Menu */}
@@ -356,10 +375,29 @@ const AgriHealthPortal = () => {
                 {currLabel.selectCrop}
               </label>
               <select className="input" value={cropHint} onChange={(e) => setCropHint(e.target.value)}>
-                <option value="Tomato">Tomato (टमाटर)</option>
-                <option value="Rice">Rice/Paddy (धान)</option>
-                <option value="Wheat">Wheat (गेहूं)</option>
-                <option value="Cattle">Cattle/Livestock (पशुधन)</option>
+                <optgroup label="🌾 Cereals">
+                  <option value="Tomato">Tomato (टमाटर)</option>
+                  <option value="Rice">Rice / Paddy (धान)</option>
+                  <option value="Wheat">Wheat (गेहूं)</option>
+                  <option value="Maize">Maize / Corn (मक्का)</option>
+                </optgroup>
+                <optgroup label="🌿 Cash Crops">
+                  <option value="Cotton">Cotton (कपास)</option>
+                  <option value="Sugarcane">Sugarcane (गन्ना)</option>
+                  <option value="Groundnut">Groundnut (मूंगफली)</option>
+                  <option value="Soybean">Soybean (सोयाबीन)</option>
+                </optgroup>
+                <optgroup label="🥔 Vegetables & Fruits">
+                  <option value="Potato">Potato (आलू)</option>
+                  <option value="Chilli">Chilli / Pepper (मिर्च)</option>
+                  <option value="Banana">Banana (केला)</option>
+                  <option value="Onion">Onion (प्याज)</option>
+                  <option value="Brinjal">Brinjal / Eggplant (बैंगन)</option>
+                  <option value="Mango">Mango (आम)</option>
+                </optgroup>
+                <optgroup label="🐄 Livestock">
+                  <option value="Cattle">Cattle / Livestock (पशुधन)</option>
+                </optgroup>
               </select>
             </div>
 
@@ -495,10 +533,26 @@ const AgriHealthPortal = () => {
                   <div style={{ fontWeight: 800, fontSize: 20, color: "var(--primary)" }}>
                     {Math.round(diagResult.confidence * 100)}%
                   </div>
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <strong style={{ display: "block", fontSize: 13 }}>{currLabel.confidence}</strong>
-                    <span style={{ fontSize: 11, color: "var(--text-muted)" }}>MobileNetV3 Classification match</span>
+                    <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                      {diagResult.gemini_powered
+                        ? "🤖 Google Gemini 1.5 Flash Vision AI"
+                        : diagResult.ai_model || "MobileNetV3 Classification"}
+                    </span>
                   </div>
+                  {diagResult.gemini_powered && (
+                    <span style={{
+                      fontSize: 10,
+                      background: "linear-gradient(135deg, #1a73e8, #0d9488)",
+                      color: "white",
+                      padding: "3px 8px",
+                      borderRadius: 12,
+                      fontWeight: 700,
+                      letterSpacing: 0.3,
+                      whiteSpace: "nowrap"
+                    }}>✨ Gemini AI</span>
+                  )}
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
