@@ -74,6 +74,12 @@ const parseDescriptionSpecs = (description) => {
     cleanDesc = cleanDesc.replace(harvestMatch[0], "");
   }
 
+  const liveLinkMatch = description.match(/\[Live Link:\s*([^\]]+)\]/);
+  if (liveLinkMatch) {
+    specs.liveLink = liveLinkMatch[1].trim();
+    cleanDesc = cleanDesc.replace(liveLinkMatch[0], "");
+  }
+
   return { cleanDesc: cleanDesc.trim(), specs };
 };
 
@@ -119,7 +125,8 @@ const Marketplace = () => {
     description: "",
     germinationRate: "",
     npkRatio: "",
-    harvestDate: ""
+    harvestDate: "",
+    liveLink: ""
   });
   const [sellLoading, setSellLoading] = useState(false);
 
@@ -336,6 +343,10 @@ const Marketplace = () => {
         detailedDesc += `\n[Harvest Date: ${new Date(sellForm.harvestDate).toLocaleDateString()}]`;
       }
 
+      if (sellForm.liveLink) {
+        detailedDesc += `\n[Live Link: ${sellForm.liveLink}]`;
+      }
+
       await api.post("/marketplace", {
         name: sellForm.name,
         category: sellForm.category,
@@ -354,7 +365,8 @@ const Marketplace = () => {
         description: "",
         germinationRate: "",
         npkRatio: "",
-        harvestDate: ""
+        harvestDate: "",
+        liveLink: ""
       });
       setShowSellForm(false);
       fetchProducts();
@@ -902,6 +914,29 @@ const Marketplace = () => {
                                 🍎 Harvest: {specs.harvestDate}
                               </span>
                             )}
+                            {specs.liveLink && (
+                              <a
+                                href={specs.liveLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  fontSize: 10,
+                                  background: "#eff6ff",
+                                  color: "#2563eb",
+                                  padding: "2px 6px",
+                                  borderRadius: 4,
+                                  fontWeight: 700,
+                                  textDecoration: "none",
+                                  border: "1px solid #bfdbfe",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 2
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                🔗 {language === 'mr' ? 'लाइव्ह लिंक' : 'Live Link'}
+                              </a>
+                            )}
                           </div>
                         );
                       })()}
@@ -1084,6 +1119,16 @@ const Marketplace = () => {
                     placeholder="Describe crop quality, organic details, harvest region..."
                     value={sellForm.description}
                     onChange={(e) => setSellForm({ ...sellForm, description: e.target.value })}
+                  />
+
+                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Live Product URL (Optional)</label>
+                  <input
+                    type="url"
+                    className="input"
+                    placeholder="e.g., https://example.com/product"
+                    value={sellForm.liveLink || ""}
+                    onChange={(e) => setSellForm({ ...sellForm, liveLink: e.target.value })}
+                    style={{ marginBottom: 12 }}
                   />
 
                   <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Upload Product Image (Recommended)</label>
@@ -1303,7 +1348,7 @@ const Marketplace = () => {
                     {cleanDesc || "Fresh farm produce directly listed by farmer."}
                   </p>
                   
-                  {(specs.germinationRate || specs.npkRatio || specs.harvestDate) && (
+                  {(specs.germinationRate || specs.npkRatio || specs.harvestDate || specs.liveLink) && (
                     <div style={{ borderTop: "1px dashed #cbd5e1", paddingTop: 10, display: "flex", flexWrap: "wrap", gap: 10 }}>
                       {specs.germinationRate && (
                         <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "6px 10px", borderRadius: 6 }}>
@@ -1321,6 +1366,14 @@ const Marketplace = () => {
                         <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", padding: "6px 10px", borderRadius: 6 }}>
                           <span style={{ display: "block", fontSize: 10, color: "#9a3412", fontWeight: 700, textTransform: "uppercase" }}>Harvest Date</span>
                           <strong style={{ fontSize: 14, color: "#7c2d12" }}>{specs.harvestDate}</strong>
+                        </div>
+                      )}
+                      {specs.liveLink && (
+                        <div style={{ background: "#e0f2fe", border: "1px solid #bae6fd", padding: "6px 10px", borderRadius: 6 }}>
+                          <span style={{ display: "block", fontSize: 10, color: "#0369a1", fontWeight: 700, textTransform: "uppercase" }}>Live Listing URL</span>
+                          <a href={specs.liveLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: "#0284c7", fontWeight: 700, textDecoration: "none" }}>
+                            🔗 Visit Live Product
+                          </a>
                         </div>
                       )}
                     </div>

@@ -63,7 +63,7 @@ const SEED_PRODUCTS = [
     unit: "/kg",
     stock: "In Stock",
     image: "/uploads/organic_wheat_seeds.png",
-    description: "Certified high-yielding organic wheat seeds suitable for Rabi season sowing. Treated for natural disease resistance. [Germination Rate: 96%]"
+    description: "Certified high-yielding organic wheat seeds suitable for Rabi season sowing. Treated for natural disease resistance. [Germination Rate: 96%] [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
     name: "IFFCO NPK 19:19:19 Bio-Fertilizer",
@@ -75,7 +75,7 @@ const SEED_PRODUCTS = [
     unit: "/25kg bag",
     stock: "In Stock",
     image: "/uploads/bio_fertilizer_npk.png",
-    description: "Balanced macronutrient formula containing organic nitrogen, phosphorus, and potash compounds. Promotes healthy root growth and vegetative development. [NPK Formula: 19:19:19]"
+    description: "Balanced macronutrient formula containing organic nitrogen, phosphorus, and potash compounds. Promotes healthy root growth and vegetative development. [NPK Formula: 19:19:19] [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
     name: "Jain Drip Irrigation Kit (1 Acre)",
@@ -87,7 +87,7 @@ const SEED_PRODUCTS = [
     unit: "/set",
     stock: "In Stock",
     image: "/uploads/drip_irrigation_kit.png",
-    description: "Complete drip line kit with drippers, filters, valves, lateral pipes, and micro-sprinklers. Saves up to 60% water."
+    description: "Complete drip line kit with drippers, filters, valves, lateral pipes, and micro-sprinklers. Saves up to 60% water. [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
     name: "Pioneer Hybrid Maize Seeds (30Y92)",
@@ -99,7 +99,7 @@ const SEED_PRODUCTS = [
     unit: "/kg",
     stock: "In Stock",
     image: "/uploads/hybrid_maize_seeds.png",
-    description: "Premium hybrid corn seeds optimized for dry-land cultivation. Early maturing variety. [Germination Rate: 94%]"
+    description: "Premium hybrid corn seeds optimized for dry-land cultivation. Early maturing variety. [Germination Rate: 94%] [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
     name: "Multiplex Liquid Micro-Nutrient Mix",
@@ -111,7 +111,7 @@ const SEED_PRODUCTS = [
     unit: "/litre",
     stock: "In Stock",
     image: "/uploads/liquid_micronutrient.png",
-    description: "Foliar spray liquid nutrition rich in zinc, iron, boron, and chelated trace minerals. [NPK Formula: 5:10:5]"
+    description: "Foliar spray liquid nutrition rich in zinc, iron, boron, and chelated trace minerals. [NPK Formula: 5:10:5] [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
     name: "Aspee Knapsack Hand Sprayer Pump (16L)",
@@ -123,7 +123,7 @@ const SEED_PRODUCTS = [
     unit: "/unit",
     stock: "In Stock",
     image: "/uploads/hand_sprayer_pump.png",
-    description: "Ergonomic 16-liter manual knapsack sprayer with adjustable brass nozzles and heavy-duty battery backup."
+    description: "Ergonomic 16-liter manual knapsack sprayer with adjustable brass nozzles and heavy-duty battery backup. [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
     name: "Eco Pesticide (Margosom Neem Based)",
@@ -135,7 +135,7 @@ const SEED_PRODUCTS = [
     unit: "/litre",
     stock: "In Stock",
     image: "/uploads/eco_pesticide.png",
-    description: "Pure cold-pressed neem oil formulation containing 1500ppm Azadirachtin. Controls sucking pests naturally."
+    description: "Pure cold-pressed neem oil formulation containing 1500ppm Azadirachtin. Controls sucking pests naturally. [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
     name: "Mahyco Bollgard-II Premium Cotton Seeds",
@@ -147,7 +147,7 @@ const SEED_PRODUCTS = [
     unit: "/kg",
     stock: "In Stock",
     image: "/uploads/organic_wheat_seeds.png",
-    description: "High-yield cotton seeds for rainfed farming. Highly resistant to bollworm. [Germination Rate: 98%]"
+    description: "High-yield cotton seeds for rainfed farming. Highly resistant to bollworm. [Germination Rate: 98%] [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
     name: "Jaivik Bharat Organic Vermicompost",
@@ -207,7 +207,7 @@ const SEED_PRODUCTS = [
     unit: "/kg",
     stock: "In Stock",
     image: "/uploads/Ripening-heads-rice-Oryza-sativa-1781186046446-329740.webp",
-    description: "Aroma-rich premium extra long grain Basmati rice from organic fields. [Harvest Date: 05/10/2026]"
+    description: "Aroma-rich premium extra long grain Basmati rice from organic fields. [Harvest Date: 05/10/2026] [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
     name: "Suresh Mandloi's Red Potatoes (Bulk)",

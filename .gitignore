@@ -31,3 +31,10 @@ Thumbs.db
 dev-dist/
 backend/uploads/
 
+# Python & SQLite
+*.db
+__pycache__/
+*.pyc
+venv/
+.venv/
+.pytest_cache/
