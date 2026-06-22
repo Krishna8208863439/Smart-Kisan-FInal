@@ -171,6 +171,73 @@ Output strictly in the following JSON format:
       }
     }
 
+    // Try Groq Vision API if key is present
+    const groqKey = process.env.GROQ_API_KEY;
+    if (groqKey && groqKey !== "YOUR_GROQ_API_KEY" && groqKey.trim().length > 10) {
+      try {
+        const systemPrompt = `You are a Lead Agritech AI Plant Pathologist.
+Analyze the attached crop leaf image (Crop hint: ${crop || "Unknown"}).
+Identify the specific disease name, calculate confidence level (float between 0.0 and 1.0), determine severity (low, medium, high), and provide highly accurate agronomic treatment instructions with real active ingredients and specific dosages.
+Output strictly in the following JSON format:
+{
+  "crop": "${crop || "Crop Name"}",
+  "disease": "Disease Name (Scientific Name)",
+  "severity": "low/medium/high",
+  "confidence": 0.88,
+  "advice": "Precise agronomic chemical and biological controls with exact chemical spray dosages (e.g. Copper Oxychloride or Imidacloprid) and field management guidelines."
+}`;
+
+        const base64Image = fs.readFileSync(imagePath).toString("base64");
+        const response = await fetch(
+          "https://api.groq.com/openai/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${groqKey}`
+            },
+            body: JSON.stringify({
+              model: "llama-3.2-11b-vision-preview",
+              messages: [
+                {
+                  role: "user",
+                  content: [
+                    { type: "text", text: systemPrompt },
+                    {
+                      type: "image_url",
+                      image_url: {
+                        url: `data:${req.file.mimetype};base64,${base64Image}`
+                      }
+                    }
+                  ]
+                }
+              ],
+              response_format: { type: "json_object" }
+            })
+          }
+        );
+
+        const data = await response.json();
+        let textResult = data.choices?.[0]?.message?.content;
+        if (textResult) {
+          const parsed = JSON.parse(textResult.trim());
+          if (parsed.crop && parsed.disease && parsed.advice) {
+            return res.json({
+              success: true,
+              imageUrl,
+              crop: parsed.crop,
+              disease: parsed.disease,
+              severity: parsed.severity || "medium",
+              confidence: parsed.confidence || 0.85,
+              advice: parsed.advice
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Groq crop disease Vision API error, falling back to local database:", err);
+      }
+    }
+
     // Fallback to detailed local database
     const prediction = fakeDiseaseModel(imagePath, crop);
 

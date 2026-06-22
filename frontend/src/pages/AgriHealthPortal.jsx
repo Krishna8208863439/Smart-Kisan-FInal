@@ -405,11 +405,44 @@ const AgriHealthPortal = () => {
 
             {previewUrl && (
               <div style={{ textAlign: "center", marginBottom: 16 }}>
-                <img
-                  src={previewUrl}
-                  alt="Symptom preview"
-                  style={{ maxHeight: 200, borderRadius: 8, border: "1px solid var(--border-color)" }}
-                />
+                <div style={{ position: "relative", display: "inline-block" }}>
+                  <img
+                    src={previewUrl}
+                    alt="Symptom preview"
+                    style={{ maxHeight: 200, borderRadius: 8, border: "1px solid var(--border-color)" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedFile(null);
+                      setPreviewUrl("");
+                      setDiagResult(null);
+                      setDiagStatus("");
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
+                    style={{
+                      position: "absolute",
+                      top: 8,
+                      right: 8,
+                      background: "rgba(220, 38, 38, 0.9)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "50%",
+                      width: 24,
+                      height: 24,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 14,
+                      fontWeight: "bold",
+                      zIndex: 10
+                    }}
+                    title="Clear Image"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
             )}
 

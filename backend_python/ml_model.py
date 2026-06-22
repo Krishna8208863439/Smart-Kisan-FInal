@@ -130,12 +130,103 @@ def get_model():
             
     return model
 
+# Helper to read GROQ_API_KEY from environment or file system
+def get_groq_api_key():
+    key = os.getenv("GROQ_API_KEY")
+    if key:
+        return key
+    # check standard paths
+    paths = [
+        os.path.join(os.path.dirname(__file__), ".env"),
+        os.path.join(os.path.dirname(__file__), "..", ".env"),
+        os.path.join(os.path.dirname(__file__), "..", "backend", ".env"),
+        "/home/Krishna3114/smart-kisan-backend/.env"
+    ]
+    for p in paths:
+        if os.path.exists(p):
+            with open(p, "r") as f:
+                for line in f:
+                    if line.startswith("GROQ_API_KEY="):
+                        return line.split("=", 1)[1].strip().strip('"').strip("'")
+    return None
+
+import base64
+import requests
+import json
+
+def predict_image_via_groq(image_bytes: bytes, crop_hint: str = None) -> dict:
+    api_key = get_groq_api_key()
+    if not api_key:
+        return None
+    
+    try:
+        base64_image = base64.b64encode(image_bytes).decode('utf-8')
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        }
+        system_prompt = f"""You are a Lead Agritech AI Plant Pathologist.
+Analyze the attached crop leaf image (Crop hint: {crop_hint or "Unknown"}).
+Identify the specific disease name, calculate confidence level (float between 0.0 and 1.0), determine severity (low, medium, high), and provide highly accurate agronomic treatment instructions with real active ingredients and specific dosages.
+Output strictly in the following JSON format:
+{{
+  "crop": "{crop_hint or "Crop Name"}",
+  "disease": "Disease Name (Scientific Name)",
+  "severity": "low/medium/high",
+  "confidence": 0.88,
+  "advice": "Precise agronomic chemical and biological controls with exact chemical spray dosages (e.g. Copper Oxychloride or Imidacloprid) and field management guidelines."
+}}"""
+        
+        payload = {
+            "model": "llama-3.2-11b-vision-preview",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": system_prompt
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_image}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "response_format": { "type": "json_object" }
+        }
+        
+        response = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=15)
+        if response.status_code == 200:
+            data = response.json()
+            content = data["choices"][0]["message"]["content"]
+            parsed = json.loads(content)
+            return {
+                "disease": parsed.get("disease", "Unknown"),
+                "crop": parsed.get("crop", crop_hint or "Unknown"),
+                "severity": parsed.get("severity", "medium"),
+                "confidence": float(parsed.get("confidence", 0.85)),
+                "advice": parsed.get("advice", "")
+            }
+    except Exception as e:
+        print("[ML Groq Error] API invocation failed:", e)
+    return None
+
 def predict_image(image_bytes: bytes, crop_hint: str = None) -> dict:
     """
     Runs model inference on raw image bytes.
     If model classifies an incorrect class based on crop_hint, 
     it falls back/aligns to the nearest logical crop profile.
     """
+    # 1. Try Groq Vision API first to get proper analysis
+    groq_result = predict_image_via_groq(image_bytes, crop_hint)
+    if groq_result:
+        return groq_result
+
+    # 2. Fallback to PyTorch/mock
     if not TORCH_AVAILABLE:
         # Determine fallback mock disease based on crop_hint
         crop = crop_hint or "Tomato"

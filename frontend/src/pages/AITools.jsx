@@ -112,6 +112,14 @@ const AITools = () => {
     setDiseaseStatus("Image loaded. Click 'Analyze Leaf'.");
   };
 
+  const clearDiseaseImage = () => {
+    setDiseaseFile(null);
+    setDiseasePreview(null);
+    setDiseaseResult(null);
+    setDiseaseStatus("Upload a leaf photo and click analyze to output report.");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleAnalyzeDisease = async () => {
     if (!diseaseFile) {
       setDiseaseStatus("Please select or drop an image file.");
@@ -528,7 +536,7 @@ const AITools = () => {
               </div>
 
               {diseasePreview && (
-                <div style={{ marginBottom: 16, textAlign: "center", position: "relative" }}>
+                <div style={{ marginBottom: 16, textAlign: "center", position: "relative", display: "inline-block", maxWidth: "100%" }}>
                   <img
                     src={diseasePreview}
                     alt="Leaf preview"
@@ -540,6 +548,31 @@ const AITools = () => {
                       objectFit: "cover"
                     }}
                   />
+                  <button
+                    type="button"
+                    onClick={clearDiseaseImage}
+                    style={{
+                      position: "absolute",
+                      top: 8,
+                      right: 8,
+                      background: "rgba(220, 38, 38, 0.9)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "50%",
+                      width: 24,
+                      height: 24,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 14,
+                      fontWeight: "bold",
+                      zIndex: 10
+                    }}
+                    title="Clear Image"
+                  >
+                    ✕
+                  </button>
                   {diseaseLoading && <div className="scan-line" />}
                 </div>
               )}
@@ -642,17 +675,7 @@ const AITools = () => {
                     </span>
                   </div>
 
-                  {/* Healthy Leaf Comparison preset */}
-                  {REFERENCE_HEALTHY_LEAVES[diseaseResult.crop] && (
-                    <div style={{ border: "1px solid var(--border-color)", padding: 10, borderRadius: 8 }}>
-                      <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>{t("healthyLeafRef")}</span>
-                      <img 
-                        src={REFERENCE_HEALTHY_LEAVES[diseaseResult.crop]} 
-                        alt="Healthy Reference" 
-                        style={{ height: 70, width: "100%", objectFit: "cover", borderRadius: 6 }}
-                      />
-                    </div>
-                  )}
+
 
                   <hr style={{ borderColor: "var(--border-color)", margin: "4px 0" }} />
 

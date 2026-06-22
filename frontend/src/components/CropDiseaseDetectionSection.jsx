@@ -254,17 +254,51 @@ const CropDiseaseDetectionSection = () => {
               <div style={{ fontSize: 14, marginBottom: 4 }}>
                 {language === "mr" ? "पूर्वावलोकन (Preview):" : "Preview:"}
               </div>
-              <img
-                src={previewUrl}
-                alt={language === "mr" ? "निवडलेले पान" : "Selected leaf"}
-                style={{
-                  maxWidth: "100%",
-                  borderRadius: 12,
-                  border: "1px solid #e5e7eb",
-                  maxHeight: 260,
-                  objectFit: "cover"
-                }}
-              />
+              <div style={{ position: "relative", display: "inline-block", maxWidth: "100%" }}>
+                <img
+                  src={previewUrl}
+                  alt={language === "mr" ? "निवडलेले पान" : "Selected leaf"}
+                  style={{
+                    maxWidth: "100%",
+                    borderRadius: 12,
+                    border: "1px solid #e5e7eb",
+                    maxHeight: 260,
+                    objectFit: "cover"
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFile(null);
+                    setFileName("");
+                    setPreviewUrl("");
+                    setResult(null);
+                    setStatus(defaultStatus);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                  style={{
+                    position: "absolute",
+                    top: 8,
+                    right: 8,
+                    background: "rgba(220, 38, 38, 0.9)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: 24,
+                    height: 24,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 14,
+                    fontWeight: "bold",
+                    zIndex: 10
+                  }}
+                  title="Clear Image"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
           )}
 

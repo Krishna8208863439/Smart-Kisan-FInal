@@ -62,7 +62,7 @@ const SEED_PRODUCTS = [
     price: 850,
     unit: "/kg",
     stock: "In Stock",
-    image: "/uploads/organic_wheat_seeds.png",
+    image: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=600&q=80",
     description: "Certified high-yielding organic wheat seeds suitable for Rabi season sowing. Treated for natural disease resistance. [Germination Rate: 96%] [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
@@ -74,7 +74,7 @@ const SEED_PRODUCTS = [
     price: 1200,
     unit: "/25kg bag",
     stock: "In Stock",
-    image: "/uploads/bio_fertilizer_npk.png",
+    image: "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=600&q=80",
     description: "Balanced macronutrient formula containing organic nitrogen, phosphorus, and potash compounds. Promotes healthy root growth and vegetative development. [NPK Formula: 19:19:19] [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
@@ -86,7 +86,7 @@ const SEED_PRODUCTS = [
     price: 15000,
     unit: "/set",
     stock: "In Stock",
-    image: "/uploads/drip_irrigation_kit.png",
+    image: "https://images.unsplash.com/photo-1592417817098-8f3d6eb19675?auto=format&fit=crop&w=600&q=80",
     description: "Complete drip line kit with drippers, filters, valves, lateral pipes, and micro-sprinklers. Saves up to 60% water. [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
@@ -98,7 +98,7 @@ const SEED_PRODUCTS = [
     price: 950,
     unit: "/kg",
     stock: "In Stock",
-    image: "/uploads/hybrid_maize_seeds.png",
+    image: "https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?auto=format&fit=crop&w=600&q=80",
     description: "Premium hybrid corn seeds optimized for dry-land cultivation. Early maturing variety. [Germination Rate: 94%] [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
@@ -110,7 +110,7 @@ const SEED_PRODUCTS = [
     price: 480,
     unit: "/litre",
     stock: "In Stock",
-    image: "/uploads/liquid_micronutrient.png",
+    image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=600&q=80",
     description: "Foliar spray liquid nutrition rich in zinc, iron, boron, and chelated trace minerals. [NPK Formula: 5:10:5] [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
@@ -122,7 +122,7 @@ const SEED_PRODUCTS = [
     price: 2200,
     unit: "/unit",
     stock: "In Stock",
-    image: "/uploads/hand_sprayer_pump.png",
+    image: "https://images.unsplash.com/photo-1599685315640-9ce50450d03b?auto=format&fit=crop&w=600&q=80",
     description: "Ergonomic 16-liter manual knapsack sprayer with adjustable brass nozzles and heavy-duty battery backup. [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
@@ -134,7 +134,7 @@ const SEED_PRODUCTS = [
     price: 650,
     unit: "/litre",
     stock: "In Stock",
-    image: "/uploads/eco_pesticide.png",
+    image: "https://images.unsplash.com/photo-1563514227147-6d2ff665a6a0?auto=format&fit=crop&w=600&q=80",
     description: "Pure cold-pressed neem oil formulation containing 1500ppm Azadirachtin. Controls sucking pests naturally. [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
@@ -146,7 +146,7 @@ const SEED_PRODUCTS = [
     price: 1100,
     unit: "/kg",
     stock: "In Stock",
-    image: "/uploads/organic_wheat_seeds.png",
+    image: "https://images.unsplash.com/photo-1593113630400-ea4288922497?auto=format&fit=crop&w=600&q=80",
     description: "High-yield cotton seeds for rainfed farming. Highly resistant to bollworm. [Germination Rate: 98%] [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
@@ -158,7 +158,7 @@ const SEED_PRODUCTS = [
     price: 450,
     unit: "/50kg bag",
     stock: "In Stock",
-    image: "/uploads/bio_fertilizer_npk.png",
+    image: "https://images.unsplash.com/photo-1628352081506-83c43123ed6d?auto=format&fit=crop&w=600&q=80",
     description: "Nutrient-rich natural organic vermicompost prepared from premium cow dung and plant waste. [NPK Formula: 3:1:2]"
   },
   {
@@ -170,7 +170,7 @@ const SEED_PRODUCTS = [
     price: 1800,
     unit: "/unit",
     stock: "In Stock",
-    image: "/uploads/drip_irrigation_kit.png",
+    image: "https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?auto=format&fit=crop&w=600&q=80",
     description: "3-in-1 soil tester for measuring pH level, moisture percentage, and ambient sunlight intensity."
   },
   {
@@ -182,7 +182,7 @@ const SEED_PRODUCTS = [
     price: 3200,
     unit: "/unit",
     stock: "In Stock",
-    image: "/uploads/hand_sprayer_pump.png",
+    image: "https://images.unsplash.com/photo-1508780709619-79562169bc31?auto=format&fit=crop&w=600&q=80",
     description: "Automated solar-powered insect trap with UV light attraction sensor. Extremely effective for crop orchards."
   },
   {
@@ -194,7 +194,7 @@ const SEED_PRODUCTS = [
     price: 890,
     unit: "/litre",
     stock: "In Stock",
-    image: "/uploads/eco_pesticide.png",
+    image: "https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?auto=format&fit=crop&w=600&q=80",
     description: "Organic selective herbicide that controls broadleaf weeds without damaging local crops or soil health."
   },
   {
@@ -206,7 +206,7 @@ const SEED_PRODUCTS = [
     price: 75,
     unit: "/kg",
     stock: "In Stock",
-    image: "/uploads/Ripening-heads-rice-Oryza-sativa-1781186046446-329740.webp",
+    image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=80",
     description: "Aroma-rich premium extra long grain Basmati rice from organic fields. [Harvest Date: 05/10/2026] [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
@@ -218,7 +218,7 @@ const SEED_PRODUCTS = [
     price: 18,
     unit: "/kg",
     stock: "In Stock",
-    image: "/uploads/organic_wheat_seeds.png",
+    image: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=600&q=80",
     description: "Freshly dug red potatoes, medium to large sizing. Perfect for wholesale distribution. [Harvest Date: 05/15/2026]"
   },
   {
@@ -230,7 +230,7 @@ const SEED_PRODUCTS = [
     price: 650,
     unit: "/box (12pcs)",
     stock: "In Stock",
-    image: "/uploads/hybrid_maize_seeds.png",
+    image: "https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=600&q=80",
     description: "Sweet and highly aromatic chemical-free export grade Alphonso mangoes from Devgad orchards. [Harvest Date: 06/01/2026]"
   },
   {
@@ -242,7 +242,7 @@ const SEED_PRODUCTS = [
     price: 120,
     unit: "/kg",
     stock: "In Stock",
-    image: "/uploads/liquid_micronutrient.png",
+    image: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=600&q=80",
     description: "Fresh and heavy turmeric roots containing high curcumin value. Harvested naturally. [Harvest Date: 04/22/2026]"
   },
   {
@@ -254,7 +254,7 @@ const SEED_PRODUCTS = [
     price: 45000,
     unit: "/set",
     stock: "In Stock",
-    image: "/uploads/hand_sprayer_pump.png",
+    image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&w=600&q=80",
     description: "High discharge submersible solar water pumping system complete with panels, controller, and mounting structures."
   },
   {
@@ -266,15 +266,17 @@ const SEED_PRODUCTS = [
     price: 140,
     unit: "/kg",
     stock: "In Stock",
-    image: "/uploads/organic_wheat_seeds.png",
+    image: "https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?auto=format&fit=crop&w=600&q=80",
     description: "Early maturity black mustard seeds with high oil concentration percentage. [Germination Rate: 95%]"
   }
 ];
 
 // Helper to seed products if database is empty or outdated
 async function seedProductsIfNeeded() {
+  const oldProduct = await Product.findOne({ sellerId: { $exists: false }, image: { $regex: /^\/uploads\// } });
   const count = await Product.countDocuments({ sellerId: { $exists: false } });
-  if (count < SEED_PRODUCTS.length) {
+  
+  if (oldProduct || count < SEED_PRODUCTS.length) {
     // Clear default products first to prevent duplicates
     await Product.deleteMany({ sellerId: { $exists: false } });
     await Product.insertMany(SEED_PRODUCTS);
