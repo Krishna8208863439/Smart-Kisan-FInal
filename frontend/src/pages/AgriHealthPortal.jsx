@@ -3,6 +3,7 @@ import axios from "axios";
 import { useLanguage } from "../context/LanguageContext";
 import { subscribeToTopic, getSubscribedTopics, unsubscribeFromTopic } from "../utils/fcmClient";
 import CommunityDirectory from "../components/CommunityDirectory";
+import { RAW_CROPS, getCropMetadata, getCropDiseaseFallback } from "../utils/cropsData";
 
 const PY_API_URL = typeof window !== "undefined" && window.location.hostname === "localhost"
   ? (import.meta.env.VITE_PY_API_URL || "http://localhost:8000/api")
@@ -15,7 +16,7 @@ const AgriHealthPortal = () => {
   // Module A: Diagnosis States
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
-  const [cropHint, setCropHint] = useState("Tomato");
+  const [cropHint, setCropHint] = useState("Tomatoes");
   const [regionHint, setRegionHint] = useState("Maharashtra");
   const [diagLoading, setDiagLoading] = useState(false);
   const [diagResult, setDiagResult] = useState(null);
@@ -23,6 +24,8 @@ const AgriHealthPortal = () => {
   const [scanStep, setScanStep] = useState(0);
   const [remedyTab, setRemedyTab] = useState("organic");
   const fileInputRef = useRef(null);
+  const [cropSearchQuery, setCropSearchQuery] = useState("Tomatoes");
+  const [showCropSuggestions, setShowCropSuggestions] = useState(false);
 
   const scanSteps = [
     "🤖 Connecting to Google Gemini 1.5 Flash Vision AI...",
@@ -377,37 +380,12 @@ const AgriHealthPortal = () => {
       clearInterval(interval);
       console.error("[Diagnosis Error]", err);
 
-      // ✅ FIX: dynamic fallback based on actual selected crop — NOT hardcoded Tomato
-      const cropFallbackAdvice = {
-        Tomato: { disease: "Early Blight (Alternaria solani)", severity: "medium", advice: "Dark concentric spots on leaves. Apply Mancozeb 75 WP (2 g/L) every 7 days. Remove infected lower leaves." },
-        Rice:   { disease: "Leaf Blast (Magnaporthe oryzae)", severity: "high", advice: "Spindle-shaped grey lesions. Spray Tricyclazole 75 WP (0.6 g/L). Reduce excess Nitrogen." },
-        Wheat:  { disease: "Black Stem Rust (Puccinia graminis)", severity: "high", advice: "Reddish-brown pustules on stems. Spray Propiconazole 25 EC (0.5 ml/L). Use resistant varieties next season." },
-        Maize:  { disease: "Northern Leaf Blight (Exserohilum turcicum)", severity: "high", advice: "Long grey elliptical lesions. Apply Propiconazole 25 EC (1 ml/L) at tasseling. Use resistant hybrids." },
-        Cotton: { disease: "Bacterial Blight (Xanthomonas axonopodis)", severity: "high", advice: "Angular brown spots with yellow halo. Spray Copper Oxychloride 50 WP (3 g/L). Avoid overhead irrigation." },
-        Sugarcane: { disease: "Red Rot (Colletotrichum falcatum)", severity: "high", advice: "Internal red discoloration. Remove infected stools. Use disease-free setts treated in Carbendazim 0.1%." },
-        Potato: { disease: "Late Blight (Phytophthora infestans)", severity: "high", advice: "Brown lesions with white mold. Apply Cymoxanil 8% + Mancozeb 64% WP (3 g/L) every 5 days." },
-        Groundnut: { disease: "Leaf Spot (Cercospora arachidicola)", severity: "medium", advice: "Dark brown spots with yellow halo. Spray Mancozeb 75 WP (2.5 g/L) at 30, 45, 60 DAS." },
-        Soybean: { disease: "Frogeye Leaf Spot (Cercospora sojina)", severity: "medium", advice: "Grey-centered spots with dark borders. Apply Thiophanate-methyl 70 WP (1 g/L). Rotate crops." },
-        Chilli: { disease: "Anthracnose (Colletotrichum capsici)", severity: "high", advice: "Sunken brown lesions on fruits. Spray Mancozeb 75 WP (2 g/L). Harvest timely to prevent spread." },
-        Banana: { disease: "Sigatoka Leaf Spot (Mycosphaerella fijiensis)", severity: "high", advice: "Yellow streaks becoming necrotic. Spray Mancozeb 75 WP (2.5 g/L) every 14 days. Remove infected leaves." },
-        Onion:  { disease: "Purple Blotch (Alternaria porri)", severity: "medium", advice: "White spots with purple center. Spray Mancozeb 75 WP (2.5 g/L) every 10 days." },
-        Mango:  { disease: "Anthracnose (Colletotrichum gloeosporioides)", severity: "high", advice: "Dark sunken lesions on fruits. Spray Carbendazim 50 WP (1 g/L) at flower bud emergence." },
-        Brinjal: { disease: "Phomopsis Blight (Phomopsis vexans)", severity: "medium", advice: "Circular brown spots on leaves and fruits. Spray Mancozeb 75 WP (2.5 g/L) or Carbendazim 50 WP (1 g/L)." },
-        Cattle: { disease: "Foot and Mouth Disease (FMD)", severity: "high", advice: "Blisters on mouth and feet. QUARANTINE immediately. Contact veterinarian. Apply KMnO4 wash on lesions." },
-      };
-
-      const fallback = cropFallbackAdvice[cropHint] || cropFallbackAdvice["Tomato"];
-      setDiagStatus("⚠️ Backend server unreachable. Showing crop-specific offline reference.");
-      setDiagResult({
-        crop: cropHint,
-        disease: fallback.disease,
-        severity: fallback.severity,
-        confidence: 0.55,
-        advice: fallback.advice,
-        gemini_powered: false,
-        ai_model: "Offline Reference",
-        image_analysis: `Server offline. Crop-specific reference for ${cropHint} shown.`
-      });
+      // Use our dynamic 140 crops offline reference database fallback
+      const fallbackResult = getCropDiseaseFallback(cropHint, currentLang);
+      setDiagStatus(language === "mr" 
+        ? "⚠️ सर्व्हरशी संपर्क नाही. आमच्या डेटाबेसमधून स्थानिक संदर्भ डेटा दाखवत आहे." 
+        : "⚠️ Backend server unreachable. Showing crop-specific offline reference database advice.");
+      setDiagResult(fallbackResult);
     } finally {
       setDiagLoading(false);
     }
@@ -608,35 +586,146 @@ const AgriHealthPortal = () => {
               {currLabel.choosePhoto}
             </p>
 
-            <div style={{ marginBottom: 14 }}>
+            <div style={{ marginBottom: 14, position: "relative" }}>
               <label style={{ fontWeight: 600, fontSize: 12.5, display: "block", marginBottom: 4 }}>
-                {currLabel.selectCrop}
+                {language === "mr" ? "तुमचे पीक शोधा किंवा निवडा (१४०+ पिके) *" : "Search or Select Your Crop (140+ Crops) *"}
               </label>
-              <select className="input" value={cropHint} onChange={(e) => setCropHint(e.target.value)}>
-                <optgroup label="🌾 Cereals">
-                  <option value="Tomato">Tomato (टमाटर)</option>
-                  <option value="Rice">Rice / Paddy (धान)</option>
-                  <option value="Wheat">Wheat (गेहूं)</option>
-                  <option value="Maize">Maize / Corn (मक्का)</option>
-                </optgroup>
-                <optgroup label="🌿 Cash Crops">
-                  <option value="Cotton">Cotton (कपास)</option>
-                  <option value="Sugarcane">Sugarcane (गन्ना)</option>
-                  <option value="Groundnut">Groundnut (मूंगफली)</option>
-                  <option value="Soybean">Soybean (सोयाबीन)</option>
-                </optgroup>
-                <optgroup label="🥔 Vegetables & Fruits">
-                  <option value="Potato">Potato (आलू)</option>
-                  <option value="Chilli">Chilli / Pepper (मिर्च)</option>
-                  <option value="Banana">Banana (केला)</option>
-                  <option value="Onion">Onion (प्याज)</option>
-                  <option value="Brinjal">Brinjal / Eggplant (बैंगन)</option>
-                  <option value="Mango">Mango (आम)</option>
-                </optgroup>
-                <optgroup label="🐄 Livestock">
-                  <option value="Cattle">Cattle / Livestock (पशुधन)</option>
-                </optgroup>
-              </select>
+              <div style={{ position: "relative" }}>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder={language === "mr" ? "पिकाचे नाव टाईप करा (उदा. Wheat, Banana...)" : "Type crop name (e.g. Wheat, Banana...)"}
+                  value={cropSearchQuery}
+                  onChange={(e) => {
+                    setCropSearchQuery(e.target.value);
+                    setShowCropSuggestions(true);
+                  }}
+                  onFocus={() => setShowCropSuggestions(true)}
+                  style={{ width: "100%", paddingRight: "30px" }}
+                />
+                {cropSearchQuery && (
+                  <button
+                    onClick={() => {
+                      setCropSearchQuery("");
+                      setCropHint("");
+                      setShowCropSuggestions(true);
+                    }}
+                    style={{
+                      position: "absolute",
+                      right: 10,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "transparent",
+                      border: "none",
+                      color: "var(--text-muted)",
+                      cursor: "pointer",
+                      fontSize: 14,
+                      padding: 0
+                    }}
+                    type="button"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {showCropSuggestions && (
+                <div style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  right: 0,
+                  background: "var(--bg-card)",
+                  border: "1px solid var(--border-color)",
+                  borderRadius: "8px",
+                  boxShadow: "var(--shadow-lg)",
+                  maxHeight: "220px",
+                  overflowY: "auto",
+                  zIndex: 200,
+                  marginTop: "4px"
+                }}>
+                  {RAW_CROPS.filter(crop =>
+                    crop.toLowerCase().includes(cropSearchQuery.toLowerCase())
+                  ).slice(0, 10).map((crop) => (
+                    <div
+                      key={crop}
+                      onClick={() => {
+                        setCropHint(crop);
+                        setCropSearchQuery(crop);
+                        setShowCropSuggestions(false);
+                      }}
+                      style={{
+                        padding: "10px 14px",
+                        cursor: "pointer",
+                        borderBottom: "1px solid var(--border-color)",
+                        background: cropHint === crop ? "var(--primary-light)" : "transparent",
+                        color: cropHint === crop ? "var(--primary)" : "var(--text-dark)",
+                        fontWeight: cropHint === crop ? 600 : 400,
+                        transition: "background 0.2s"
+                      }}
+                      onMouseEnter={(e) => {
+                        if (cropHint !== crop) e.target.style.background = "var(--bg-main)";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (cropHint !== crop) e.target.style.background = "transparent";
+                      }}
+                    >
+                      🌱 {crop}
+                    </div>
+                  ))}
+                  {RAW_CROPS.filter(crop =>
+                    crop.toLowerCase().includes(cropSearchQuery.toLowerCase())
+                  ).length === 0 && (
+                    <div style={{ padding: "12px", color: "var(--text-muted)", textAlign: "center", fontSize: 13 }}>
+                      {language === "mr" ? "कोणतेही पीक आढळले नाही" : "No crops found"}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Click outside backdrop */}
+              {showCropSuggestions && (
+                <div 
+                  onClick={() => setShowCropSuggestions(false)} 
+                  style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 }}
+                />
+              )}
+
+              {/* Selected Crop Agronomic Care Metadata Panel */}
+              {cropHint && getCropMetadata(cropHint) && (
+                <div style={{
+                  background: "rgba(21, 128, 61, 0.05)",
+                  border: "1px solid var(--border-color)",
+                  borderRadius: "10px",
+                  padding: "12px",
+                  marginTop: "12px",
+                  fontSize: "0.85rem",
+                  animation: "fadeIn 0.2s",
+                  borderLeft: "4px solid var(--primary)"
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <strong>🌱 {language === "mr" ? "पीक गट:" : "Crop Group:"}</strong>
+                    <span style={{ color: "var(--primary)", fontWeight: 700 }}>
+                      {language === "mr" ? getCropMetadata(cropHint).groupMr : getCropMetadata(cropHint).groupEn}
+                    </span>
+                  </div>
+                  <div style={{ marginBottom: 4, display: "flex", gap: 4 }}>
+                    <strong>🌍 {language === "mr" ? "योग्य मृदा:" : "Soil Type:"}</strong>
+                    <span style={{ color: "var(--text-secondary)" }}>
+                      {language === "mr" ? getCropMetadata(cropHint).soilMr : getCropMetadata(cropHint).soilEn}
+                    </span>
+                  </div>
+                  <div style={{ marginBottom: 4, display: "flex", gap: 4 }}>
+                    <strong>🗓️ {language === "mr" ? "योग्य हंगाम:" : "Best Season:"}</strong>
+                    <span style={{ color: "var(--text-secondary)" }}>
+                      {language === "mr" ? getCropMetadata(cropHint).seasonMr : getCropMetadata(cropHint).seasonEn}
+                    </span>
+                  </div>
+                  <div style={{ color: "var(--text-muted)", marginTop: 6, borderTop: "1px dashed var(--border-color)", paddingTop: 6, lineHeight: 1.4 }}>
+                    ℹ️ {language === "mr" ? getCropMetadata(cropHint).infoMr : getCropMetadata(cropHint).infoEn}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div style={{ marginBottom: 14 }}>
