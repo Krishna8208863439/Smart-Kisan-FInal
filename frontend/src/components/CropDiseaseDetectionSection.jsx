@@ -22,6 +22,81 @@ const CROP_OPTIONS = [
   { value: "Cattle",             en: "Cattle / Livestock",  mr: "जनावरे (Cattle)" },
 ];
 
+const OFFLINE_DISEASE_LIBRARY = [
+  {
+    crop: "Tomato",
+    disease: "Early Blight (Alternaria solani)",
+    severity: "medium",
+    advice: "Dark concentric spots on leaves. Apply Mancozeb 75 WP (2 g/L) every 7 days. Remove infected lower leaves."
+  },
+  {
+    crop: "Tomato",
+    disease: "Tomato Yellow Leaf Curl Virus (TYLCV)",
+    severity: "high",
+    advice: "Leaves curling upwards and yellowing. Transmitted by whiteflies. Apply Acetamiprid 20 SP (0.2 g/L) or use yellow sticky traps. Remove infected plants."
+  },
+  {
+    crop: "Tomato",
+    disease: "Late Blight (Phytophthora infestans)",
+    severity: "high",
+    advice: "Dark water-soaked spots on leaves. Spray Cymoxanil 8% + Mancozeb 64% WP (3 g/L) every 5-7 days."
+  },
+  {
+    crop: "Rice",
+    disease: "Leaf Blast (Magnaporthe oryzae)",
+    severity: "high",
+    advice: "Spindle-shaped grey lesions. Spray Tricyclazole 75 WP (0.6 g/L). Reduce excess Nitrogen."
+  },
+  {
+    crop: "Rice",
+    disease: "Sheath Blight (Rhizoctonia solani)",
+    severity: "high",
+    advice: "Grey-white spots on sheath. Spray Hexaconazole 5 SC (2 ml/L) or Validamycin 3 L (2 ml/L)."
+  },
+  {
+    crop: "Wheat",
+    disease: "Black Stem Rust (Puccinia graminis)",
+    severity: "high",
+    advice: "Reddish-brown pustules on stems. Spray Propiconazole 25 EC (0.5 ml/L). Use resistant varieties next season."
+  },
+  {
+    crop: "Maize",
+    disease: "Northern Leaf Blight (Exserohilum turcicum)",
+    severity: "high",
+    advice: "Long grey elliptical lesions. Apply Propiconazole 25 EC (1 ml/L) at tasseling."
+  },
+  {
+    crop: "Cotton",
+    disease: "Bacterial Blight (Xanthomonas axonopodis)",
+    severity: "high",
+    advice: "Angular brown spots with yellow halo. Spray Copper Oxychloride 50 WP (3 g/L). Avoid overhead irrigation."
+  },
+  {
+    crop: "Sugarcane",
+    disease: "Red Rot (Colletotrichum falcatum)",
+    severity: "high",
+    advice: "Internal red discoloration. Remove infected stools. Use disease-free setts treated in Carbendazim 0.1%."
+  },
+  {
+    crop: "Potato",
+    disease: "Late Blight (Phytophthora infestans)",
+    severity: "high",
+    advice: "Brown lesions with white mold. Apply Cymoxanil 8% + Mancozeb 64% WP (3 g/L) every 5 days."
+  },
+  {
+    crop: "Chilli",
+    disease: "Anthracnose (Colletotrichum capsici)",
+    severity: "high",
+    advice: "Sunken brown lesions on fruits. Spray Mancozeb 75 WP (2 g/L). Harvest timely to prevent spread."
+  },
+  {
+    crop: "Banana",
+    disease: "Sigatoka Leaf Spot (Mycosphaerella fijiensis)",
+    severity: "high",
+    advice: "Yellow streaks becoming necrotic. Spray Mancozeb 75 WP (2.5 g/L) every 14 days. Remove infected leaves."
+  }
+];
+
 const CropDiseaseDetectionSection = () => {
   const { language } = useLanguage();
   const [file, setFile] = useState(null);
@@ -30,6 +105,8 @@ const CropDiseaseDetectionSection = () => {
   const [cropHint, setCropHint] = useState("Tomato");   // Always has a value now (dropdown)
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [isOffline, setIsOffline] = useState(false);
+
 
   const defaultStatus = language === "mr"
     ? "पिकाचा प्रकार निवडा, फोटो अपलोड करा आणि 'तपासा आणि निदान करा' वर क्लिक करा."
@@ -154,6 +231,7 @@ const CropDiseaseDetectionSection = () => {
     setFile(selectedFile);
     setFileName(selectedFile.name);
     setResult(null);
+    setIsOffline(false);
     setStatus(language === "mr"
       ? "फोटो तयार आहे. रोग तपासण्यासाठी 'तपासा आणि निदान करा' वर क्लिक करा."
       : "Image ready. Click 'Analyze Image' to detect disease.");
@@ -176,6 +254,7 @@ const CropDiseaseDetectionSection = () => {
 
     try {
       setLoading(true);
+      setIsOffline(false);
       setStatus(language === "mr"
         ? "एआय मॉडेलद्वारे तपासणी केली जात आहे... (३०-४५ सेकंद)"
         : "Analyzing with AI model... (30-45 seconds)");
@@ -208,13 +287,44 @@ const CropDiseaseDetectionSection = () => {
 
     } catch (err) {
       console.error("[CropDisease]", err);
-      setStatus(language === "mr"
-        ? "फोटो तपासताना त्रुटी आली. कृपया पुन्हा प्रयत्न करा."
-        : "Error analyzing image. Please try again.");
+      const is503 = err.response && err.response.status === 503;
+      const isTimeout = err.code === "ECONNABORTED" || err.message?.toLowerCase().includes("timeout");
+      const isNetworkError = !err.response || err.message?.toLowerCase().includes("network") || err.message?.toLowerCase().includes("err_connection_refused");
+
+      if (is503 || isTimeout || isNetworkError) {
+        setIsOffline(true);
+        const fallbackDiseases = OFFLINE_DISEASE_LIBRARY.filter(d => 
+          d.crop.toLowerCase() === cropHint.toLowerCase() || 
+          (cropHint.toLowerCase() === 'rice' && d.crop.toLowerCase() === 'paddy') || 
+          (cropHint.toLowerCase() === 'paddy' && d.crop.toLowerCase() === 'rice')
+        );
+        const currentDiseases = fallbackDiseases.length > 0 ? fallbackDiseases : OFFLINE_DISEASE_LIBRARY.filter(d => d.crop === "Tomato");
+        
+        setResult({
+          crop: cropHint,
+          disease: currentDiseases[0].disease,
+          severity: currentDiseases[0].severity,
+          confidence: 0.65,
+          advice: currentDiseases[0].advice,
+          gemini_powered: false,
+          ai_model: "Offline Reference Database",
+          image_analysis: language === "mr" 
+            ? "सर्व्हर संपर्क नसताना ऑफलाइन माहिती दर्शवली जात आहे." 
+            : "Server offline. Displaying local reference library."
+        });
+        setStatus(language === "mr"
+          ? "सर्व्हरशी संपर्क होऊ शकला नाही. ऑफलाइन संदर्भ माहिती दर्शवली जात आहे."
+          : "Unable to contact server. Local offline reference displayed.");
+      } else {
+        setStatus(language === "mr"
+          ? "फोटो तपासताना त्रुटी आली. कृपया पुन्हा प्रयत्न करा."
+          : "Error analyzing image. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
   };
+
 
   // ── Severity colors ───────────────────────────────────────────────────────
   const severityColor = { high: "#dc2626", medium: "#d97706", low: "#16a34a" };
@@ -225,6 +335,12 @@ const CropDiseaseDetectionSection = () => {
       <h2>
         {language === "mr" ? "पीक रोग तपासणी (AI)" : "Crop Disease Detection (AI)"}
       </h2>
+
+      {isOffline && (
+        <div className="offline-banner" style={{ background: "#fffbe5", border: "1.5px solid #d97706", padding: "12px 16px", borderRadius: 8, color: "#b45309", display: "flex", gap: 8, alignItems: "center", marginBottom: 16, marginTop: 12, fontSize: 13.5, fontWeight: 600 }}>
+          <span>💡 ⚠️ सर्व्हरशी संपर्क होऊ शकत नाही. ऑफलाइन पीक संदर्भ माहिती दाखवली जात आहे.</span>
+        </div>
+      )}
 
       {/* Gemini badge */}
       <div style={{
@@ -348,7 +464,40 @@ const CropDiseaseDetectionSection = () => {
             {language === "mr" ? "एआय रोग निदान" : "AI Diagnosis"}
           </h3>
 
-          {!result && (
+          {isOffline && (
+            <div style={{ marginTop: 8, marginBottom: 24, padding: "16px", borderRadius: 12, border: "1.5px solid #d97706", background: "var(--bg-main)" }}>
+              <h4 style={{ color: "#b45309", marginBottom: 12, fontWeight: 700, fontSize: 15 }}>
+                📚 {language === "mr" ? `${getLocalizedCrop(cropHint)} रोग संदर्भ सूची (ऑफलाइन)` : `${cropHint} Disease Reference Library (Offline)`}
+              </h4>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: 300, overflowY: "auto", paddingRight: 4 }}>
+                {OFFLINE_DISEASE_LIBRARY.filter(d => 
+                  d.crop.toLowerCase() === cropHint.toLowerCase() || 
+                  (cropHint.toLowerCase() === 'rice' && d.crop.toLowerCase() === 'paddy') || 
+                  (cropHint.toLowerCase() === 'paddy' && d.crop.toLowerCase() === 'rice')
+                ).map((item, idx) => (
+                  <div key={idx} style={{ padding: 12, borderRadius: 8, background: "var(--bg-card)", border: "1px solid var(--border-color)" }}>
+                    <div style={{ fontWeight: 700, color: "var(--text-dark)", fontSize: 13.5, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span>{getLocalizedDisease(item.disease)}</span>
+                      <span style={{
+                        fontSize: 10,
+                        background: severityBg[item.severity] || "#fffbeb",
+                        color: severityColor[item.severity] || "#d97706",
+                        padding: "2px 6px",
+                        borderRadius: 4,
+                        fontWeight: 700,
+                        textTransform: "uppercase"
+                      }}>{getLocalizedSeverity(item.severity)}</span>
+                    </div>
+                    <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6, lineHeight: 1.5 }}>
+                      <strong>{language === "mr" ? "उपाय / औषधोपचार:" : "Suggested Treatment:"}</strong> {getLocalizedAdvice(item.advice)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!result && !isOffline && (
             <p style={{ fontSize: 14, color: "#6b7280" }}>
               {language === "mr"
                 ? "पानाचा फोटो तपासा वर क्लिक केल्यावर अहवाल येथे दिसेल."

@@ -49,20 +49,24 @@ const Register = () => {
     <div className="app-container">
       <div className="login-split-layout">
         
-        {/* Left Side: Dynamic Branding banner */}
-        <div className="login-split-left">
+        <div 
+          className="login-split-left"
+          style={{
+            backgroundImage: `linear-gradient(var(--login-overlay), var(--login-overlay)), url('/farmer.png')`
+          }}
+        >
           <div style={{ fontSize: 44, marginBottom: 12 }}>🚀</div>
-          <h1 className="login-tagline">
+          <h1 className="login-tagline text-primary">
             Cultivate Success with Precision AI
           </h1>
-          <p style={{ opacity: 0.9, fontSize: 16, marginBottom: 20 }}>
+          <p className="text-secondary" style={{ fontSize: 16, marginBottom: 20 }}>
             "Smart Kisan has transformed how I manage my tomato fields. The AI calendar and watering advices are a lifesaver!"
           </p>
-          <div style={{ fontStyle: "italic", fontSize: 14, opacity: 0.85 }}>
+          <div className="text-secondary" style={{ fontStyle: "italic", fontSize: 14 }}>
             — Suresh K., Progressive Farmer, Maharashtra
           </div>
 
-          <ul className="login-features-list" style={{ marginTop: 24 }}>
+          <ul className="login-features-list text-secondary" style={{ marginTop: 24 }}>
             <li>✔️ Join a thriving community of local agriculturalists</li>
             <li>✔️ Gain access to custom regional mandi crop updates</li>
             <li>✔️ Track dynamic progress timelines for your fields</li>

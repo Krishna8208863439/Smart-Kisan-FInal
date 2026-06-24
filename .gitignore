@@ -38,3 +38,8 @@ __pycache__/
 venv/
 .venv/
 .pytest_cache/
+archive/
+*.pth
+*.json
+!classes.json
+!package.json

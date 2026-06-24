@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms
-from ml_model import MobileNetDiseaseClassifier, CLASSES
+from ml_model import MobileNetDiseaseClassifier
 
 def train_model(data_dir: str, epochs: int = 10, batch_size: int = 32, lr: float = 0.001):
     """
@@ -49,6 +49,16 @@ def train_model(data_dir: str, epochs: int = 10, batch_size: int = 32, lr: float
     dataset = datasets.ImageFolder(root=data_dir)
     num_classes = len(dataset.classes)
     print(f"[Dataset] Found {len(dataset)} images belonging to {num_classes} classes.")
+    
+    # Save classes mapping to classes.json
+    try:
+        import json
+        classes_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "classes.json")
+        with open(classes_path, "w", encoding="utf-8") as f:
+            json.dump(dataset.classes, f, indent=2)
+        print(f" -> Saved classes mapping list to '{classes_path}'")
+    except Exception as e:
+        print(f"[Warning] Could not save classes.json mapping file: {e}")
     
     # Map index to directory names
     for idx, class_name in enumerate(dataset.classes):
@@ -131,14 +141,17 @@ def train_model(data_dir: str, epochs: int = 10, batch_size: int = 32, lr: float
         # 6. Save checkpoint if validation loss improves
         if epoch_val_loss < best_val_loss:
             best_val_loss = epoch_val_loss
-            checkpoint_path = "disease_model_weights.pth"
+            checkpoint_path = "crop_model_weights.pth" if num_classes > 50 else "disease_model_weights.pth"
             torch.save(model.state_dict(), checkpoint_path)
             print(f" -> Saved best validation weights model checkpoint to '{checkpoint_path}'")
             
     print("[Training Complete] Saved weights successfully!")
 
 if __name__ == "__main__":
-    # Example execution: update with path to raw images
     import sys
-    dataset_dir = sys.argv[1] if len(sys.argv) > 1 else "./dataset/leaves"
+    # Default to the 140 crops archive training directory if it exists
+    default_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "archive", "RGB_224x224", "RGB_224x224", "train")
+    if not os.path.exists(default_dir):
+        default_dir = "./dataset/leaves"
+    dataset_dir = sys.argv[1] if len(sys.argv) > 1 else default_dir
     train_model(dataset_dir, epochs=5)

@@ -68,9 +68,18 @@ class WeatherCache(Base):
     forecast_data = Column(Text) # JSON serialized string
     updated_at = Column(DateTime, default=datetime.utcnow)
 
+class PushSubscription(Base):
+    __tablename__ = "push_subscriptions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    topic = Column(String(100), nullable=False)
+    token = Column(String(250), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 # Database initialization helper
 def init_db():
     Base.metadata.create_all(bind=engine)
+
 
 def get_db():
     db = SessionLocal()

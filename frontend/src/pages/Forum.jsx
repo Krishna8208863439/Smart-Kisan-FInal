@@ -1,5 +1,6 @@
 import React from "react";
 import { useLanguage } from "../context/LanguageContext";
+import CommunityDirectory from "../components/CommunityDirectory";
 
 const OFFICERS = [
   {
@@ -107,74 +108,7 @@ const Forum = () => {
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 30 }}>
         
         {/* Section 1: District Agronomists Directory */}
-        <div className="card" style={{ marginBottom: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-            <span style={{ fontSize: "2rem" }}>👥</span>
-            <h2 style={{ fontSize: "1.5rem", fontWeight: 700 }}>
-              {t("communityDirectoryTitle")}
-            </h2>
-          </div>
-          
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
-              <thead>
-                <tr style={{ borderBottom: "2px solid var(--border-color)", paddingBottom: 10 }}>
-                  <th style={{ padding: "12px 16px", color: "var(--text-muted)", fontWeight: 600 }}>
-                    {t("communityOfficerName")}
-                  </th>
-                  <th style={{ padding: "12px 16px", color: "var(--text-muted)", fontWeight: 600 }}>
-                    {t("communityOfficerRole")}
-                  </th>
-                  <th style={{ padding: "12px 16px", color: "var(--text-muted)", fontWeight: 600 }}>
-                    {t("communityOfficerRegion")}
-                  </th>
-                  <th style={{ padding: "12px 16px", color: "var(--text-muted)", fontWeight: 600 }}>
-                    {t("communityOfficerContact")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {OFFICERS.map((officer, index) => (
-                  <tr 
-                    key={index} 
-                    style={{ 
-                      borderBottom: "1px solid var(--border-color)",
-                      transition: "background 0.2s ease" 
-                    }}
-                    className="table-row-hover"
-                  >
-                    <td style={{ padding: "16px", fontWeight: 600, color: "var(--text-dark)" }}>
-                      {language === "mr" ? officer.nameMr : officer.nameEn}
-                    </td>
-                    <td style={{ padding: "16px", color: "var(--text-dark)" }}>
-                      <span style={{
-                        background: "var(--primary-light)",
-                        color: "var(--primary)",
-                        padding: "4px 8px",
-                        borderRadius: "6px",
-                        fontSize: "0.85rem",
-                        fontWeight: 500
-                      }}>
-                        {language === "mr" ? officer.roleMr : officer.roleEn}
-                      </span>
-                    </td>
-                    <td style={{ padding: "16px", color: "var(--text-muted)" }}>
-                      {language === "mr" ? officer.regionMr : officer.regionEn}
-                    </td>
-                    <td style={{ padding: "16px", fontWeight: "bold" }}>
-                      <a 
-                        href={`tel:${officer.contact}`} 
-                        style={{ color: "var(--secondary)", display: "flex", alignItems: "center", gap: 6 }}
-                      >
-                        📞 {officer.contact}
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <CommunityDirectory />
 
         {/* Two Column Section for Webinars and Schemes */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 30 }}>

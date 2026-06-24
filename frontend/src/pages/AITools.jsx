@@ -434,6 +434,22 @@ const AITools = () => {
 
   const lifecycle = getCropLifecycleStage(selectedCalendar);
 
+  // Localized date formatter
+  const formatDate = (dateStr, lang) => {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    if (lang === 'mr') {
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+    const day = d.getDate();
+    const month = d.getMonth() + 1;
+    const year = d.getFullYear();
+    return `${month}/${day}/${year}`;
+  };
+
   // Helper to format date offset strings
   const getRelativeDateString = (targetDateStr) => {
     const target = new Date(targetDateStr);
@@ -444,11 +460,11 @@ const AITools = () => {
     const diffTime = target - today;
     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
     
-    if (diffDays === 0) return "Today";
-    if (diffDays === 1) return "Tomorrow";
-    if (diffDays === -1) return "Yesterday";
-    if (diffDays > 1) return `In ${diffDays} days`;
-    return `${Math.abs(diffDays)} days ago`;
+    if (diffDays === 0) return language === 'mr' ? "आज" : "Today";
+    if (diffDays === 1) return language === 'mr' ? "उद्या" : "Tomorrow";
+    if (diffDays === -1) return language === 'mr' ? "काल" : "Yesterday";
+    if (diffDays > 1) return language === 'mr' ? `${diffDays} दिवसांत` : `In ${diffDays} days`;
+    return language === 'mr' ? `${Math.abs(diffDays)} दिवसांपूर्वी` : `${Math.abs(diffDays)} days ago`;
   };
 
   return (
@@ -1058,20 +1074,20 @@ const AITools = () => {
           <div className="grid-2">
             {/* Generate card */}
             <div className="card">
-              <h3>Sowing Milestone Calendar</h3>
+              <h3>{t("sowingMilestoneCalendar") || "Sowing Milestone Calendar"}</h3>
               <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
-                Set crop sowing/planting dates to generate automated calendars and track progress.
+                {t("sowingCalendarDesc") || "Set crop sowing/planting dates to generate automated calendars and track progress."}
               </p>
 
               <form onSubmit={handleCreateCalendar}>
-                <label style={{ fontWeight: 600, fontSize: 13 }}>Select Crop</label>
+                <label style={{ fontWeight: 600, fontSize: 13 }}>{t("selectCrop")}</label>
                 <select className="input" value={calCrop} onChange={(e) => setCalCrop(e.target.value)}>
                   {Object.keys(CROP_NPK_TARGETS).map(crop => (
-                    <option key={crop} value={crop}>{CROP_NPK_TARGETS[crop].name}</option>
+                    <option key={crop} value={crop}>{language === 'mr' ? t(crop) : CROP_NPK_TARGETS[crop].name}</option>
                   ))}
                 </select>
 
-                <label style={{ fontWeight: 600, fontSize: 13 }}>Sowing Date</label>
+                <label style={{ fontWeight: 600, fontSize: 13 }}>{t("sowingDate")}</label>
                 <input
                   type="date"
                   className="input"
@@ -1080,18 +1096,18 @@ const AITools = () => {
                 />
 
                 <button type="submit" className="button" style={{ width: "100%" }} disabled={calLoading}>
-                  {calLoading ? "Generating..." : "Generate Crop Calendar 📅"}
+                  {calLoading ? (language === 'mr' ? "तयार करत आहे..." : "Generating...") : (language === 'mr' ? "पीक वेळापत्रक तयार करा 📅" : "Generate Crop Calendar 📅")}
                 </button>
               </form>
 
               {/* Active Calendars Selector */}
-              <h4 style={{ marginTop: 20, marginBottom: 8, fontSize: 14 }}>Your Active Calendars</h4>
+              <h4 style={{ marginTop: 20, marginBottom: 8, fontSize: 14 }}>{t("yourActiveCalendars") || "Your Active Calendars"}</h4>
               {!isLoggedIn ? (
                 <div style={{ background: "#eff6ff", padding: 12, borderRadius: 8, fontSize: 12, color: "#1e40af", textAlign: "center" }}>
-                  🔐 Login to generate and save calendars to the database.
+                  🔐 {t("loginRequiredCalendar") || "Login to generate and save calendars to the database."}
                 </div>
               ) : activeCalendars.length === 0 ? (
-                <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>No active crop calendars found.</p>
+                <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>{t("noActiveCalendars") || "No active crop calendars found."}</p>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {activeCalendars.map((cal) => (
@@ -1111,9 +1127,9 @@ const AITools = () => {
                       }}
                     >
                       <div>
-                        <strong style={{ fontSize: 14, color: "var(--text-dark)" }}>{cal.cropName}</strong>
+                        <strong style={{ fontSize: 14, color: "var(--text-dark)" }}>{cal.cropName === "Other" ? (cal.customCropName || "Custom Crop") : t(cal.cropName)}</strong>
                         <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                          Sown: {new Date(cal.sowingDate).toLocaleDateString()}
+                          {language === 'mr' ? "पेरणीची तारीख" : "Sown"}: {new Date(cal.sowingDate).toLocaleDateString()}
                         </div>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1148,14 +1164,14 @@ const AITools = () => {
               {!selectedCalendar ? (
                 <div style={{ padding: "60px 0", textAlign: "center", color: "var(--text-muted)", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
                   <span style={{ fontSize: 40 }}>📅</span>
-                  <p style={{ marginTop: 12, fontSize: 14 }}>Select or generate a crop calendar to track milestones.</p>
+                  <p style={{ marginTop: 12, fontSize: 14 }}>{t("selectCalendarPrompt") || "Select or generate a crop calendar to track milestones."}</p>
                 </div>
               ) : (
                 <div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
-                    <h4 style={{ margin: 0 }}>{selectedCalendar.cropName} Lifecycle Timeline</h4>
+                    <h4 style={{ margin: 0 }}>{selectedCalendar.cropName === "Other" ? (selectedCalendar.customCropName || "Custom Crop") : t(selectedCalendar.cropName)} {t("lifecycleTimeline") || "Lifecycle Timeline"}</h4>
                     <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                      Sowing: {new Date(selectedCalendar.sowingDate).toLocaleDateString()}
+                      {t("sowingLabel") || "Sowing"}: {formatDate(selectedCalendar.sowingDate, language)}
                     </span>
                   </div>
 
@@ -1183,10 +1199,10 @@ const AITools = () => {
                     </div>
 
                     <div>
-                      <span style={{ fontSize: 11, color: "var(--text-muted)", display: "block" }}>Active Stage</span>
-                      <strong style={{ fontSize: 16, color: "var(--primary-hover)" }}>{lifecycle.stage}</strong>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)", display: "block" }}>{t("activeStageLabel") || "Active Stage"}</span>
+                      <strong style={{ fontSize: 16, color: "var(--primary-hover)" }}>{t(lifecycle.stage)}</strong>
                       <span style={{ fontSize: 11, color: "var(--text-muted)", display: "block" }}>
-                        Day {lifecycle.daysElapsed} of crop lifecycle
+                        {language === 'mr' ? `पीक चक्राचा दिवस ${lifecycle.daysElapsed}` : `Day ${lifecycle.daysElapsed} of crop lifecycle`}
                       </span>
                     </div>
                   </div>
@@ -1207,7 +1223,7 @@ const AITools = () => {
                             }} 
                           />
                           <span style={{ fontSize: 10, fontWeight: lifecycle.stage === stg.name ? 700 : 500, color: lifecycle.stage === stg.name ? "var(--primary-hover)" : "var(--text-muted)" }}>
-                            {stg.name}
+                            {t(stg.name)}
                           </span>
                         </div>
                       ))}
@@ -1216,7 +1232,7 @@ const AITools = () => {
 
                   {/* Add Custom Task Form */}
                   <div style={{ border: "1px solid var(--border-color)", padding: 12, borderRadius: 8, marginBottom: 16, background: "var(--bg-main)" }}>
-                    <h5 style={{ margin: "0 0 8px 0", fontSize: 12, textTransform: "uppercase", color: "var(--text-muted)" }}>Add Custom Milestone</h5>
+                    <h5 style={{ margin: "0 0 8px 0", fontSize: 12, textTransform: "uppercase", color: "var(--text-muted)" }}>{t("addCustomMilestone") || "Add Custom Milestone"}</h5>
                     <form onSubmit={handleAddCustomTask} style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                       <input
                         type="text"
@@ -1231,14 +1247,14 @@ const AITools = () => {
                         type="number"
                         className="input"
                         style={{ width: 80, margin: 0, padding: "6px 10px", fontSize: 13 }}
-                        placeholder="Day offset"
+                        placeholder={t("dayOffsetPlaceholder") || "Day offset"}
                         value={customTaskOffset}
                         onChange={(e) => setCustomTaskOffset(e.target.value)}
                         min="0"
                         required
                       />
                       <button type="submit" className="button" style={{ margin: 0, padding: "6px 12px", fontSize: 12, background: "var(--primary)" }}>
-                        + Add
+                        + {t("addBtn") || "Add"}
                       </button>
                     </form>
                   </div>
@@ -1255,14 +1271,14 @@ const AITools = () => {
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
                             <div style={{ flex: 1 }}>
                               <strong style={{ fontSize: 13.5, color: task.status === "completed" ? "var(--primary-hover)" : "var(--text-dark)" }}>
-                                {task.title}
+                                {t(task.title)}
                               </strong>
                               <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 2 }}>
-                                Day {task.dayOffset} • Due: {new Date(task.targetDate).toLocaleDateString()} ({getRelativeDateString(task.targetDate)})
+                                {language === 'mr' ? "दिवस" : "Day"} {task.dayOffset} • {t("dueLabel") || "Due"}: {formatDate(task.targetDate, language)} ({getRelativeDateString(task.targetDate)})
                               </div>
                               {task.category === "custom" && (
                                 <span style={{ display: "inline-block", background: "#fef3c7", color: "#d97706", fontSize: 9, padding: "1px 4px", borderRadius: 4, fontWeight: 700, marginTop: 4 }}>
-                                  Custom Task
+                                  {t("customTaskLabel") || "Custom Task"}
                                 </span>
                               )}
                             </div>

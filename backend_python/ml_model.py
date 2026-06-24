@@ -59,6 +59,62 @@ PLANTVILLAGE_LABELS = [
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
+#  140-crop classification dataset labels list
+# ─────────────────────────────────────────────────────────────────────────────
+CLASSES = [
+    "Aji pepper plant", "Almonds plant", "Amaranth plant", "Apples plant", "Artichoke plant", 
+    "Avocados plant", "Açaí plant", "Bananas plant", "Barley plant", "Beets plant", 
+    "Black pepper plant", "Blueberries plant", "Bok choy plant", "Brazil nuts plant", "Broccoli plant", 
+    "Brussels sprout plant", "Buckwheat plant", "Cabbages and other brassicas plant", "Camucamu plant", "Carrots and turnips plant", 
+    "Cashew nuts plant", "Cassava plant", "Cauliflower plant", "Celery plant", "Cherimoya plant", 
+    "Cherry plant", "Chestnuts plant", "Chickpeas plant", "Chili peppers and green peppers plant", "Cinnamon plant", 
+    "Cloves plant", "Cocoa beans plant", "Coconuts plant", "Coffee (green) plant", "Collards plant", 
+    "Cotton lint plant", "Cranberries plant", "Cucumbers and gherkins plant", "Dates plant", "Dry beans plant", 
+    "Dry peas plant", "Durian plant", "Eggplants (Aubergines) plant", "Endive plant", "Fava bean plant", 
+    "Figs plant", "Flax fiber and tow plant", "Flaxseed (Linseed) plant", "Fonio plant", "Garlic plant", 
+    "Ginger plant", "Gooseberries plant", "Grapes plant", "Groundnuts (Peanuts) plant", "Guarana plant", 
+    "Guavas plant", "Habanero pepper plant", "Hazelnuts plant", "Hemp plant", "Hen eggs (shell weight) plant", 
+    "Horseradish plant", "Jackfruit plant", "Jute plant", "Kale plant", "Kohlrabi plant", 
+    "Leeks plant", "Lemons and limes plant", "Lentils plant", "Lettuce and chicory plant", "Lima bean plant", 
+    "Longan plant", "Lupins plant", "Lychee plant", "Maize (Corn) plant", "Mandarins, clementines, satsumas plant", 
+    "Mangoes, mangosteens, guavas plant", "Maracuja(Passionfruit) plant", "Millet plant", "Mint plant", 
+    "Mung bean plant", "Mustard greens plant", "Mustard seeds plant", "Navy bean plant", "Oats plant", 
+    "Oil palm fruit plant", "Okra plant", "Olives plant", "Onions (dry) plant", "Oranges plant", 
+    "Oregano plant", "Papayas plant", "Parsley plant", "Peaches and nectarines plant", "Peas (Green) plant", 
+    "Persimmons plant", "Pine nuts plant", "Pineapples plant", "Pinto bean plant", "Pistachios plant", 
+    "Plantains plant", "Pomegranates plant", "Potatoes plant", "Pumpkins, squash and gourds plant", "Quinoa plant", 
+    "Radishes and similar roots plant", "Rambutan plant", "Rapeseed (Canola) plant", "Raspberries plant", "Rice (Paddy) plant", 
+    "Rosemary plant", "Rubber (natural) plant", "Rye plant", "Saffron plant", "Sage plant", 
+    "Scallions plant", "Sorghum plant", "Soursop plant", "Soybeans plant", "Spinach plant", 
+    "Starfruit plant", "Strawberries plant", "Sugar beet plant", "Sugar cane plant", "Sunflower seeds plant", 
+    "Sweet potatoes plant", "Swiss chard plant", "Tamarind plant", "Taro (cocoyam) plant", "Tea plant", 
+    "Teff plant", "Thyme plant", "Tomatoes plant", "Triticale plant", "Turmeric plant", 
+    "Turnip greens plant", "Vanilla beans plant", "Walnuts plant", "Watermelons plant", "Wheat plant", 
+    "Yams plant"
+]
+
+def get_dataset_classes():
+    checkpoint_dir = os.path.dirname(os.path.abspath(__file__))
+    classes_txt_path = os.path.join(checkpoint_dir, "..", "archive", "140_crops_list.txt")
+    if os.path.exists(classes_txt_path):
+        try:
+            with open(classes_txt_path, "r", encoding="utf-8") as f:
+                classes = [line.strip() for line in f if line.strip()]
+            return sorted(classes)
+        except Exception:
+            pass
+            
+    classes_json_path = os.path.join(checkpoint_dir, "classes.json")
+    if os.path.exists(classes_json_path):
+        try:
+            with open(classes_json_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+            
+    return CLASSES
+
+# ─────────────────────────────────────────────────────────────────────────────
 #  Comprehensive Disease Metadata — 40+ diseases across all Indian crops
 # ─────────────────────────────────────────────────────────────────────────────
 DISEASE_METADATA = {
@@ -365,18 +421,133 @@ def get_torch_model():
     if not TORCH_AVAILABLE:
         return None
     if _torch_model is None:
-        _torch_model = MobileNetDiseaseClassifier()
-        _torch_model.eval()
-        checkpoint_path = os.path.join(os.path.dirname(__file__), "disease_model_weights.pth")
+        checkpoint_dir = os.path.dirname(os.path.abspath(__file__))
+        checkpoint_path = os.path.join(checkpoint_dir, "disease_model_weights.pth")
+        if not os.path.exists(checkpoint_path):
+            checkpoint_path = os.path.join(checkpoint_dir, "crop_model_weights.pth")
+            
         if os.path.exists(checkpoint_path):
             try:
-                _torch_model.load_state_dict(torch.load(checkpoint_path, map_location="cpu"))
-                print("[ML] Loaded custom weights from", checkpoint_path)
+                state_dict = torch.load(checkpoint_path, map_location="cpu")
+                num_classes = 38
+                for key in ["backbone.classifier.3.weight", "classifier.weight", "fc.weight", "classifier.3.weight", "backbone.classifier.3.bias"]:
+                    if key in state_dict:
+                        num_classes = state_dict[key].shape[0]
+                        break
+                _torch_model = MobileNetDiseaseClassifier(num_classes=num_classes)
+                _torch_model.load_state_dict(state_dict)
+                _torch_model.eval()
+                print(f"[ML] Loaded custom weights from {checkpoint_path} with num_classes={num_classes}")
             except Exception as e:
-                print(f"[ML] Weight load error: {e}. Using ImageNet pre-trained features.")
+                print(f"[ML] Weight load error: {e}")
+                return None
         else:
-            print("[ML] No custom weights. Using ImageNet pre-trained backbone.")
+            print("[ML] No custom weights (crop_model_weights.pth or disease_model_weights.pth) found. Skipping local PyTorch model inference.")
+            return None
     return _torch_model
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Local PyTorch Inference execution
+# ─────────────────────────────────────────────────────────────────────────────
+def predict_via_torch(image_bytes: bytes) -> dict | None:
+    if not TORCH_AVAILABLE:
+        return None
+    model = get_torch_model()
+    if model is None:
+        return None
+        
+    try:
+        # Load classes mapping
+        checkpoint_dir = os.path.dirname(os.path.abspath(__file__))
+        classes_path = os.path.join(checkpoint_dir, "classes.json")
+        classes = None
+        if os.path.exists(classes_path):
+            try:
+                with open(classes_path, "r", encoding="utf-8") as f:
+                    classes = json.load(f)
+            except Exception:
+                pass
+        if not classes:
+            # Fall back to dynamic checking of archive directory
+            archive_train_dir = os.path.join(checkpoint_dir, "..", "archive", "RGB_224x224", "RGB_224x224", "train")
+            if os.path.exists(archive_train_dir):
+                classes = sorted([d for d in os.listdir(archive_train_dir) if os.path.isdir(os.path.join(archive_train_dir, d))])
+            else:
+                classes = get_dataset_classes()
+                
+        # Preprocess image
+        img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        preprocess = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ])
+        tensor = preprocess(img).unsqueeze(0)
+        
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model.to(device)
+        tensor = tensor.to(device)
+        
+        with torch.no_grad():
+            outputs = model(tensor)
+            probabilities = torch.nn.functional.softmax(outputs[0], dim=0)
+            confidence, class_idx = torch.max(probabilities, 0)
+            confidence = confidence.item()
+            class_idx = class_idx.item()
+            
+        if classes and class_idx < len(classes):
+            predicted_class = classes[class_idx]
+            print(f"[ML-Torch] Predicted: {predicted_class} (confidence: {confidence:.2f})")
+            
+            # Check if this model is a 38-class disease classifier (PlantVillage)
+            if len(classes) == 38 or "___" in predicted_class:
+                parsed = _parse_hf_label(predicted_class, confidence)
+                if parsed:
+                    parsed["model"] = "Local PyTorch Model (PlantVillage)"
+                    parsed["gemini_powered"] = False
+                    return parsed
+            
+            # Map predicted class to our disease database crops
+            predicted_crop = predicted_class.replace(" plant", "").replace(" plantain", "plantain").strip()
+            crop_mapping = {
+                "Tomatoes": "Tomato",
+                "Apples": "Apple",
+                "Bananas": "Banana",
+                "Blueberries": "Blueberry",
+                "Cherries": "Cherry",
+                "Chili peppers and green peppers": "Chilli",
+                "Coconuts": "Coconut",
+                "Grapes": "Grape",
+                "Mangoes, mangosteens, guavas": "Mango",
+                "Oranges": "Orange",
+                "Peaches and nectarines": "Peach",
+                "Potatoes": "Potato",
+                "Rice (Paddy)": "Rice",
+                "Strawberries": "Strawberry",
+                "Soybeans": "Soybean",
+                "Sugar cane": "Sugarcane",
+                "Groundnuts (Peanuts)": "Groundnut",
+                "Maize (Corn)": "Maize",
+                "Eggplants (Aubergines)": "Brinjal",
+                "Mustard greens": "Mustard",
+                "Mustard seeds": "Mustard",
+                "Onions (dry)": "Onion",
+            }
+            base_crop = crop_mapping.get(predicted_crop, predicted_crop)
+            if base_crop.endswith("es"):
+                base_crop = base_crop[:-2]
+            elif base_crop.endswith("s") and not base_crop.endswith("ch") and not base_crop.endswith("sh"):
+                base_crop = base_crop[:-1]
+                
+            return {
+                "predicted_crop_class": predicted_class,
+                "crop": base_crop,
+                "confidence": confidence,
+            }
+    except Exception as e:
+        print(f"[ML-Torch] Inference failed: {e}")
+        return None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -780,23 +951,34 @@ def predict_via_static_fallback(crop_hint: str = None, filename: str = None) -> 
 # ─────────────────────────────────────────────────────────────────────────────
 def predict_image(image_bytes: bytes, crop_hint: str = None, filename: str = None, custom_key: str = None) -> dict:
     """
-    3-tier image analysis pipeline.
-    Each tier actually reads the image pixels — no wrong-crop defaults.
-
-    Args:
-        image_bytes: Raw image bytes from uploaded file
-        crop_hint:   Crop name user selected in UI (used as context hint, not forced)
-        filename:    Uploaded file name (used for offline keyword fallback)
-        custom_key:  Custom Google Gemini API key passed from client
-
-    Returns:
-        dict with: disease, crop, severity, confidence, advice, gemini_powered, model
+    4-tier image analysis pipeline.
+    Includes local PyTorch model, Gemini vision, HF vision, and static fallbacks.
     """
     print(f"\n[ML] Starting diagnosis | crop_hint={crop_hint!r} | image_size={len(image_bytes)} bytes")
 
+    # ── TIER 0: Local PyTorch Inference (Crop or Disease Classification) ──
+    torch_result = None
+    if TORCH_AVAILABLE:
+        torch_result = predict_via_torch(image_bytes)
+        
+    if torch_result and "disease" in torch_result:
+        return torch_result
+
+    detected_crop = None
+    if torch_result and "crop" in torch_result:
+        detected_crop = torch_result["crop"]
+        print(f"[ML] Local PyTorch model detected crop: {detected_crop} (confidence: {torch_result['confidence']:.2f})")
+        if not crop_hint or crop_hint.lower() in ["unknown", "other", "not specified", "tomato"]:
+            crop_hint = detected_crop
+
     # ── TIER 1: Google Gemini Vision ──────────────────────────────────────
-    result = predict_via_gemini(image_bytes, crop_hint, custom_key)
+    gemini_hint = crop_hint
+    if detected_crop:
+        gemini_hint = f"{crop_hint} (Local PyTorch model auto-detected: {detected_crop})"
+    result = predict_via_gemini(image_bytes, gemini_hint, custom_key)
     if result:
+        if detected_crop and not result.get("crop"):
+            result["crop"] = detected_crop
         return result
 
     # ── TIER 2: Hugging Face Plant Disease ViT ────────────────────────────
@@ -806,4 +988,10 @@ def predict_image(image_bytes: bytes, crop_hint: str = None, filename: str = Non
 
     # ── TIER 3: Static fallback with correct crop ─────────────────────────
     print("[ML] All APIs failed. Using crop-aware static fallback.")
-    return predict_via_static_fallback(crop_hint, filename)
+    fallback_crop = detected_crop or crop_hint
+    fallback_result = predict_via_static_fallback(fallback_crop, filename)
+    if torch_result and "predicted_crop_class" in torch_result:
+        fallback_result["image_analysis"] = f"Auto-detected crop via local model: {torch_result['predicted_crop_class']} (confidence: {torch_result['confidence']:.2f})"
+        fallback_result["confidence"] = torch_result["confidence"]
+        fallback_result["model"] = "Local PyTorch Model + Static Fallback"
+    return fallback_result

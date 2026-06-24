@@ -17,7 +17,7 @@ try:
 except ImportError:
     pass
 
-from database import init_db, get_db, DiseaseReport, CropLog, WeatherCache, User
+from database import init_db, get_db, DiseaseReport, CropLog, WeatherCache, User, PushSubscription
 from ml_model import predict_image, get_gemini_api_key
 
 # Initialize FastAPI app
@@ -351,6 +351,46 @@ TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "ACmockaccountsd1234567890a
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "mockauthtoken1234567890abcdef")
 TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER", "+15017122661")
 
+from pydantic import BaseModel
+
+class SubscriptionRequest(BaseModel):
+    topic: str
+    token: str
+
+def send_fcm_push_notification(token: str, title: str, body: str, deep_link: str):
+    """
+    Simulates sending an asynchronous push notification via FCM with high priority
+    overriding DND, including the deep linking target.
+    """
+    fcm_payload = {
+        "message": {
+            "token": token,
+            "notification": {
+                "title": title,
+                "body": body
+            },
+            "android": {
+                "priority": "HIGH",
+                "notification": {
+                    "channel_id": "outbreak_alerts_critical",
+                    "sound": "default",
+                    "importance": "HIGH", # Critical/High importance level
+                }
+            },
+            "data": {
+                "url": deep_link,
+                "priority": "HIGH"
+            }
+        }
+    }
+    print("=" * 60)
+    print("               [FIREBASE CLOUD MESSAGING BROADCAST]")
+    print(f"FCM Token: {token}")
+    print(f"Title: {title}")
+    print(f"Body: {body}")
+    print(f"Payload: {json.dumps(fcm_payload, indent=2)}")
+    print("=" * 60)
+
 @app.post("/api/alerts")
 async def check_regional_outbreaks(
     region: str = Form(...),
@@ -360,7 +400,8 @@ async def check_regional_outbreaks(
 ):
     """
     Checks recent disease report uploads inside the region. If reports exceed
-    the threshold, it identifies an outbreak risk and triggers SMS notifications.
+    the threshold, it identifies an outbreak risk, sends FCM push notifications
+    to subscribed topic segments, and dispatches SMS warnings.
     """
     # Look back over last 7 days
     lookback_date = datetime.utcnow() - timedelta(days=7)
@@ -377,7 +418,11 @@ async def check_regional_outbreaks(
 
     active_outbreaks = []
     sms_broadcast_count = 0
+    fcm_push_count = 0
     notifications_sent = []
+
+    clean_region = region.strip().lower().replace(" ", "").replace("_", "")
+    topic_name = f"outbreak_{clean_region}"
 
     for disease, count in disease_counts.items():
         if count >= threshold:
@@ -387,35 +432,55 @@ async def check_regional_outbreaks(
                 "status": "CRITICAL"
             })
             
-            alert_message = f"🚨 SMART KISAN EMERGENCY ALERT! An outbreak of '{disease}' has been detected in region '{region}' with {count} reports filed this week. Please quarantine infected crops immediately and apply protective spraying. Consult nearest Agri-Expert."
+            alert_title = f"🚨 EMERGENCY OUTBREAK ALERT: {region.upper()}"
+            alert_message = f"Critical level of '{disease}' detected in region '{region}' with {count} reports this week. Quarantine infected crops immediately & check offline diagnostics."
             
-            # Send SMS via Twilio if requested
+            # 1. FCM Push to Subscribed Topic Segment
+            subscribers = db.query(PushSubscription).filter(PushSubscription.topic == topic_name).all()
+            for sub in subscribers:
+                send_fcm_push_notification(
+                    token=sub.token,
+                    title=alert_title,
+                    body=alert_message,
+                    deep_link="/dashboard"
+                )
+                fcm_push_count += 1
+                notifications_sent.append({
+                    "type": "FCM_PUSH",
+                    "topic": topic_name,
+                    "token": sub.token,
+                    "title": alert_title,
+                    "body": alert_message,
+                    "deep_link": "/dashboard",
+                    "simulated": True
+                })
+            
+            # 2. Twilio SMS
+            sms_message = f"🚨 SMART KISAN EMERGENCY ALERT! An outbreak of '{disease}' has been detected in region '{region}' with {count} reports filed this week. Please quarantine infected crops immediately. Consult nearest Agri-Expert."
             if send_sms:
-                # Simulated contacts: In production, query user directory database for local phone numbers
                 mock_contacts = ["+919876543210", "+918765432109"]
                 
                 try:
-                    # Validate Twilio credentials before executing
                     if "mock" not in TWILIO_ACCOUNT_SID and len(TWILIO_ACCOUNT_SID) > 10:
                         client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
                         for contact in mock_contacts:
                             client.messages.create(
-                                body=alert_message,
+                                body=sms_message,
                                 from_=TWILIO_PHONE_NUMBER,
                                 to=contact
                             )
                         sms_broadcast_count += len(mock_contacts)
-                        print(f"[Twilio] SMS alert sent to {len(mock_contacts)} farmers for {disease}.")
                     else:
-                        # Log mock SMS delivery print block
+                        # Log mock SMS delivery
                         print("=" * 60)
                         print("               [MOCK TWILIO SMS BROADCAST]")
                         print(f"From: {TWILIO_PHONE_NUMBER}")
                         print(f"To Contacts: {', '.join(mock_contacts)}")
-                        print(f"Message:\n{alert_message}")
+                        print(f"Message:\n{sms_message}")
                         print("=" * 60)
                         sms_broadcast_count += len(mock_contacts)
                         notifications_sent.append({
+                            "type": "TWILIO_SMS",
                             "disease": disease,
                             "contacts": mock_contacts,
                             "simulated": True
@@ -429,6 +494,31 @@ async def check_regional_outbreaks(
         "lookbackDays": 7,
         "reportsFound": len(reports),
         "outbreaks": active_outbreaks,
+        "fcmPushesDispatched": fcm_push_count,
         "smsDispatched": sms_broadcast_count,
-        "broadcastDetails": notifications_sent if len(notifications_sent) > 0 else "Live/Mock Twilio executed."
+        "broadcastDetails": notifications_sent if len(notifications_sent) > 0 else "Outbreak notifications completed."
     }
+
+@app.post("/api/alerts/subscribe")
+def subscribe_to_alerts(req: SubscriptionRequest, db: Session = Depends(get_db)):
+    existing = db.query(PushSubscription).filter(
+        PushSubscription.topic == req.topic,
+        PushSubscription.token == req.token
+    ).first()
+    if not existing:
+        sub = PushSubscription(topic=req.topic, token=req.token)
+        db.add(sub)
+        db.commit()
+    return {"success": True, "message": f"Successfully subscribed to topic: {req.topic}"}
+
+@app.post("/api/alerts/unsubscribe")
+def unsubscribe_from_alerts(req: SubscriptionRequest, db: Session = Depends(get_db)):
+    sub = db.query(PushSubscription).filter(
+        PushSubscription.topic == req.topic,
+        PushSubscription.token == req.token
+    ).first()
+    if sub:
+        db.delete(sub)
+        db.commit()
+    return {"success": True, "message": f"Successfully unsubscribed from topic: {req.topic}"}
+

@@ -245,11 +245,11 @@ const Home = () => {
                   <div key={idx} style={{ display: "flex", gap: 12, borderLeft: "3px solid var(--primary-light)", paddingLeft: 12, paddingBottom: 6 }}>
                     <div>
                       <span style={{ background: "var(--primary-light)", color: "var(--primary-hover)", padding: "1px 6px", borderRadius: 12, fontSize: 10, fontWeight: 700 }}>
-                        {step.day}
+                        {language === 'mr' ? step.day.replace("Day", "दिवस") : step.day}
                       </span>
-                      <strong style={{ display: "block", fontSize: 13.5, marginTop: 2 }}>{step.title}</strong>
+                      <strong style={{ display: "block", fontSize: 13.5, marginTop: 2 }}>{t(step.title)}</strong>
                       <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{language === 'en' ? 'Est:' : 'अंदाजे:'} {step.dateStr}</span>
-                      <p style={{ fontSize: 12, color: "var(--text-dark)", marginTop: 2 }}>{step.details}</p>
+                      <p style={{ fontSize: 12, color: "var(--text-dark)", marginTop: 2 }}>{t(step.details)}</p>
                     </div>
                   </div>
                 ))}

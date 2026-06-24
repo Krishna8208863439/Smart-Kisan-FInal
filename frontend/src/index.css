@@ -29,6 +29,9 @@
   --nav-height: 64px;
   --bottom-nav-height: 64px;
   --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --login-overlay: rgba(240, 253, 244, 0.9);
 }
 
 /* ── CSS Variables — Dark Mode ── */
@@ -48,6 +51,17 @@
   --shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.5);
   --accent: #fbbf24;
   --accent-light: #292102;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --login-overlay: rgba(15, 23, 42, 0.85);
+}
+
+.text-primary {
+  color: var(--text-primary) !important;
+}
+
+.text-secondary {
+  color: var(--text-secondary) !important;
 }
 
 /* ── Reset & Base ── */
@@ -1584,7 +1598,7 @@ label {
   .login-split-left { 
     display: block;
     min-height: 240px; 
-    padding: 0;
+    padding: 32px 24px;
     border-bottom: 4px solid var(--primary);
     background-position: center 15%;
   }
