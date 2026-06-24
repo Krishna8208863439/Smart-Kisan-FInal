@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -118,10 +119,14 @@ const parseDescriptionSpecs = (description) => {
 
 const Marketplace = () => {
   const { t, language } = useLanguage();
+  const locationState = useLocation();
+  const searchParams = new URLSearchParams(locationState.search);
+  const initialSearch = searchParams.get("search") || locationState.state?.searchQuery || "";
+
   const [products, setProducts] = useState([]);
   const [myListings, setMyListings] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearch);
   const [selectedCategory, setSelectedCategory] = useState("All Products");
   const [sortBy, setSortBy] = useState("popular");
   

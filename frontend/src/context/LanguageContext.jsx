@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 const LanguageContext = createContext({
   language: 'en',
   toggleLanguage: () => {},
+  setLanguage: () => {},
   t: (key) => key,
 });
 
@@ -506,13 +507,263 @@ const TRANSLATIONS = {
     communityMeetingJoin: "सत्रामध्ये सहभागी व्हा 🎥",
     communitySchemesTitle: "🏛️ उपयुक्त सरकारी योजना व पीक विमा पोर्टल्स",
     communitySchemesDesc: "थेट सरकारी मदत आणि अनुदान योजनांच्या लिंक्स."
+  },
+  hi: {
+    // Navbar
+    home: "मुख्यपृष्ठ",
+    dashboard: "डैशबोर्ड",
+    chat: "🤖 बातचीत",
+    aiCenter: "🛠️ कृषि केंद्र",
+    bazaar: "🛒 बाजार",
+    community: "👥 समुदाय",
+    weather: "☀️ मौसम",
+    mandiPrices: "📈 मंडी भाव",
+    recommendations: "🌱 फसल सलाहकार",
+    learning: "📚 कृषि शिक्षण",
+    login: "लॉगिन",
+    register: "पंजीकरण",
+    logout: "लॉगआऊट",
+    hi: "नमस्ते",
+    installApp: "📲 ऐप इंस्टॉल करें",
+
+    // Common Button/Status
+    loading: "लोड हो रहा है...",
+    submit: "जमा करें",
+    error: "त्रुटि",
+    success: "सफलता",
+
+    // Home Page
+    heroTitle: "डिजिटल कृषि साथी",
+    heroSubtitle: "स्मार्ट किसान पारंपरिक ज्ञान और आधुनिक एआई को जोड़ता है। अपने खेत की क्षमता को अधिकतम करने के लिए फसल सिमुलेटर, दृश्य रोग निदान और व्यापार पाइपलाइनों का लाभ उठाएं।",
+    trustedFarmers: "🌾 15,000+ किसानों द्वारा विश्वसनीय",
+    getStarted: "मुफ़्त शुरू करें 🚀",
+    loginCta: "लॉग इन करें",
+    downloadApp: "📲 ऐप डाउनलोड करें",
+    impactFarmers: "पंजीकृत किसान",
+    impactAccuracy: "निदान सटीकता",
+    impactTraded: "व्यापार की गई फसल",
+    impactFees: "दलाली शुल्क",
+    featureTitle: "किसान की जरूरत का सब कुछ 🌱",
+    featureSubtitle: "एक मंच, आपकी सभी कृषि आवश्यकताएं पूरी।",
+    pwaCTA: "📱 स्मार्ट किसान को हर जगह ले जाएं",
+    pwaDesc: "अपने डिवाइस पर स्मार्ट किसान को एक नेटिव ऐप के रूप में इंस्टॉल करें। ऑफ़लाइन काम करता है, तुरंत लोड होता है, किसी ऐप स्टोर की आवश्यकता नहीं है!",
+    pwaStep1Title: "ऐप इंस्टॉल करें पर टैप करें",
+    pwaStep1Desc: "नीचे दिए गए बटन पर क्लिक करें",
+    pwaStep2Title: "इंस्टॉल की पुष्टि करें",
+    pwaStep2Desc: "ब्राउज़र एक संकेत दिखाता है",
+    pwaStep3Title: "होम स्क्रीन से लॉन्च करें",
+    pwaStep3Desc: "एक नेटिव ऐप की तरह खुलता है!",
+    downloadFree: "📲 ऐप डाउनलोड करें — मुफ़्त",
+    installedSuccess: "✅ स्मार्ट किसान आपके डिवाइस पर इंस्टॉल है!",
+
+    // Interactive Crop Planner
+    cropPlanner: "🌱 इंटरएक्टिव फसल योजनाकार",
+    cropPlannerDesc: "अपनी वृद्धि अनुसूची देखने के लिए एक फसल और बुवाई की तारीख चुनें!",
+    selectCrop: "फसल चुनें",
+    sowingDate: "बुवाई की अंदाजे तारीख",
+    simulateButton: "वृद्धि समयरेखा अनुकरण करें 📈",
+    pipelinePreview: "वृद्धि पाइपलाइन पूर्वावलोकन",
+    pipelineConfigureDesc: "बाएं हिस्से में पैरामीटर कॉन्फ़िगर करें और वृद्धि चरणों को देखने के लिए अनुकरण करें।",
+    milestonesTitle: "बुवाई के मील के पत्थर:",
+    enterCustomCrop: "कस्टम फसल का नाम दर्ज करें",
+
+    // Login Page
+    welcomeBack: "आपका स्वागत है",
+    loginSubtitle: "अपने खेतों का प्रबंधन करने और कृषि संबंधी जानकारी प्राप्त करने के लिए लॉग इन करें।",
+    emailAddress: "ईमेल पता",
+    password: "पासवर्ड",
+    forgotPassword: "पासवर्ड भूल गए?",
+    loginButton: "सुरक्षित रूप से लॉग इन करें 🚀",
+    newToKisan: "स्मार्ट किसान पर नए हैं?",
+    createAccountLink: "एक खाता बनाएं",
+    demoLogins: "🔑 त्वरित परीक्षण डेमो लॉगिन",
+    demoFarmer: "🌾 डेमो किसान",
+    demoMerchant: "🛒 डेमो व्यापारी",
+    singleClickLogin: "एक-क्लिक लॉगिन",
+    resetPassword: "पासवर्ड रीसेट करें",
+    resetSubtitle: "पासवर्ड रीसेट सत्यापन कोड का अनुरोध करने के लिए अपना ईमेल पता दर्ज करें।",
+    sendOTP: "सत्यापन ओटीपी भेजें 🔑",
+    backToLogin: "लॉगिन पर वापस जाएं",
+    newPasswordWizard: "नया पासवर्ड विजार्ड",
+    resetCodeLabel: "6-अंकीय रीसेट कोड (ओटीपी)",
+    enterNewPassword: "नया पासवर्ड दर्ज करें",
+    submitNewPassword: "जमा करें और पासवर्ड रीसेट करें 🔐",
+    requestNewResetCode: "नया रीसेट कोड का अनुरोध करें",
+    minCharacters: "कम से कम 6 अक्षर",
+
+    // Register Page
+    createAccount: "खाता बनाएं",
+    registerSubtitle: "अपना कृषि डैशबोर्ड प्रोफ़ाइल सेट करने के लिए पंजीकरण करें।",
+    selectUserRole: "उपयोगकर्ता भूमिका चुनें",
+    farmerRole: "किसान",
+    farmerDesc: "खेती करें और बेचें",
+    merchantRole: "व्यापारी",
+    merchantDesc: "व्यापार करें और खरीदें",
+    fullName: "पूरा नाम",
+    registerBtn: "पंजीकरण करें और डैशबोर्ड शुरू करें 🚀",
+    alreadyHaveAccount: "पहले से ही खाता है?",
+
+    // Crop Recommendations
+    recommendationTitle: "AI फसल अनुशंसा इंजन",
+    recommendationSubtitle: "अनुकुलतम फसल किस्मों और संसाधन आवंटन का अनुमान लगाने के लिए अपनी मिट्टी के गुणों और स्थान मापदंडों को दर्ज करें।",
+    soilLocationDetails: "🧪 मिट्टी और स्थान विवरण",
+    soilType: "मिट्टी का प्रकार",
+    soilLoamy: "दोमट मिट्टी",
+    soilSandy: "बलुई मिट्टी",
+    soilClay: "चिकनी मिट्टी",
+    soilBlack: "काली मिट्टी",
+    soilRed: "लाल मिट्टी",
+    season: "मौसम",
+    seasonKharif: "खरीफ (मानसून)",
+    seasonRabi: "रबी (सर्दियों)",
+    seasonZaid: "जायद (गर्मी)",
+    regionState: "क्षेत्र / राज्य",
+    gpsDetectBtn: "📍 जीपीएस",
+    irrigationLabel: "सिंचन/पानी की आपूर्ति उपलब्ध है",
+    soilChemistry: "⚙️ मृदा रसायन (NPK और pH)",
+    soilPH: "मिट्टी का पीएच",
+    acidic: "अम्लीय (4.0)",
+    neutral: "उदासीन (7.0)",
+    alkaline: "क्षारीय (9.0)",
+    nitrogen: "नाइट्रोजन (N)",
+    phosphorus: "फास्फोरस (P)",
+    potassium: "पोटेशियम (K)",
+    generateRecommendations: "AI अनुशंसाएँ उत्पन्न करें",
+    detectedWeather: "पता चला स्थान और मौसम",
+    matchPercentage: "मेल",
+    estProfit: "अनुमानित लाभ",
+    estProfitLabel: "अनुमानित लाभ",
+    yieldLabel: "उपज:",
+    waterLabel: "पानी:",
+    demandLabel: "मांग:",
+    fertilizerActionPlan: "खाद और कार्य योजना:",
+    stepCalendar: "चरण-दर-चरण कैलेंडर",
+
+    // AI Center / Diagnostics
+    agriCenterTitle: "कृषि एआई केंद्र",
+    agriCenterSubtitle: "पीक रोग निदान, जल प्रबंधकों, मिट्टी के NPK खाद नियोजन और फसल नियोजक जैसे आधुनिक उपकरणों का उपयोग करें।",
+    leafDiagnostics: "पत्ती रोग निदान",
+    leafDiagnosticsDesc: "प्रभावित पौधे की पत्ती की तस्वीर लें या अपलोड करें। हमारा एआई मॉडल उपचार सुझाने के लिए बनावट और धब्बों की जांच करता है।",
+    cropTypeHint: "फसल का प्रकार",
+    dragDropPhoto: "तस्वीर चुनें या यहाँ खींचें",
+    supportsFormats: "PNG, JPG, JPEG प्रारूपों का समर्थन करता है",
+    analyzeImageBtn: "छवि का विश्लेषण करें 🔬",
+    diagnosticsReport: "एआई रोग निदान रिपोर्ट",
+    printPrescription: "🖨️ पर्चा प्रिंट करें",
+    uploadPrompt: "रिपोर्ट देखने के लिए पत्ती की फोटो अपलोड करें और विश्लेषण करें पर क्लिक करें।",
+    modelConfidence: "एआई मॉडल विश्वसनीयता",
+    basedOnFoliage: "पत्ती के विभिन्न घटकों के विश्लेषण पर आधारित",
+    cropTarget: "लक्षित फसल:",
+    detectedDisease: "पता चला रोग:",
+    severityLevel: "खतरे की गंभीरता का स्तर:",
+    severityThreat: "गंभीरता खतरा",
+    healthyLeafRef: "संदर्भ स्वस्थ पत्ती:",
+    organicRemedy: "जैविक उपचार (अनुशंसित)",
+    chemicalControl: "रासायनिक नियंत्रण",
+    organicPrescription: "जैविक नुस्खा:",
+    chemicalGuidelines: "रासायनिक उपचार दिशानिर्देश:",
+
+    // Kisan Bazaar
+    bazaarTitle: "किसान बाजार",
+    bazaarSubtitle: "उत्कृष्ट बीज, विशेष उपकरण, जैविक खाद खरीदें या अपनी खुद की फसल सीधे अन्य किसानों और थोक व्यापारियों को बेचें।",
+    onlineSellTitle: "अपनी फसल ऑनलाइन बेचें",
+    onlineSellDesc: "सीधे सत्यापित थोक खरीदारों को बेचने के लिए अपनी फसल, गुणवत्ता ग्रेड, पूछी जा रही कीमत और संपर्क विवरण सूचीबद्ध करें।",
+    bazaarSellerCenter: "🚜 विक्रेता केंद्र",
+    bazaarBrowse: "🛒 बाजार ब्राउज़ करें",
+    bazaarCart: "🛒 कार्ट",
+    bazaarFilterCategory: "श्रेणी के अनुसार छानें",
+    bazaarSearchPlaceholder: "उत्पाद, श्रेणियां, विक्रेता खोजें...",
+    bazaarSortPopularity: "लोकप्रियता",
+    bazaarSortRating: "उच्चतम रेटेड",
+    bazaarSortPriceLow: "मूल्य: कम से उच्च",
+    bazaarSortPriceHigh: "मूल्य: उच्च से कम",
+    bazaarListSurplus: "📢 बेचने के लिए अधिशेष सूचीबद्ध करें",
+    bazaarCloseForm: "लिस्टिंग फॉर्म बंद करें ✖",
+    bazaarLoginToSell: "🔐 अपनी चीजें बेचने के लिए लॉग इन करें",
+    bazaarListHarvestTitle: "अपनी कृषि वस्तु सूचीबद्ध करें",
+    bazaarListHarvestDesc: "अपनी थोक मूल्य निर्धारण सेट करें, श्रेणी चुनें, फोटो अपलोड या चुनें, और सबमिट करें। आपकी लिस्टिंग तुरंत बाज़ार कैटलॉग में दिखाई देगी।",
+    bazaarItemName: "वस्तु / फसल का नाम *",
+    bazaarCategory: "श्रेणी",
+    bazaarSaleUnit: "बिक्री इकाई *",
+    bazaarWholesalePrice: "थोक मूल्य (₹) *",
+    bazaarSeedsGermination: "अंकुरण दर (%)",
+    bazaarFertilizersRatio: "NPK फॉर्मूला अनुपात",
+    bazaarProduceHarvestDate: "कटाई की तिथि",
+    bazaarItemDesc: "वस्तु विवरण",
+    bazaarPhotoPreset: "फोटो प्रीसेट चुनें (या नीचे URL दर्ज करें)",
+    bazaarPublishListing: "बाजार में लिस्टिंग प्रकाशित करें 🚀",
+    bazaarPublishing: "लिस्टिंग प्रकाशित की जा रही है...",
+    bazaarLoadingInventory: "बाजार सूची लोड हो रही है...",
+    bazaarNoProductsMatched: "आपके फिल्टर से कोई उत्पाद मेल नहीं खाता।",
+    bazaarTryClearing: "खोज क्वेरी साफ़ करने का प्रयास करें या अन्य श्रेणियां देखें।",
+    bazaarFarmerDirect: "👨‍🌾 किसान सीधे",
+    bazaarMandiRef: "मंडी संदर्भ",
+    bazaarAddToCart: "+ जोड़ें 🛒",
+    bazaarActiveListings: "सक्रिय सूचियां",
+    bazaarAvailableItems: "उपलब्ध वस्तुएं",
+    bazaarEstValue: "अनुमानित मूल्य (25 इकाइयाँ बेची गईं)",
+    bazaarOrderSuccessful: "ऑर्डर सफलतापूर्वक दिया गया! किसान एसएमएस नेटवर्क द्वारा सत्यापित।",
+    bazaarCheckoutBtn: "चेकआउट के लिए आगे बढ़ें",
+    bazaarOrderPlaced: "ऑर्डर दिया गया!",
+    bazaarOrderId: "ऑर्डर आईडी:",
+    bazaarCartEmpty: "आपकी कार्ट खाली है।",
+    bazaarCloseBtn: "बंद करें",
+
+    // Mandi Prices
+    mandiTitle: "लाइव मंडी भाव",
+    mandiSubtitle: "भारत भर की 15+ एपीएमसी मंडियों से वास्तविक समय में कृषि कमोडिटी की कीमतें।",
+    pwaAndroidHint: "एंड्रॉइड क्रोम: मेनू → 'होम स्क्रीन पर जोड़ें'",
+    mandiSearchPlaceholder: "फसल खोजें...",
+    mandiAllCommodities: "सभी फसलें",
+    mandiMinPrice: "न्यूनतम मूल्य",
+    mandiAvgPrice: "औसत मूल्य",
+    mandiMaxPrice: "अधिकतम मूल्य",
+    mandiPriceSpread: "मूल्य अंतर",
+    mandiTotalArrivals: "कुल आवक",
+    mandiTrend: "30-दिवसीय प्रवृत्ति",
+    mandiBestBuy: "सस्ती खरीद मंडी",
+    mandiBestSell: "महंगी बिक्री मंडी",
+    mandiAutoRefresh: "ऑटो रीफ्रेश",
+    mandiLastUpdate: "अंतिम अपडेट",
+    mandiRefreshBtn: "🔄 रीफ्रेश",
+    mandiWatchBtn: "☆ वॉचलिस्ट",
+    mandiWatchingBtn: "⭐ वॉचिंग",
+    mandiSortLabel: "क्रमबद्ध करें:",
+    mandiArrivalTons: "आवक (टन)",
+    mandiMspBannerTitle: "न्यूनतम समर्थन मूल्य (MSP)",
+    mandiMspBannerDesc: "सरकार द्वारा गारंटीकृत MSP। यदि बाजार की कीमतें MSP से नीचे गिरती हैं, तो अपनी आय की रक्षा के लिए सरकारी खरीद एजेंसियों को बेचें।",
+    mandiForecastTitle: "📊 मूल्य भविष्यवाणी का पूर्वानुमान (अगले 7-30 दिन)",
+    mandiForecastDesc: "एॉ-संचालित कमोडिटी आवक विश्लेषण और क्षेत्रीय मौसम सहसंबंध।",
+    mandiForecastSelect: "पूर्वानुमान अवधि",
+    mandiForecastBtn: "पूर्वानुमान प्रवृत्ति का विश्लेषण करें 🔍",
+    mandiForecastResult: "भविष्यवाणी का परिणाम",
+    mandiForecastSentiment: "बाजार का रुख:",
+    mandiForecastAdvise: "कार्यवाही योग्य सलाह:",
+    mandiForecastExpected: "expected price range:",
+
+    // Community Forum / Resources Hub
+    communityResourcesTitle: "सामुदायिक संसाधन केंद्र और सलाह",
+    communityResourcesSubtitle: "सामुदायिक सलाहकार बोर्ड और अधिकारी निर्देशिका",
+    communityDirectoryTitle: "जिला कृषि विज्ञानी और अधिकारी निर्देशिका",
+    communityOfficerName: "नाम",
+    communityOfficerRole: "पद / भूमिका",
+    communityOfficerContact: "संपर्क नंबर",
+    communityOfficerRegion: "जिला / क्षेत्र",
+    communityMeetingsTitle: "📅 आगामी किसान प्रशिक्षण और वेबिनार",
+    communityMeetingsDesc: "कृषि विज्ञानियों द्वारा आयोजित लाइव सत्रों में भाग लें।",
+    communityMeetingTitle: "विषय",
+    communityMeetingDate: "दिनांक और समय",
+    communityMeetingLink: "कार्यवाही",
+    communityMeetingJoin: "सत्र में शामिल हों 🎥",
+    communitySchemesTitle: "🏛️ उपयोगी सरकारी पोर्टल और फसल बीमा योजनाएं",
+    communitySchemesDesc: "सीधे सरकारी सहायता और सब्सिडी पोर्टल के लिंक।"
   }
 };
 
 export const LanguageProvider = ({ children }) => {
   const [language, setLanguage] = useState(() => {
     const saved = localStorage.getItem('sk-lang');
-    return saved === 'mr' ? 'mr' : 'en';
+    return saved === 'mr' ? 'mr' : saved === 'hi' ? 'hi' : 'en';
   });
 
   useEffect(() => {
@@ -520,7 +771,7 @@ export const LanguageProvider = ({ children }) => {
   }, [language]);
 
   const toggleLanguage = () => {
-    setLanguage((prev) => (prev === 'en' ? 'mr' : 'en'));
+    setLanguage((prev) => (prev === 'en' ? 'mr' : prev === 'mr' ? 'hi' : 'en'));
   };
 
   const t = (key) => {
@@ -528,7 +779,7 @@ export const LanguageProvider = ({ children }) => {
   };
 
   return (
-    <LanguageContext.Provider value={{ language, toggleLanguage, t }}>
+    <LanguageContext.Provider value={{ language, toggleLanguage, setLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   );
