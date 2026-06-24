@@ -555,6 +555,17 @@ Respond ONLY with valid JSON (no markdown, no text outside JSON):
   };
 }
 
+// ── Whitelisted 140 Crops List (from dataset) ───────────────────────────────
+const WHITELISTED_CROPS = [
+  "aji pepper", "almond", "amaranth", "apple", "artichoke", "avocado", "acai", "banana", "barley", "beet", "black pepper", "blueberry", "bok choy", "brazil nut", "broccoli", "brussels sprout", "buckwheat", "cabbage", "camucamu", "carrot", "cashew", "cassava", "cauliflower", "celery", "cherimoya", "cherry", "chestnut", "chickpea", "chili pepper", "cinnamon", "clove", "cocoa bean", "coconut", "coffee", "collards", "cotton", "cranberry", "cucumber", "date", "dry bean", "dry pea", "durian", "eggplant", "endive", "fava bean", "fig", "flax", "fonio", "garlic", "ginger", "gooseberry", "grape", "groundnut", "peanut", "guarana", "guava", "habanero pepper", "hazelnut", "hemp", "horseradish", "jackfruit", "jute", "kale", "kohlrabi", "leek", "lemon", "lime", "lentil", "lettuce", "lima bean", "longan", "lupin", "lychee", "maize", "corn", "mandarin", "clementine", "mango", "mangosteen", "maracuja", "passionfruit", "millet", "mint", "mung bean", "mustard green", "mustard seed", "navy bean", "oat", "oil palm", "okra", "olive", "onion", "orange", "oregano", "papaya", "parsley", "peach", "pear", "persimmon", "pine nut", "pineapple", "pinto bean", "pistachio", "plantain", "pomegranate", "potato", "pumpkin", "squash", "gourd", "quinoa", "radish", "rambutan", "rapeseed", "canola", "raspberry", "rice", "paddy", "rosemary", "rubber", "rye", "saffron", "sage", "scallion", "sorghum", "soursop", "soybean", "spinach", "starfruit", "strawberry", "sugar beet", "sugar cane", "sunflower seed", "sweet potato", "swiss chard", "tamarind", "taro", "tea", "teff", "thyme", "tomato", "triticale", "turmeric", "turnip", "vanilla bean", "walnut", "watermelon", "wheat", "yam"
+];
+
+const REFUSAL_MESSAGES = {
+  en: "System error: I can only diagnose crop diseases. Please upload a clear photo of your affected crop leaf, stem, or fruit.",
+  hi: "सिस्टम त्रुटि: मैं केवल फसल रोगों का निदान कर सकता हूं। कृपया अपनी प्रभावित फसल की पत्ती, तने या फल की एक स्पष्ट तस्वीर अपलोड करें।",
+  mr: "सिस्टम त्रुटी: मी फक्त पिकांच्या रोगांचे निदान करू शकतो. कृपया तुमच्या बाधित पिकाच्या पानाचा, खोडाचा किंवा फळाचा स्पष्ट फोटो अपलोड करा."
+};
+
 // ── POST /api/crop-disease/analyze ──────────────────────────────────────────
 router.post("/analyze", protect, upload.single("image"), async (req, res) => {
   try {
@@ -563,9 +574,42 @@ router.post("/analyze", protect, upload.single("image"), async (req, res) => {
     }
 
     const { crop } = req.body;
+    const activeLang = req.body.language || "en";
     const imagePath = req.file.path;
     const imageUrl  = `/uploads/${path.basename(imagePath)}`;
     const imageBuffer = fs.readFileSync(imagePath);
+
+    // ── Crop Isolation Guardrail check ──
+    const cropLower = (crop || "").toLowerCase().trim();
+    const fileLower = (req.file.originalname || "").toLowerCase().trim();
+    const combined = `${cropLower} ${fileLower}`;
+
+    const nonCropKeywords = [
+      "human", "skin", "finger", "hand", "face", "leg", "person", "man", "woman", "child",
+      "cat", "dog", "tiger", "lion", "elephant", "bird", "snake", "monkey",
+      "tractor", "tiller", "machinery", "plow", "harvester", "engine", "car", "bike", "truck",
+      "table", "chair", "keyboard", "mobile", "phone", "bottle", "house", "room", "building", "furniture",
+      "ornamental weed", "dandelion", "grass lawn"
+    ];
+
+    const containsNonCrop = nonCropKeywords.some(kw => combined.includes(kw));
+    const isWhitelisted = WHITELISTED_CROPS.some(keyword => combined.includes(keyword));
+
+    if (containsNonCrop || (!isWhitelisted && cropLower.length > 0)) {
+      const refusal = REFUSAL_MESSAGES[activeLang] || REFUSAL_MESSAGES["en"];
+      return res.json({
+        success: true,
+        imageUrl,
+        crop: crop || "Non-Crop",
+        disease: "System Error",
+        severity: "high",
+        confidence: 1.0,
+        advice: refusal,
+        image_analysis: "Refused: Crop Isolation Guardrail triggered.",
+        gemini_powered: false,
+        ai_model: "Crop Isolation Guardrail"
+      });
+    }
 
     // ── TIER 1: Gemini Vision API ────────────────────────────────────────
     const geminiKey = (

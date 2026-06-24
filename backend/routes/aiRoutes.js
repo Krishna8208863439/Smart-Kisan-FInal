@@ -64,10 +64,17 @@ router.post("/chat", protect, async (req, res) => {
     "ornamental weed", "dandelion", "grass lawn"
   ];
 
+  const WHITELISTED_CROPS = [
+    "aji pepper", "almond", "amaranth", "apple", "artichoke", "avocado", "acai", "banana", "barley", "beet", "black pepper", "blueberry", "bok choy", "brazil nut", "broccoli", "brussels sprout", "buckwheat", "cabbage", "camucamu", "carrot", "cashew", "cassava", "cauliflower", "celery", "cherimoya", "cherry", "chestnut", "chickpea", "chili pepper", "cinnamon", "clove", "cocoa bean", "coconut", "coffee", "collards", "cotton", "cranberry", "cucumber", "date", "dry bean", "dry pea", "durian", "eggplant", "endive", "fava bean", "fig", "flax", "fonio", "garlic", "ginger", "gooseberry", "grape", "groundnut", "peanut", "guarana", "guava", "habanero pepper", "hazelnut", "hemp", "horseradish", "jackfruit", "jute", "kale", "kohlrabi", "leek", "lemon", "lime", "lentil", "lettuce", "lima bean", "longan", "lupin", "lychee", "maize", "corn", "mandarin", "clementine", "mango", "mangosteen", "maracuja", "passionfruit", "millet", "mint", "mung bean", "mustard green", "mustard seed", "navy bean", "oat", "oil palm", "okra", "olive", "onion", "orange", "oregano", "papaya", "parsley", "peach", "pear", "persimmon", "pine nut", "pineapple", "pinto bean", "pistachio", "plantain", "pomegranate", "potato", "pumpkin", "squash", "gourd", "quinoa", "radish", "rambutan", "rapeseed", "canola", "raspberry", "rice", "paddy", "rosemary", "rubber", "rye", "saffron", "sage", "scallion", "sorghum", "soursop", "soybean", "spinach", "starfruit", "strawberry", "sugar beet", "sugar cane", "sunflower seed", "sweet potato", "swiss chard", "tamarind", "taro", "tea", "teff", "thyme", "tomato", "triticale", "turmeric", "turnip", "vanilla bean", "walnut", "watermelon", "wheat", "yam"
+  ];
+
   const containsNonCrop = nonCropKeywords.some(kw => userMessage.includes(kw)) || 
                           (cropHint && nonCropKeywords.some(kw => cropHint.toLowerCase().includes(kw)));
-  
-  if (containsNonCrop) {
+
+  const isDiagnosticsQuery = userMessage.includes("diagnostic") || userMessage.includes("disease") || image || userMessage.includes("symptom");
+  const containsWhitelistedCrop = WHITELISTED_CROPS.some(keyword => userMessage.includes(keyword) || (cropHint && cropHint.toLowerCase().includes(keyword)));
+
+  if (containsNonCrop || (isDiagnosticsQuery && !containsWhitelistedCrop && (cropHint || userMessage.length > 0))) {
     const refusal = FALLBACK_RESPONSES[activeLang]?.guardrailRefusal || FALLBACK_RESPONSES["en"].guardrailRefusal;
     return res.json({
       success: true,
