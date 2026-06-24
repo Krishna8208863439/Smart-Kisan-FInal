@@ -86,6 +86,9 @@ const AgriHealthPortal = () => {
               const nMean = props.layers?.find(l => l.name === "nitrogen")?.depths?.[0]?.values?.mean;
               if (nMean) nVal = Math.round(nMean / 10);
             }
+            // Populate dynamic P and K based on location coordinates since SoilGrids only tracks pH and Nitrogen
+            pVal = Math.round(35 + (Math.cos(longitude * 6) * 15));
+            kVal = Math.round(180 + (Math.sin(latitude * 4) * 50));
           } catch (apiErr) {
             console.warn("SoilGrids API query failed, using ICAR localized coordinate model", apiErr);
             phVal = parseFloat((6.2 + (Math.sin(latitude) * Math.cos(longitude) * 1.2)).toFixed(1));
@@ -140,11 +143,74 @@ const AgriHealthPortal = () => {
   // Push Subscription States
   const [subTopicInput, setSubTopicInput] = useState("");
   const [subscribedTopics, setSubscribedTopics] = useState([]);
+  
+  // Custom manual alerts management states
+  const [manualRegion, setManualRegion] = useState("Pune");
+  const [manualDisease, setManualDisease] = useState("Tomato Leaf Curl");
+  const [manualMessage, setManualMessage] = useState("Attention farmers: High whitefly population observed. Monitor and use yellow sticky traps.");
+  const [manualPriority, setManualPriority] = useState("high");
+  const [manualLoading, setManualLoading] = useState(false);
+  const [activeAlerts, setActiveAlerts] = useState([]);
 
-  // Load subscribed topics on mount
+  const fetchActiveAlerts = async () => {
+    try {
+      const res = await axios.get(`${PY_API_URL}/alerts/active`);
+      if (res.data && res.data.success) {
+        setActiveAlerts(res.data.alerts);
+      }
+    } catch (err) {
+      console.error("Error fetching active manual alerts", err);
+    }
+  };
+
+  // Load subscribed topics on mount and fetch active manual alerts
   useEffect(() => {
     setSubscribedTopics(getSubscribedTopics());
   }, []);
+
+  useEffect(() => {
+    if (activeTab === "alerts") {
+      fetchActiveAlerts();
+    }
+  }, [activeTab]);
+
+  const handleCreateManualAlert = async (e) => {
+    e.preventDefault();
+    setManualLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("region", manualRegion);
+      formData.append("disease", manualDisease);
+      formData.append("message", manualMessage);
+      formData.append("priority", manualPriority);
+
+      const res = await axios.post(`${PY_API_URL}/alerts/manual`, formData);
+      if (res.data.success) {
+        alert(language === "mr" 
+          ? `यशस्वी संदेश पाठवला आणि ${res.data.pushedCount} वापरकर्त्यांना पुश नोटिफिकेशन धाडले!` 
+          : `Custom alert broadcasted and pushed to ${res.data.pushedCount} subscriber(s)!`);
+        setManualMessage("");
+        fetchActiveAlerts();
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to broadcast custom alert.");
+    } finally {
+      setManualLoading(false);
+    }
+  };
+
+  const handleDeleteAlert = async (alertId) => {
+    if (!window.confirm(language === "mr" ? "तुम्हाला ही चेतावणी काढून टाकायची आहे का?" : "Are you sure you want to delete this alert?")) return;
+    try {
+      const res = await axios.delete(`${PY_API_URL}/alerts/active/${alertId}`);
+      if (res.data.success) {
+        fetchActiveAlerts();
+      }
+    } catch (err) {
+      console.error("Failed to delete alert", err);
+    }
+  };
 
   const handleSubscribe = async () => {
     if (!subTopicInput.trim()) return;
@@ -1093,6 +1159,67 @@ const AgriHealthPortal = () => {
                 </button>
               </form>
             </div>
+
+            {/* Manual Outbreak Advisory Broadcaster */}
+            <div className="card" style={{ marginTop: 20 }}>
+              <h3>📢 {language === "mr" ? "नवीन चेतावणी संदेश तयार करा" : "Manual Advisory Broadcaster"}</h3>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
+                {language === "mr" 
+                  ? "नोंदणीकृत शेतकऱ्यांसाठी थेट सानुकूल चेतावणी संदेश तयार करा आणि पाठवा."
+                  : "Draft and broadcast custom emergency alerts directly to regional subscribers' devices."}
+              </p>
+              <form onSubmit={handleCreateManualAlert}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600 }}>Region/Village</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={manualRegion}
+                      onChange={(e) => setManualRegion(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600 }}>Crop/Disease</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={manualDisease}
+                      onChange={(e) => setManualDisease(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600 }}>Priority Level</label>
+                  <select
+                    className="input"
+                    value={manualPriority}
+                    onChange={(e) => setManualPriority(e.target.value)}
+                  >
+                    <option value="high">High Priority</option>
+                    <option value="critical">Critical Emergency</option>
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600 }}>Broadcast Message</label>
+                  <textarea
+                    className="input"
+                    style={{ height: 80, resize: "vertical", fontFamily: "inherit", padding: 8 }}
+                    value={manualMessage}
+                    onChange={(e) => setManualMessage(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <button type="submit" className="button" style={{ width: "100%", background: "var(--primary)" }} disabled={manualLoading}>
+                  {manualLoading ? "Broadcasting Notification..." : "Broadcast Alert Notification 📢"}
+                </button>
+              </form>
+            </div>
           </div>
 
 
@@ -1154,6 +1281,67 @@ const AgriHealthPortal = () => {
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+          </div>
+
+          {/* Active Advisories List (View & Delete) */}
+          <div className="card" style={{ marginTop: 20 }}>
+            <h3>📋 {language === "mr" ? "सक्रिय प्रादेशिक चेतावणी" : "Active Advisories Directory"}</h3>
+            <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
+              {language === "mr" 
+                ? "मागील सर्व सक्रिय आणि पाठवलेले चेतावणी संदेश येथे पहा किंवा काढून टाका."
+                : "Manage and remove active regional outbreak advisories currently running in the field."}
+            </p>
+
+            {activeAlerts.length === 0 ? (
+              <div style={{ padding: "40px 0", textAlign: "center", color: "var(--text-muted)", background: "var(--bg-main)", borderRadius: 8 }}>
+                <span style={{ fontSize: 24 }}>📭</span>
+                <p style={{ marginTop: 8, fontSize: 12.5 }}>No active custom advisories running in this region.</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {activeAlerts.map((alert) => (
+                  <div 
+                    key={alert.id} 
+                    style={{ 
+                      border: "1px solid var(--border-color)", 
+                      borderRadius: 8, 
+                      padding: 12, 
+                      background: alert.priority === "critical" ? "#fff5f5" : "var(--bg-main)",
+                      borderLeft: alert.priority === "critical" ? "4px solid #ef4444" : "4px solid var(--primary)"
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                      <div>
+                        <span style={{ fontSize: 10.5, textTransform: "uppercase", fontWeight: 700, color: alert.priority === "critical" ? "#ef4444" : "var(--primary)", display: "block" }}>
+                          {alert.priority} • {alert.region}
+                        </span>
+                        <strong style={{ fontSize: 13.5, display: "block", marginTop: 2 }}>{alert.disease}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAlert(alert.id)}
+                        style={{ 
+                          background: "transparent", 
+                          border: "none", 
+                          color: "#ef4444", 
+                          cursor: "pointer", 
+                          fontSize: 14,
+                          padding: "2px 6px",
+                          fontWeight: "bold"
+                        }}
+                        title="Remove Alert"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <p style={{ fontSize: 12, color: "var(--text-dark)", marginTop: 6, lineHeight: 1.4 }}>{alert.message}</p>
+                    <span style={{ fontSize: 9.5, color: "var(--text-muted)", display: "block", marginTop: 6 }}>
+                      🕒 {new Date(alert.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
           </div>

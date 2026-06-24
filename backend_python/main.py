@@ -17,7 +17,7 @@ try:
 except ImportError:
     pass
 
-from database import init_db, get_db, DiseaseReport, CropLog, WeatherCache, User, PushSubscription
+from database import init_db, get_db, DiseaseReport, CropLog, WeatherCache, User, PushSubscription, EmergencyAlert
 from ml_model import predict_image, get_gemini_api_key
 
 # Initialize FastAPI app
@@ -521,4 +521,77 @@ def unsubscribe_from_alerts(req: SubscriptionRequest, db: Session = Depends(get_
         db.delete(sub)
         db.commit()
     return {"success": True, "message": f"Successfully unsubscribed from topic: {req.topic}"}
+
+@app.post("/api/alerts/manual")
+async def create_manual_alert(
+    region: str = Form(...),
+    disease: str = Form(...),
+    message: str = Form(...),
+    priority: str = Form("high"),
+    db: Session = Depends(get_db)
+):
+    alert = EmergencyAlert(
+        region=region,
+        disease=disease,
+        message=message,
+        priority=priority
+    )
+    db.add(alert)
+    db.commit()
+    db.refresh(alert)
+
+    # Clean the region name to generate the topic segment
+    clean_region = region.strip().lower().replace(" ", "").replace("_", "")
+    topic_name = f"outbreak_{clean_region}"
+
+    # Query all subscribers to this topic
+    subscribers = db.query(PushSubscription).filter(PushSubscription.topic == topic_name).all()
+    
+    alert_title = f"🚨 {priority.upper()} EMERGENCY OUTBREAK ALERT: {region.upper()}"
+    
+    # Broadcast FCM notification to all registered tokens
+    fcm_count = 0
+    for sub in subscribers:
+        send_fcm_push_notification(
+            token=sub.token,
+            title=alert_title,
+            body=message,
+            deep_link="/dashboard"
+        )
+        fcm_count += 1
+
+    return {
+        "success": True,
+        "alert_id": alert.id,
+        "message": f"Successfully created manual alert and pushed to {fcm_count} subscriber(s) for topic: {topic_name}",
+        "pushedCount": fcm_count
+    }
+
+@app.get("/api/alerts/active")
+def get_active_alerts(db: Session = Depends(get_db)):
+    alerts = db.query(EmergencyAlert).order_by(EmergencyAlert.created_at.desc()).all()
+    return {
+        "success": True,
+        "alerts": [
+            {
+                "id": a.id,
+                "region": a.region,
+                "disease": a.disease,
+                "message": a.message,
+                "priority": a.priority,
+                "createdAt": a.created_at.isoformat()
+            }
+            for a in alerts
+        ]
+    }
+
+@app.delete("/api/alerts/active/{alert_id}")
+def delete_active_alert(alert_id: int, db: Session = Depends(get_db)):
+    alert = db.query(EmergencyAlert).filter(EmergencyAlert.id == alert_id).first()
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    db.delete(alert)
+    db.commit()
+    return {"success": True, "message": "Alert deleted successfully"}
+
 

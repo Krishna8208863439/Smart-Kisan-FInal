@@ -76,6 +76,16 @@ class PushSubscription(Base):
     token = Column(String(250), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+class EmergencyAlert(Base):
+    __tablename__ = "emergency_alerts"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    region = Column(String(100), nullable=False)
+    disease = Column(String(150), nullable=False)
+    message = Column(Text, nullable=False)
+    priority = Column(String(20), default="high") # high, critical
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 # Database initialization helper
 def init_db():
     Base.metadata.create_all(bind=engine)

@@ -52,21 +52,32 @@ const Register = () => {
         <div 
           className="login-split-left"
           style={{
-            backgroundImage: `linear-gradient(var(--login-overlay), var(--login-overlay)), url('/farmer.png')`
+            backgroundImage: `url('/farmer.png')`,
+            position: "relative",
+            zIndex: 1
           }}
         >
+          <div style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "var(--login-overlay)",
+            zIndex: -1
+          }} />
           <div style={{ fontSize: 44, marginBottom: 12 }}>🚀</div>
-          <h1 className="login-tagline text-primary">
+          <h1 className="login-tagline text-primary" style={{ position: "relative", zIndex: 2 }}>
             Cultivate Success with Precision AI
           </h1>
-          <p className="text-secondary" style={{ fontSize: 16, marginBottom: 20 }}>
+          <p className="text-secondary" style={{ fontSize: 16, marginBottom: 20, position: "relative", zIndex: 2 }}>
             "Smart Kisan has transformed how I manage my tomato fields. The AI calendar and watering advices are a lifesaver!"
           </p>
-          <div className="text-secondary" style={{ fontStyle: "italic", fontSize: 14 }}>
+          <div className="text-secondary" style={{ fontStyle: "italic", fontSize: 14, position: "relative", zIndex: 2 }}>
             — Suresh K., Progressive Farmer, Maharashtra
           </div>
 
-          <ul className="login-features-list text-secondary" style={{ marginTop: 24 }}>
+          <ul className="login-features-list text-secondary" style={{ marginTop: 24, position: "relative", zIndex: 2 }}>
             <li>✔️ Join a thriving community of local agriculturalists</li>
             <li>✔️ Gain access to custom regional mandi crop updates</li>
             <li>✔️ Track dynamic progress timelines for your fields</li>

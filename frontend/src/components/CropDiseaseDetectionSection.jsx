@@ -264,7 +264,7 @@ const CropDiseaseDetectionSection = () => {
       formData.append("crop", cropHint);   // Always sends the selected crop
       formData.append("image", file);
 
-      const response = await api.post("/crop-disease/analyze", formData, {
+      const response = await api.post("/diagnose", formData, {
         headers: { "Content-Type": "multipart/form-data" },
         timeout: 50000    // 50s for Gemini to respond
       });
@@ -599,7 +599,7 @@ const CropDiseaseDetectionSection = () => {
                     {language === "mr" ? "प्रक्रिया केलेला फोटो:" : "Processed Image:"}
                   </div>
                   <img
-                    src={`${import.meta.env.VITE_API_URL || "http://localhost:5000"}${result.imageUrl}`}
+                    src={typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" ? result.imageUrl : "http://localhost:8000" + result.imageUrl}
                     alt={language === "mr" ? "तपासलेले पान" : "Analyzed leaf"}
                     style={{ maxWidth: "100%", borderRadius: 12, border: "1px solid #e5e7eb", maxHeight: 180, objectFit: "cover" }}
                   />
