@@ -76,7 +76,7 @@ os.environ['no_proxy'] = '127.0.0.1,localhost,krishna3114.pythonanywhere.com'
 os.environ['NO_PROXY'] = '127.0.0.1,localhost,krishna3114.pythonanywhere.com'
 
 NODE_PORT = 5050
-PYTHON_PORT = 8000
+PYTHON_PORT = 31142
 
 NODE_PATH = '/home/Krishna3114/.nvm/versions/node/v18.20.8/bin/node'
 SERVER_JS = '/home/Krishna3114/smart-kisan-backend/server.js'
