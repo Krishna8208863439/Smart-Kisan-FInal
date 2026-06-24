@@ -605,20 +605,25 @@ def predict_via_gemini(image_bytes: bytes, crop_hint: str = None, custom_key: st
 
         b64 = base64.b64encode(image_bytes).decode("utf-8")
 
+        # Load the user's 140 crops dataset classes list
+        dataset_classes = get_dataset_classes()
+        dataset_classes_str = ", ".join(dataset_classes)
+
         prompt = f"""You are an expert Agricultural Plant Pathologist and Veterinary Specialist with 20 years of experience in Indian farming.
 
 IMPORTANT INSTRUCTION: Analyze the ACTUAL image provided. Do NOT assume the crop based on the hint alone.
 The farmer selected crop hint: "{crop_hint or 'Not specified - auto-detect from the image'}"
 
 Your job:
-1. Look at the ACTUAL image carefully and identify the REAL crop or animal shown
-2. Detect the disease from the ACTUAL visual symptoms in the image
-3. If the image shows rice but the hint says tomato - report RICE disease, not tomato
-4. If the image shows a healthy plant, report it as healthy
+1. Look at the ACTUAL image carefully and identify the REAL crop or animal shown.
+2. Cross-reference the identified crop with our official dataset of 140 crops and match it to one of these classes EXACTLY (if applicable): {dataset_classes_str}.
+3. Detect the disease from the ACTUAL visual symptoms in the image. Be highly specific. Do NOT return generic results.
+4. If the image shows rice but the hint says tomato - report RICE disease, not tomato.
+5. If the image shows a healthy plant, report it as healthy.
 
 Provide:
 - Exact disease name with scientific name (or "Healthy" if no disease)
-- The actual crop/animal you see in the image
+- The actual crop/animal you see in the image matching our dataset classes list above (e.g. "Tomatoes plant" or "Rice (Paddy) plant")
 - Severity: low (minor/isolated symptoms), medium (spreading), high (severe/systemic)
 - Confidence: 0.0 to 1.0 based on image clarity and symptom visibility
 - Detailed agronomic treatment advice with exact chemical names and dosages (Indian market brands)
@@ -626,11 +631,9 @@ Provide:
 - Organic alternatives if available
 - Which disease-resistant variety to use next season
 
-Cover ALL crops: Tomato, Rice, Wheat, Maize, Cotton, Sugarcane, Potato, Groundnut, Soybean, Chilli, Banana, Onion, Mango, Grapes, and all livestock diseases.
-
 Respond ONLY with valid JSON (no markdown, no explanation outside JSON):
 {{
-  "crop": "Actual crop name seen in image",
+  "crop": "Actual crop name from the dataset classes list",
   "disease": "Disease name (Scientific name)",
   "severity": "low|medium|high",
   "confidence": 0.90,
