@@ -17,7 +17,7 @@ try:
 except ImportError:
     pass
 
-from database import init_db, get_db, DiseaseReport, CropLog, WeatherCache, User, PushSubscription, EmergencyAlert
+from database import init_db, get_db, DiseaseReport, CropLog, WeatherCache, User, PushSubscription, EmergencyAlert, CommunityOfficer, CommunityWebinar, GovernmentScheme, seed_db
 from ml_model import predict_image, get_gemini_api_key
 
 # Initialize FastAPI app
@@ -47,7 +47,8 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 @app.on_event("startup")
 def startup_event():
     init_db()
-    print("[Server] Database initialized successfully.")
+    seed_db()
+    print("[Server] Database initialized successfully and seeded.")
 
 @app.get("/api/health")
 def health_check():
@@ -593,5 +594,159 @@ def delete_active_alert(alert_id: int, db: Session = Depends(get_db)):
     db.delete(alert)
     db.commit()
     return {"success": True, "message": "Alert deleted successfully"}
+
+# --- COMMUNITY & RESOURCE DIRECTORY API ---
+
+@app.get("/api/community/officers")
+def get_community_officers(db: Session = Depends(get_db)):
+    officers = db.query(CommunityOfficer).all()
+    return {
+        "success": True,
+        "officers": [
+            {
+                "id": o.id,
+                "nameEn": o.name_en,
+                "nameMr": o.name_mr,
+                "roleEn": o.role_en,
+                "roleMr": o.role_mr,
+                "regionEn": o.region_en,
+                "regionMr": o.region_mr,
+                "contact": o.contact
+            }
+            for o in officers
+        ]
+    }
+
+@app.post("/api/community/officers")
+def add_community_officer(
+    name_en: str = Form(...),
+    name_mr: str = Form(...),
+    role_en: str = Form(...),
+    role_mr: str = Form(...),
+    region_en: str = Form(...),
+    region_mr: str = Form(...),
+    contact: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    officer = CommunityOfficer(
+        name_en=name_en,
+        name_mr=name_mr,
+        role_en=role_en,
+        role_mr=role_mr,
+        region_en=region_en,
+        region_mr=region_mr,
+        contact=contact
+    )
+    db.add(officer)
+    db.commit()
+    db.refresh(officer)
+    return {"success": True, "message": "Officer added successfully"}
+
+@app.delete("/api/community/officers/{officer_id}")
+def delete_community_officer(officer_id: int, db: Session = Depends(get_db)):
+    officer = db.query(CommunityOfficer).filter(CommunityOfficer.id == officer_id).first()
+    if not officer:
+        raise HTTPException(status_code=404, detail="Officer not found")
+    db.delete(officer)
+    db.commit()
+    return {"success": True, "message": "Officer deleted successfully"}
+
+
+@app.get("/api/community/webinars")
+def get_community_webinars(db: Session = Depends(get_db)):
+    webinars = db.query(CommunityWebinar).all()
+    return {
+        "success": True,
+        "webinars": [
+            {
+                "id": w.id,
+                "topicEn": w.topic_en,
+                "topicMr": w.topic_mr,
+                "dateEn": w.date_en,
+                "dateMr": w.date_mr,
+                "link": w.link
+            }
+            for w in webinars
+        ]
+    }
+
+@app.post("/api/community/webinars")
+def add_community_webinar(
+    topic_en: str = Form(...),
+    topic_mr: str = Form(...),
+    date_en: str = Form(...),
+    date_mr: str = Form(...),
+    link: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    webinar = CommunityWebinar(
+        topic_en=topic_en,
+        topic_mr=topic_mr,
+        date_en=date_en,
+        date_mr=date_mr,
+        link=link
+    )
+    db.add(webinar)
+    db.commit()
+    db.refresh(webinar)
+    return {"success": True, "message": "Webinar added successfully"}
+
+@app.delete("/api/community/webinars/{webinar_id}")
+def delete_community_webinar(webinar_id: int, db: Session = Depends(get_db)):
+    webinar = db.query(CommunityWebinar).filter(CommunityWebinar.id == webinar_id).first()
+    if not webinar:
+        raise HTTPException(status_code=404, detail="Webinar not found")
+    db.delete(webinar)
+    db.commit()
+    return {"success": True, "message": "Webinar deleted successfully"}
+
+
+@app.get("/api/community/schemes")
+def get_community_schemes(db: Session = Depends(get_db)):
+    schemes = db.query(GovernmentScheme).all()
+    return {
+        "success": True,
+        "schemes": [
+            {
+                "id": s.id,
+                "titleEn": s.title_en,
+                "titleMr": s.title_mr,
+                "descEn": s.desc_en,
+                "descMr": s.desc_mr,
+                "url": s.url
+            }
+            for s in schemes
+        ]
+    }
+
+@app.post("/api/community/schemes")
+def add_government_scheme(
+    title_en: str = Form(...),
+    title_mr: str = Form(...),
+    desc_en: str = Form(...),
+    desc_mr: str = Form(...),
+    url: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    scheme = GovernmentScheme(
+        title_en=title_en,
+        title_mr=title_mr,
+        desc_en=desc_en,
+        desc_mr=desc_mr,
+        url=url
+    )
+    db.add(scheme)
+    db.commit()
+    db.refresh(scheme)
+    return {"success": True, "message": "Scheme added successfully"}
+
+@app.delete("/api/community/schemes/{scheme_id}")
+def delete_government_scheme(scheme_id: int, db: Session = Depends(get_db)):
+    scheme = db.query(GovernmentScheme).filter(GovernmentScheme.id == scheme_id).first()
+    if not scheme:
+        raise HTTPException(status_code=404, detail="Scheme not found")
+    db.delete(scheme)
+    db.commit()
+    return {"success": True, "message": "Scheme deleted successfully"}
 
 

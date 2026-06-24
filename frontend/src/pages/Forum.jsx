@@ -1,96 +1,209 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import CommunityDirectory from "../components/CommunityDirectory";
 
-const OFFICERS = [
-  {
-    nameEn: "Dr. Ramesh Patil",
-    nameMr: "डॉ. रमेश पाटील",
-    roleEn: "Senior District Agronomist",
-    roleMr: "वरिष्ठ जिल्हा कृषी तज्ज्ञ",
-    regionEn: "Pune Region",
-    regionMr: "पुणे विभाग",
-    contact: "+91 98765 01234"
-  },
-  {
-    nameEn: "Mrs. Savita Shinde",
-    nameMr: "श्रीमती सविता शिंदे",
-    roleEn: "Block Agriculture Officer",
-    roleMr: "तालुका कृषी अधिकारी",
-    regionEn: "Nashik Block",
-    regionMr: "नाशिक तालुका",
-    contact: "+91 98765 05678"
-  },
-  {
-    nameEn: "Dr. Anil Deshmukh",
-    nameMr: "डॉ. अनिल देशमुख",
-    roleEn: "Soil Health Specialist",
-    roleMr: "मृदा आरोग्य शास्त्रज्ञ",
-    regionEn: "Nagpur District",
-    regionMr: "नागपूर जिल्हा",
-    contact: "+91 98765 09012"
-  },
-  {
-    nameEn: "Mr. Vijay Kakade",
-    nameMr: "श्री. विजय काकडे",
-    roleEn: "Horticulture Advisor",
-    roleMr: "फलोत्पादन सल्लागार",
-    regionEn: "Jalgaon Block",
-    regionMr: "जळगाव तालुका",
-    contact: "+91 98765 03456"
-  }
-];
-
-const WEBINARS = [
-  {
-    topicEn: "Kharif Soil Management & Fertilizer Optimization",
-    topicMr: "खरीप जमीन व्यवस्थापन आणि खत नियोजन",
-    dateEn: "June 18, 2026 - 11:00 AM",
-    dateMr: "१४ जून, २०२६ - सकाळी ११:०० वाजता",
-    link: "https://meet.google.com/abc-defg-hij"
-  },
-  {
-    topicEn: "Drip Irrigation Setup & Subsidy Application Guidance",
-    topicMr: "ठिबक सिंचन उभारणी आणि अनुदान अर्ज मार्गदर्शन",
-    dateEn: "June 25, 2026 - 03:00 PM",
-    dateMr: "२५ जून, २०२६ - दुपारी ०३:०० वाजता",
-    link: "https://meet.google.com/xyz-uvwx-yza"
-  },
-  {
-    topicEn: "Post-Harvest Storage & Cold Chain Management",
-    topicMr: "काढणीपश्चात साठवणूक आणि शीत साखळी व्यवस्थापन",
-    dateEn: "July 02, 2026 - 04:00 PM",
-    dateMr: "०२ जुलै, २०२६ - दुपारी ०४:०० वाजता",
-    link: "https://meet.google.com/qwe-rtyu-iop"
-  }
-];
-
-const GOVT_SCHEMES = [
-  {
-    titleEn: "Pradhan Mantri Fasal Bima Yojana (PMFBY) - Crop Insurance",
-    titleMr: "प्रधानमंत्री पीक विमा योजना (PMFBY)",
-    descEn: "Protect your crops against natural calamities with subsidized insurance.",
-    descMr: "नैसर्गिक आपत्तींपासून पीक संरक्षणासाठी सवलतीच्या दरात विमा मिळवा.",
-    url: "https://pmfby.gov.in"
-  },
-  {
-    titleEn: "Mahadbt Farmer Portal - Maharashtra Subsidies",
-    titleMr: "महाडीबीटी शेतकरी पोर्टल - योजना व अनुदान",
-    descEn: "One-stop shop for Maharashtra agriculture subsidies and equipment application.",
-    descMr: "महाराष्ट्र कृषी अनुदान आणि अवजारे अर्जासाठी मुख्य दालन.",
-    url: "https://mahadbt.maharashtra.gov.in"
-  },
-  {
-    titleEn: "PM Kisan Samman Nidhi",
-    titleMr: "पीएम किसान सन्मान निधी",
-    descEn: "Direct income support of ₹6,000 per year to landholding farmer families.",
-    descMr: "शेतकरी कुटुंबांना वर्षाला ₹६,००० थेट बँक खात्यात मदत.",
-    url: "https://pmkisan.gov.in"
-  }
-];
-
 const Forum = () => {
   const { language, t } = useLanguage();
+  const [activeTab, setActiveTab] = useState("directory"); // directory, webinars, schemes
+
+  // Webinars state
+  const [webinars, setWebinars] = useState([]);
+  const [webinarsLoading, setWebinarsLoading] = useState(true);
+  const [showWebinarForm, setShowWebinarForm] = useState(false);
+  const [webinarTopicEn, setWebinarTopicEn] = useState("");
+  const [webinarTopicMr, setWebinarTopicMr] = useState("");
+  const [webinarDateEn, setWebinarDateEn] = useState("");
+  const [webinarDateMr, setWebinarDateMr] = useState("");
+  const [webinarLink, setWebinarLink] = useState("");
+  const [webinarError, setWebinarError] = useState("");
+  const [webinarSubmitting, setWebinarSubmitting] = useState(false);
+
+  // Schemes state
+  const [schemes, setSchemes] = useState([]);
+  const [schemesLoading, setSchemesLoading] = useState(true);
+  const [showSchemeForm, setShowSchemeForm] = useState(false);
+  const [schemeTitleEn, setSchemeTitleEn] = useState("");
+  const [schemeTitleMr, setSchemeTitleMr] = useState("");
+  const [schemeDescEn, setSchemeDescEn] = useState("");
+  const [schemeDescMr, setSchemeDescMr] = useState("");
+  const [schemeUrl, setSchemeUrl] = useState("");
+  const [schemeError, setSchemeError] = useState("");
+  const [schemeSubmitting, setSchemeSubmitting] = useState(false);
+
+  // Fetch Webinars
+  const fetchWebinars = async () => {
+    try {
+      setWebinarsLoading(true);
+      const res = await fetch("/api/community/webinars");
+      if (!res.ok) throw new Error("Failed to fetch webinars");
+      const data = await res.json();
+      if (data.success && data.webinars) {
+        setWebinars(data.webinars);
+      }
+    } catch (err) {
+      console.error("Error fetching webinars:", err);
+    } finally {
+      setWebinarsLoading(false);
+    }
+  };
+
+  // Fetch Schemes
+  const fetchSchemes = async () => {
+    try {
+      setSchemesLoading(true);
+      const res = await fetch("/api/community/schemes");
+      if (!res.ok) throw new Error("Failed to fetch schemes");
+      const data = await res.json();
+      if (data.success && data.schemes) {
+        setSchemes(data.schemes);
+      }
+    } catch (err) {
+      console.error("Error fetching schemes:", err);
+    } finally {
+      setSchemesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchWebinars();
+    fetchSchemes();
+  }, []);
+
+  // Add Webinar
+  const handleAddWebinar = async (e) => {
+    e.preventDefault();
+    if (!webinarTopicEn || !webinarTopicMr || !webinarDateEn || !webinarDateMr || !webinarLink) {
+      setWebinarError(language === "mr" ? "कृपया सर्व फील्ड भरा." : "Please fill in all fields.");
+      return;
+    }
+
+    try {
+      setWebinarSubmitting(true);
+      setWebinarError("");
+
+      const params = new URLSearchParams();
+      params.append("topic_en", webinarTopicEn);
+      params.append("topic_mr", webinarTopicMr);
+      params.append("date_en", webinarDateEn);
+      params.append("date_mr", webinarDateMr);
+      params.append("link", webinarLink);
+
+      const res = await fetch("/api/community/webinars", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: params,
+      });
+
+      if (!res.ok) throw new Error("Failed to add webinar");
+      const data = await res.json();
+      if (data.success) {
+        setWebinarTopicEn("");
+        setWebinarTopicMr("");
+        setWebinarDateEn("");
+        setWebinarDateMr("");
+        setWebinarLink("");
+        setShowWebinarForm(false);
+        fetchWebinars();
+      } else {
+        setWebinarError(data.message || "Failed to add webinar");
+      }
+    } catch (err) {
+      setWebinarError(err.message || "Server error occurred");
+    } finally {
+      setWebinarSubmitting(false);
+    }
+  };
+
+  // Delete Webinar
+  const handleDeleteWebinar = async (id) => {
+    const confirmMsg = language === "mr"
+      ? "आपण खरोखर हे प्रशिक्षण/वेबिनार हटवू इच्छिता?"
+      : "Are you sure you want to delete this webinar?";
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      const res = await fetch(`/api/community/webinars/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete webinar");
+      const data = await res.json();
+      if (data.success) {
+        fetchWebinars();
+      }
+    } catch (err) {
+      alert(language === "mr" ? "वेबिनार हटवण्यात त्रुटी आली." : "Error deleting webinar.");
+    }
+  };
+
+  // Add Scheme
+  const handleAddScheme = async (e) => {
+    e.preventDefault();
+    if (!schemeTitleEn || !schemeTitleMr || !schemeDescEn || !schemeDescMr || !schemeUrl) {
+      setSchemeError(language === "mr" ? "कृपया सर्व फील्ड भरा." : "Please fill in all fields.");
+      return;
+    }
+
+    try {
+      setSchemeSubmitting(true);
+      setSchemeError("");
+
+      const params = new URLSearchParams();
+      params.append("title_en", schemeTitleEn);
+      params.append("title_mr", schemeTitleMr);
+      params.append("desc_en", schemeDescEn);
+      params.append("desc_mr", schemeDescMr);
+      params.append("url", schemeUrl);
+
+      const res = await fetch("/api/community/schemes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: params,
+      });
+
+      if (!res.ok) throw new Error("Failed to add scheme");
+      const data = await res.json();
+      if (data.success) {
+        setSchemeTitleEn("");
+        setSchemeTitleMr("");
+        setSchemeDescEn("");
+        setSchemeDescMr("");
+        setSchemeUrl("");
+        setShowSchemeForm(false);
+        fetchSchemes();
+      } else {
+        setSchemeError(data.message || "Failed to add scheme");
+      }
+    } catch (err) {
+      setSchemeError(err.message || "Server error occurred");
+    } finally {
+      setSchemeSubmitting(false);
+    }
+  };
+
+  // Delete Scheme
+  const handleDeleteScheme = async (id) => {
+    const confirmMsg = language === "mr"
+      ? "आपण खरोखर ही योजना हटवू इच्छिता?"
+      : "Are you sure you want to delete this scheme?";
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      const res = await fetch(`/api/community/schemes/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete scheme");
+      const data = await res.json();
+      if (data.success) {
+        fetchSchemes();
+      }
+    } catch (err) {
+      alert(language === "mr" ? "योजना हटवण्यात त्रुटी आली." : "Error deleting scheme.");
+    }
+  };
 
   return (
     <div className="app-container">
@@ -104,126 +217,543 @@ const Forum = () => {
         </p>
       </div>
 
-      {/* Grid structure for main layout */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 30 }}>
-        
-        {/* Section 1: District Agronomists Directory */}
-        <CommunityDirectory />
+      {/* Tabs Navigation Selector */}
+      <div style={{
+        display: "flex",
+        background: "var(--border-color)",
+        padding: "6px",
+        borderRadius: "14px",
+        marginBottom: 30,
+        overflowX: "auto",
+        gap: 6
+      }}>
+        <button
+          onClick={() => setActiveTab("directory")}
+          style={{
+            flex: 1,
+            minWidth: "120px",
+            background: activeTab === "directory" ? "var(--bg-card)" : "transparent",
+            color: activeTab === "directory" ? "var(--primary)" : "var(--text-muted)",
+            border: "none",
+            borderRadius: "10px",
+            padding: "12px 16px",
+            fontSize: "0.95rem",
+            fontWeight: 600,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            boxShadow: activeTab === "directory" ? "var(--shadow-sm)" : "none",
+            transition: "all 0.25s ease",
+            whiteSpace: "nowrap"
+          }}
+        >
+          <span>👥</span>
+          <span>{language === "mr" ? "संपर्क सूची" : "Directory"}</span>
+        </button>
 
-        {/* Two Column Section for Webinars and Schemes */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 30 }}>
-          
-          {/* Section 2: Webinars */}
-          <div className="card" style={{ marginBottom: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-              <span style={{ fontSize: "1.8rem" }}>🎥</span>
-              <h3 style={{ fontSize: "1.3rem", fontWeight: 700 }}>
-                {t("communityMeetingsTitle")}
-              </h3>
+        <button
+          onClick={() => setActiveTab("webinars")}
+          style={{
+            flex: 1,
+            minWidth: "120px",
+            background: activeTab === "webinars" ? "var(--bg-card)" : "transparent",
+            color: activeTab === "webinars" ? "var(--primary)" : "var(--text-muted)",
+            border: "none",
+            borderRadius: "10px",
+            padding: "12px 16px",
+            fontSize: "0.95rem",
+            fontWeight: 600,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            boxShadow: activeTab === "webinars" ? "var(--shadow-sm)" : "none",
+            transition: "all 0.25s ease",
+            whiteSpace: "nowrap"
+          }}
+        >
+          <span>🎥</span>
+          <span>{language === "mr" ? "वेबिनार व प्रशिक्षण" : "Webinars"}</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("schemes")}
+          style={{
+            flex: 1,
+            minWidth: "120px",
+            background: activeTab === "schemes" ? "var(--bg-card)" : "transparent",
+            color: activeTab === "schemes" ? "var(--primary)" : "var(--text-muted)",
+            border: "none",
+            borderRadius: "10px",
+            padding: "12px 16px",
+            fontSize: "0.95rem",
+            fontWeight: 600,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            boxShadow: activeTab === "schemes" ? "var(--shadow-sm)" : "none",
+            transition: "all 0.25s ease",
+            whiteSpace: "nowrap"
+          }}
+        >
+          <span>🏛️</span>
+          <span>{language === "mr" ? "सरकारी योजना" : "Govt Schemes"}</span>
+        </button>
+      </div>
+
+      {/* Tab Contents */}
+      <div>
+        {/* Tab 1: Directory */}
+        {activeTab === "directory" && (
+          <div style={{ animation: "fadeIn 0.3s ease" }}>
+            <CommunityDirectory />
+          </div>
+        )}
+
+        {/* Tab 2: Webinars */}
+        {activeTab === "webinars" && (
+          <div style={{ animation: "fadeIn 0.3s ease" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
+              <div>
+                <h3 style={{ fontSize: "1.3rem", fontWeight: 700, margin: 0 }}>
+                  {t("communityMeetingsTitle")}
+                </h3>
+                <p style={{ color: "var(--text-muted)", fontSize: "0.95rem", marginTop: 4 }}>
+                  {t("communityMeetingsDesc")}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowWebinarForm(!showWebinarForm)}
+                style={{
+                  background: showWebinarForm ? "var(--danger)" : "var(--primary)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "8px 16px",
+                  fontSize: "0.9rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6
+                }}
+              >
+                {showWebinarForm
+                  ? (language === "mr" ? "बंद करा" : "Cancel")
+                  : (language === "mr" ? "वेबिनार जोडा 🎥" : "Add Webinar 🎥")}
+              </button>
             </div>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.95rem", marginBottom: 20 }}>
-              {t("communityMeetingsDesc")}
-            </p>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {WEBINARS.map((webinar, index) => (
-                <div 
-                  key={index}
-                  style={{
-                    padding: 16,
-                    borderRadius: 8,
-                    background: "rgba(21, 128, 61, 0.04)",
-                    border: "1px solid var(--border-color)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 10
-                  }}
-                >
-                  <div>
-                    <h4 style={{ fontWeight: 600, fontSize: "1.05rem", color: "var(--text-dark)" }}>
-                      {language === "mr" ? webinar.topicMr : webinar.topicEn}
-                    </h4>
-                    <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: 4 }}>
-                      🗓️ {language === "mr" ? webinar.dateMr : webinar.dateEn}
-                    </p>
+            {showWebinarForm && (
+              <form onSubmit={handleAddWebinar} style={{
+                background: "rgba(21, 128, 61, 0.03)",
+                border: "1px dashed var(--primary)",
+                borderRadius: "12px",
+                padding: 20,
+                marginBottom: 24
+              }}>
+                <h4 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: 16, color: "var(--primary)" }}>
+                  {language === "mr" ? "नवीन प्रशिक्षण / वेबिनार जोडा" : "Add New Training / Webinar"}
+                </h4>
+
+                {webinarError && (
+                  <div style={{ color: "var(--danger)", background: "rgba(239, 68, 68, 0.1)", padding: "10px 14px", borderRadius: "8px", fontSize: "0.88rem", marginBottom: 16 }}>
+                    ⚠️ {webinarError}
                   </div>
-                  <a 
-                    href={webinar.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="button"
-                    style={{
-                      textAlign: "center",
-                      padding: "8px 12px",
-                      fontSize: "0.9rem",
-                      display: "inline-block",
-                      textDecoration: "none",
-                      color: "white"
-                    }}
-                  >
-                    {t("communityMeetingJoin")}
-                  </a>
+                )}
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, marginBottom: 16 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: 6, color: "var(--text-dark)" }}>
+                      Topic (English) *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Kharif Soil Management"
+                      value={webinarTopicEn}
+                      onChange={(e) => setWebinarTopicEn(e.target.value)}
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-card)", color: "var(--text-dark)" }}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: 6, color: "var(--text-dark)" }}>
+                      विषय (मराठी) *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="उदा. खरीप जमीन व्यवस्थापन"
+                      value={webinarTopicMr}
+                      onChange={(e) => setWebinarTopicMr(e.target.value)}
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-card)", color: "var(--text-dark)" }}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: 6, color: "var(--text-dark)" }}>
+                      Date & Time (English) *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. June 25, 2026 - 03:00 PM"
+                      value={webinarDateEn}
+                      onChange={(e) => setWebinarDateEn(e.target.value)}
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-card)", color: "var(--text-dark)" }}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: 6, color: "var(--text-dark)" }}>
+                      दिनांक व वेळ (मराठी) *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="उदा. २५ जून, २०२६ - दुपारी ०३:०० वाजता"
+                      value={webinarDateMr}
+                      onChange={(e) => setWebinarDateMr(e.target.value)}
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-card)", color: "var(--text-dark)" }}
+                      required
+                    />
+                  </div>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: 6, color: "var(--text-dark)" }}>
+                      Meeting / Streaming Link (Google Meet, YouTube etc.) *
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://meet.google.com/..."
+                      value={webinarLink}
+                      onChange={(e) => setWebinarLink(e.target.value)}
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-card)", color: "var(--text-dark)" }}
+                      required
+                    />
+                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          {/* Section 3: Schemes & Insurance */}
-          <div className="card" style={{ marginBottom: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-              <span style={{ fontSize: "1.8rem" }}>🏛️</span>
-              <h3 style={{ fontSize: "1.3rem", fontWeight: 700 }}>
-                {t("communitySchemesTitle")}
-              </h3>
-            </div>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.95rem", marginBottom: 20 }}>
-              {t("communitySchemesDesc")}
-            </p>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {GOVT_SCHEMES.map((scheme, index) => (
-                <div 
-                  key={index}
+                <button
+                  type="submit"
+                  disabled={webinarSubmitting}
                   style={{
-                    padding: 16,
-                    borderRadius: 8,
-                    background: "rgba(13, 148, 136, 0.04)",
-                    border: "1px solid var(--border-color)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8
+                    background: "var(--primary)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "10px 20px",
+                    fontSize: "0.95rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    width: "100%",
+                    opacity: webinarSubmitting ? 0.7 : 1
                   }}
                 >
-                  <h4 style={{ fontWeight: 600, fontSize: "1.05rem", color: "var(--text-dark)" }}>
-                    {language === "mr" ? scheme.titleMr : scheme.titleEn}
-                  </h4>
-                  <p style={{ fontSize: "0.88rem", color: "var(--text-muted)" }}>
-                    {language === "mr" ? scheme.descMr : scheme.descEn}
-                  </p>
-                  <a 
-                    href={scheme.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  {webinarSubmitting
+                    ? (language === "mr" ? "वेबिनार जतन करत आहे..." : "Saving Webinar...")
+                    : (language === "mr" ? "वेबिनार जतन करा" : "Save Webinar")}
+                </button>
+              </form>
+            )}
+
+            {webinarsLoading ? (
+              <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)" }}>
+                {language === "mr" ? "वेबिनार लोड होत आहेत..." : "Loading webinars..."}
+              </div>
+            ) : webinars.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)" }}>
+                {language === "mr" ? "कोणतेही वेबिनार नियोजित नाहीत." : "No upcoming webinars scheduled."}
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))", gap: 20 }}>
+                {webinars.map((webinar) => (
+                  <div
+                    key={webinar.id}
+                    className="card"
                     style={{
-                      color: "var(--secondary)",
-                      fontWeight: 600,
-                      fontSize: "0.9rem",
-                      alignSelf: "flex-start",
+                      marginBottom: 0,
+                      padding: 20,
+                      borderRadius: 12,
+                      background: "rgba(21, 128, 61, 0.04)",
+                      border: "1px solid var(--border-color)",
                       display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                      marginTop: 4
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      gap: 16,
+                      position: "relative"
                     }}
                   >
-                    Visit Portal ↗
-                  </a>
-                </div>
-              ))}
-            </div>
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                        <h4 style={{ fontWeight: 700, fontSize: "1.1rem", color: "var(--text-dark)", margin: 0 }}>
+                          {language === "mr" ? webinar.topicMr : webinar.topicEn}
+                        </h4>
+                        <button
+                          onClick={() => handleDeleteWebinar(webinar.id)}
+                          style={{
+                            background: "rgba(239, 68, 68, 0.08)",
+                            color: "var(--danger)",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: "6px 10px",
+                            borderRadius: "6px",
+                            fontSize: "0.85rem"
+                          }}
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                      <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                        🗓️ {language === "mr" ? webinar.dateMr : webinar.dateEn}
+                      </p>
+                    </div>
+                    <a
+                      href={webinar.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="button"
+                      style={{
+                        textAlign: "center",
+                        padding: "10px 14px",
+                        fontSize: "0.95rem",
+                        display: "block",
+                        textDecoration: "none",
+                        color: "white",
+                        background: "var(--primary)",
+                        borderRadius: "8px",
+                        fontWeight: 600
+                      }}
+                    >
+                      {t("communityMeetingJoin")} 🎥
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
+        )}
 
-        </div>
+        {/* Tab 3: Schemes */}
+        {activeTab === "schemes" && (
+          <div style={{ animation: "fadeIn 0.3s ease" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
+              <div>
+                <h3 style={{ fontSize: "1.3rem", fontWeight: 700, margin: 0 }}>
+                  {t("communitySchemesTitle")}
+                </h3>
+                <p style={{ color: "var(--text-muted)", fontSize: "0.95rem", marginTop: 4 }}>
+                  {t("communitySchemesDesc")}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowSchemeForm(!showSchemeForm)}
+                style={{
+                  background: showSchemeForm ? "var(--danger)" : "var(--primary)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "8px 16px",
+                  fontSize: "0.9rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6
+                }}
+              >
+                {showSchemeForm
+                  ? (language === "mr" ? "बंद करा" : "Cancel")
+                  : (language === "mr" ? "योजना जोडा 🏛️" : "Add Scheme 🏛️")}
+              </button>
+            </div>
 
+            {showSchemeForm && (
+              <form onSubmit={handleAddScheme} style={{
+                background: "rgba(13, 148, 136, 0.03)",
+                border: "1px dashed var(--secondary)",
+                borderRadius: "12px",
+                padding: 20,
+                marginBottom: 24
+              }}>
+                <h4 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: 16, color: "var(--secondary)" }}>
+                  {language === "mr" ? "नवीन सरकारी योजना जोडा" : "Add New Government Scheme"}
+                </h4>
+
+                {schemeError && (
+                  <div style={{ color: "var(--danger)", background: "rgba(239, 68, 68, 0.1)", padding: "10px 14px", borderRadius: "8px", fontSize: "0.88rem", marginBottom: 16 }}>
+                    ⚠️ {schemeError}
+                  </div>
+                )}
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, marginBottom: 16 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: 6, color: "var(--text-dark)" }}>
+                      Scheme Title (English) *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. PM Kisan Samman Nidhi"
+                      value={schemeTitleEn}
+                      onChange={(e) => setSchemeTitleEn(e.target.value)}
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-card)", color: "var(--text-dark)" }}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: 6, color: "var(--text-dark)" }}>
+                      योजनेचे नाव (मराठी) *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="उदा. पीएम किसान सन्मान निधी"
+                      value={schemeTitleMr}
+                      onChange={(e) => setSchemeTitleMr(e.target.value)}
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-card)", color: "var(--text-dark)" }}
+                      required
+                    />
+                  </div>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: 6, color: "var(--text-dark)" }}>
+                      Description (English) *
+                    </label>
+                    <textarea
+                      placeholder="Brief details about the benefits of this scheme..."
+                      rows="3"
+                      value={schemeDescEn}
+                      onChange={(e) => setSchemeDescEn(e.target.value)}
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-card)", color: "var(--text-dark)", fontFamily: "inherit" }}
+                      required
+                    />
+                  </div>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: 6, color: "var(--text-dark)" }}>
+                      माहिती / वर्णन (मराठी) *
+                    </label>
+                    <textarea
+                      placeholder="या योजनेच्या फायद्यांविषयी थोडक्यात माहिती..."
+                      rows="3"
+                      value={schemeDescMr}
+                      onChange={(e) => setSchemeDescMr(e.target.value)}
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-card)", color: "var(--text-dark)", fontFamily: "inherit" }}
+                      required
+                    />
+                  </div>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: 6, color: "var(--text-dark)" }}>
+                      Portal Link / Application URL *
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://pmkisan.gov.in"
+                      value={schemeUrl}
+                      onChange={(e) => setSchemeUrl(e.target.value)}
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-card)", color: "var(--text-dark)" }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={schemeSubmitting}
+                  style={{
+                    background: "var(--secondary)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "10px 20px",
+                    fontSize: "0.95rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    width: "100%",
+                    opacity: schemeSubmitting ? 0.7 : 1
+                  }}
+                >
+                  {schemeSubmitting
+                    ? (language === "mr" ? "योजना जतन करत आहे..." : "Saving Scheme...")
+                    : (language === "mr" ? "योजना जतन करा" : "Save Scheme")}
+                </button>
+              </form>
+            )}
+
+            {schemesLoading ? (
+              <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)" }}>
+                {language === "mr" ? "योजना लोड होत आहेत..." : "Loading schemes..."}
+              </div>
+            ) : schemes.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)" }}>
+                {language === "mr" ? "कोणत्याही सरकारी योजना उपलब्ध नाहीत." : "No government schemes available."}
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(310px, 1fr))", gap: 20 }}>
+                {schemes.map((scheme) => (
+                  <div
+                    key={scheme.id}
+                    className="card"
+                    style={{
+                      marginBottom: 0,
+                      padding: 20,
+                      borderRadius: 12,
+                      background: "rgba(13, 148, 136, 0.04)",
+                      border: "1px solid var(--border-color)",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      gap: 16,
+                      position: "relative"
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                        <h4 style={{ fontWeight: 700, fontSize: "1.1rem", color: "var(--text-dark)", margin: 0 }}>
+                          {language === "mr" ? scheme.titleMr : scheme.titleEn}
+                        </h4>
+                        <button
+                          onClick={() => handleDeleteScheme(scheme.id)}
+                          style={{
+                            background: "rgba(239, 68, 68, 0.08)",
+                            color: "var(--danger)",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: "6px 10px",
+                            borderRadius: "6px",
+                            fontSize: "0.85rem"
+                          }}
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                      <p style={{ fontSize: "0.88rem", color: "var(--text-muted)", marginTop: 10 }}>
+                        {language === "mr" ? scheme.descMr : scheme.descEn}
+                      </p>
+                    </div>
+                    <a
+                      href={scheme.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        color: "var(--secondary)",
+                        fontWeight: 600,
+                        fontSize: "0.95rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        alignSelf: "flex-start",
+                        background: "rgba(13, 148, 136, 0.08)",
+                        padding: "6px 12px",
+                        borderRadius: "6px"
+                      }}
+                    >
+                      {language === "mr" ? "पोर्टलला भेट द्या" : "Visit Portal"} ↗
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
