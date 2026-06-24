@@ -141,7 +141,7 @@ if os.path.exists(py_zip_file):
         os.remove(py_zip_file)
         # Install Python dependencies (without massive PyTorch dependencies to save disk space)
         subprocess.run(
-            [sys.executable, '-m', 'pip', 'install', '--user', 'fastapi', 'uvicorn', 'sqlalchemy', 'twilio', 'pillow', 'python-multipart', 'requests'],
+            ['/usr/bin/python3.10', '-m', 'pip', 'install', '--user', 'fastapi', 'uvicorn', 'sqlalchemy', 'twilio', 'pillow', 'python-multipart', 'requests'],
             stdout=open('/home/Krishna3114/py_install_stdout.log', 'a'),
             stderr=open('/home/Krishna3114/py_install_stderr.log', 'a')
         )
@@ -160,6 +160,8 @@ if not is_port_open(NODE_PORT):
     env['MONGO_URI'] = 'mongodb://127.0.0.1:27017/smart_kisan'
     env['JWT_SECRET'] = 'supersecretjwtkey'
     env['GOOGLE_CLIENT_ID'] = '1234567890-abc123def456.apps.googleusercontent.com'
+    # Ensure node is in the environment PATH
+    env['PATH'] = '/home/Krishna3114/.nvm/versions/node/v18.20.8/bin:' + env.get('PATH', '')
     subprocess.Popen(
         [NODE_PATH, SERVER_JS],
         env=env,
@@ -171,9 +173,10 @@ if not is_port_open(NODE_PORT):
 # Start Python FastAPI Server
 if not is_port_open(PYTHON_PORT):
     env = os.environ.copy()
-    # Path of user pip uvicorn if installed with --user
+    # Ensure user pip installation bin is in PATH
+    env['PATH'] = '/home/Krishna3114/.local/bin:' + env.get('PATH', '')
     subprocess.Popen(
-        [sys.executable, '-m', 'uvicorn', 'main:app', '--port', str(PYTHON_PORT)],
+        ['/usr/bin/python3.10', '-m', 'uvicorn', 'main:app', '--port', str(PYTHON_PORT)],
         env=env,
         stdout=open('/home/Krishna3114/py_stdout.log', 'a'),
         stderr=open('/home/Krishna3114/py_stderr.log', 'a'),
