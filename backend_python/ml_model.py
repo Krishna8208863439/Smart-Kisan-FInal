@@ -6,10 +6,16 @@ import requests
 from PIL import Image
 
 try:
-    import torch
-    import torch.nn as nn
-    from torchvision import models, transforms
-    TORCH_AVAILABLE = True
+    import os
+    # Force disable PyTorch on PythonAnywhere hosting to avoid exceeding 512MB RAM OOM limit
+    if os.environ.get("PYTHONANYWHERE_SITE") or os.path.exists("/home/Krishna3114"):
+        TORCH_AVAILABLE = False
+        print("[ML] Running on PythonAnywhere. Disabling PyTorch to prevent Out-Of-Memory (OOM) crash.")
+    else:
+        import torch
+        import torch.nn as nn
+        from torchvision import models, transforms
+        TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
     print("[ML] PyTorch not installed. Using Vision AI APIs.")
@@ -555,6 +561,43 @@ def predict_via_torch(image_bytes: bytes) -> dict | None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+#  Utility: Crop Name Translation & Normalization Helper
+# ─────────────────────────────────────────────────────────────────────────────
+def normalize_crop_name(crop_name: str) -> str:
+    if not crop_name:
+        return ""
+    name = crop_name.lower().strip()
+    mapping = {
+        "टोमॅटो": "tomato", "टमाटर": "tomato",
+        "भात": "rice", "धान": "rice", "तांदूळ": "rice",
+        "गहू": "wheat", "गव्हा": "wheat",
+        "बटाटा": "potato", "बटाटे": "potato", "आलू": "potato",
+        "मोहरी": "mustard", "सरसों": "mustard",
+        "मिरची": "chilli", "मिरच्या": "chilli", "मिर्च": "chilli",
+        "कापूस": "cotton", "कपास": "cotton",
+        "कांदा": "onion", "कांदे": "onion", "प्याज": "onion",
+        "sफरचंद": "apple", "केळी": "banana", "केळा": "banana", "केला": "banana",
+        "ज्वारी": "sorghum", "बाजरी": "millet", "मका": "maize", "मक्का": "maize",
+        "ऊस": "sugarcane", "गन्ना": "sugarcane", "सोयाबीन": "soybean",
+        "तूर": "pigeonpea", "हरभरा": "chickpea", "चना": "chickpea", "मूग": "mungbean",
+        "कलिंगड": "watermelon", "टरबूज": "watermelon", "आंबा": "mango", "आम": "mango",
+        "पेरू": "guava", "अमरूद": "guava", "द्राक्षे": "grape", "द्राक्ष": "grape", "अंगूर": "grape",
+        "पपई": "papaya", "पपीता": "papaya", "लिंबू": "lemon", "निंबू": "lemon",
+        "डाळिंब": "pomegranate", "अनार": "pomegranate", "वांगी": "eggplant", "वांगे": "eggplant",
+        "बैंगन": "eggplant", "भेंडी": "okra", "भिंडी": "okra", "कोबी": "cabbage",
+        "पत्ता गोभी": "cabbage", "फ्लॉवर": "cauliflower", "फूल गोभी": "cauliflower",
+        "पालक": "spinach", "मेथी": "fenugreek", "धने": "coriander", "कोथिंबीर": "coriander",
+        "धनिया": "coriander", "आले": "ginger", "अदरक": "ginger", "लसूण": "garlic",
+        "लहसुन": "garlic", "हळद": "turmeric", "हल्दी": "turmeric", "मटर": "pea",
+        "chilli": "chilli", "chilli pepper": "chilli"
+    }
+    for key, val in mapping.items():
+        if key in name:
+            return val
+    return name
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 #  Utility: Read GEMINI_API_KEY from env or .env file
 # ─────────────────────────────────────────────────────────────────────────────
 def get_gemini_api_key() -> str | None:
@@ -961,6 +1004,7 @@ def predict_image(image_bytes: bytes, crop_hint: str = None, filename: str = Non
     4-tier image analysis pipeline.
     Includes local PyTorch model, Gemini vision, HF vision, and static fallbacks.
     """
+    crop_hint = normalize_crop_name(crop_hint)
     print(f"\n[ML] Starting diagnosis | crop_hint={crop_hint!r} | image_size={len(image_bytes)} bytes")
 
     # ── TIER 0: Local PyTorch Inference (Crop or Disease Classification) ──

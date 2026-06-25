@@ -555,9 +555,43 @@ Respond ONLY with valid JSON (no markdown, no text outside JSON):
   };
 }
 
+// ── Crop Name Translation & Normalization Helper ─────────────────────────────
+const normalizeCropName = (cropName) => {
+  if (!cropName) return "";
+  let name = cropName.toLowerCase().trim();
+  const mapping = {
+    "टोमॅटो": "tomato", "टमाटर": "tomato",
+    "भात": "rice", "धान": "rice", "तांदूळ": "rice",
+    "गहू": "wheat", "गव्हा": "wheat",
+    "बटाटा": "potato", "बटाटे": "potato", "आलू": "potato",
+    "मोहरी": "mustard green", "सरसों": "mustard green",
+    "मिरची": "chili pepper", "मिरच्या": "chili pepper", "मिर्च": "chili pepper",
+    "कापूस": "cotton", "कपास": "cotton",
+    "कांदा": "onion", "कांदे": "onion", "प्याज": "onion",
+    "सफरचंद": "apple", "केळी": "banana", "केळा": "banana", "केला": "banana",
+    "ज्वारी": "sorghum", "बाजरी": "millet", "मका": "maize", "मक्का": "maize",
+    "ऊस": "sugar cane", "गन्ना": "sugar cane", "सोयाबीन": "soybean",
+    "तूर": "pigeon pea", "हरभरा": "chickpea", "चना": "chickpea", "मूग": "mung bean",
+    "कलिंगड": "watermelon", "टरबूज": "watermelon", "आंबा": "mango", "आम": "mango",
+    "पेरू": "guava", "अमरूद": "guava", "द्राक्षे": "grape", "द्राक्ष": "grape", "अंगूर": "grape",
+    "पपई": "papaya", "पपीता": "papaya", "लिंबू": "lemon", "निंबू": "lemon",
+    "डाळिंब": "pomegranate", "अनार": "pomegranate", "वांगी": "eggplant", "वांगे": "eggplant",
+    "बैंगन": "eggplant", "भेंडी": "okra", "भिंडी": "okra", "कोबी": "cabbage",
+    "पत्ता गोभी": "cabbage", "फ्लॉवर": "cauliflower", "फूल गोभी": "cauliflower",
+    "पालक": "spinach", "मेथी": "fenugreek", "धने": "coriander", "कोथिंबीर": "coriander",
+    "धनिया": "coriander", "आले": "ginger", "अदरक": "ginger", "लसूण": "garlic",
+    "लहसुन": "garlic", "हळद": "turmeric", "हल्दी": "turmeric", "मटर": "dry pea",
+    "chilli": "chili pepper", "chilli pepper": "chili pepper"
+  };
+  for (const [key, val] of Object.entries(mapping)) {
+    if (name.includes(key)) return val;
+  }
+  return name;
+};
+
 // ── Whitelisted 140 Crops List (from dataset) ───────────────────────────────
 const WHITELISTED_CROPS = [
-  "aji pepper", "almond", "amaranth", "apple", "artichoke", "avocado", "acai", "banana", "barley", "beet", "black pepper", "blueberry", "bok choy", "brazil nut", "broccoli", "brussels sprout", "buckwheat", "cabbage", "camucamu", "carrot", "cashew", "cassava", "cauliflower", "celery", "cherimoya", "cherry", "chestnut", "chickpea", "chili pepper", "cinnamon", "clove", "cocoa bean", "coconut", "coffee", "collards", "cotton", "cranberry", "cucumber", "date", "dry bean", "dry pea", "durian", "eggplant", "endive", "fava bean", "fig", "flax", "fonio", "garlic", "ginger", "gooseberry", "grape", "groundnut", "peanut", "guarana", "guava", "habanero pepper", "hazelnut", "hemp", "horseradish", "jackfruit", "jute", "kale", "kohlrabi", "leek", "lemon", "lime", "lentil", "lettuce", "lima bean", "longan", "lupin", "lychee", "maize", "corn", "mandarin", "clementine", "mango", "mangosteen", "maracuja", "passionfruit", "millet", "mint", "mung bean", "mustard green", "mustard seed", "navy bean", "oat", "oil palm", "okra", "olive", "onion", "orange", "oregano", "papaya", "parsley", "peach", "pear", "persimmon", "pine nut", "pineapple", "pinto bean", "pistachio", "plantain", "pomegranate", "potato", "pumpkin", "squash", "gourd", "quinoa", "radish", "rambutan", "rapeseed", "canola", "raspberry", "rice", "paddy", "rosemary", "rubber", "rye", "saffron", "sage", "scallion", "sorghum", "soursop", "soybean", "spinach", "starfruit", "strawberry", "sugar beet", "sugar cane", "sunflower seed", "sweet potato", "swiss chard", "tamarind", "taro", "tea", "teff", "thyme", "tomato", "triticale", "turmeric", "turnip", "vanilla bean", "walnut", "watermelon", "wheat", "yam"
+  "chilli", "aji pepper", "almond", "amaranth", "apple", "artichoke", "avocado", "acai", "banana", "barley", "beet", "black pepper", "blueberry", "bok choy", "brazil nut", "broccoli", "brussels sprout", "buckwheat", "cabbage", "camucamu", "carrot", "cashew", "cassava", "cauliflower", "celery", "cherimoya", "cherry", "chestnut", "chickpea", "chili pepper", "cinnamon", "clove", "cocoa bean", "coconut", "coffee", "collards", "cotton", "cranberry", "cucumber", "date", "dry bean", "dry pea", "durian", "eggplant", "endive", "fava bean", "fig", "flax", "fonio", "garlic", "ginger", "gooseberry", "grape", "groundnut", "peanut", "guarana", "guava", "habanero pepper", "hazelnut", "hemp", "horseradish", "jackfruit", "jute", "kale", "kohlrabi", "leek", "lemon", "lime", "lentil", "lettuce", "lima bean", "longan", "lupin", "lychee", "maize", "corn", "mandarin", "clementine", "mango", "mangosteen", "maracuja", "passionfruit", "millet", "mint", "mung bean", "mustard green", "mustard seed", "navy bean", "oat", "oil palm", "okra", "olive", "onion", "orange", "oregano", "papaya", "parsley", "peach", "pear", "persimmon", "pine nut", "pineapple", "pinto bean", "pistachio", "plantain", "pomegranate", "potato", "pumpkin", "squash", "gourd", "quinoa", "radish", "rambutan", "rapeseed", "canola", "raspberry", "rice", "paddy", "rosemary", "rubber", "rye", "saffron", "sage", "scallion", "sorghum", "soursop", "soybean", "spinach", "starfruit", "strawberry", "sugar beet", "sugar cane", "sunflower seed", "sweet potato", "swiss chard", "tamarind", "taro", "tea", "teff", "thyme", "tomato", "triticale", "turmeric", "turnip", "vanilla bean", "walnut", "watermelon", "wheat", "yam"
 ];
 
 const REFUSAL_MESSAGES = {
@@ -580,7 +614,7 @@ router.post("/analyze", protect, upload.single("image"), async (req, res) => {
     const imageBuffer = fs.readFileSync(imagePath);
 
     // ── Crop Isolation Guardrail check ──
-    const cropLower = (crop || "").toLowerCase().trim();
+    const cropLower = normalizeCropName(crop);
     const fileLower = (req.file.originalname || "").toLowerCase().trim();
     const combined = `${cropLower} ${fileLower}`;
 
