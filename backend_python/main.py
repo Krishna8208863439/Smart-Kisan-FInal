@@ -1,6 +1,8 @@
 import os
 import shutil
 import json
+import pickle
+import pandas as pd
 from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Form, status, Header
@@ -19,6 +21,9 @@ except ImportError:
 
 from database import init_db, get_db, DiseaseReport, CropLog, WeatherCache, User, PushSubscription, EmergencyAlert, CommunityOfficer, CommunityWebinar, GovernmentScheme, seed_db
 from ml_model import predict_image, get_gemini_api_key
+
+# Global crop recommendation model data
+crop_model_data = None
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -46,9 +51,29 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 # Initialize database tables on startup
 @app.on_event("startup")
 def startup_event():
+    global crop_model_data
     init_db()
     seed_db()
     print("[Server] Database initialized successfully and seeded.")
+    
+    # Train or load crop recommendation model
+    model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "crop_recommendation_model.pkl")
+    if not os.path.exists(model_path):
+        print("[Server] Crop recommendation model missing. Training now...")
+        try:
+            from train_crop_model import train_crop_model
+            train_crop_model()
+        except Exception as e:
+            print(f"[Server] Failed to auto-train crop model: {e}")
+            
+    if os.path.exists(model_path):
+        try:
+            with open(model_path, "rb") as f:
+                crop_model_data = pickle.load(f)
+            print("[Server] Crop recommendation model loaded successfully.")
+        except Exception as e:
+            print(f"[Server] Failed to load crop model: {e}")
+
 
 @app.get("/api/health")
 def health_check():
@@ -245,44 +270,136 @@ async def generate_crop_advisory(
         except Exception as e:
             print("[Weather API Error] Failed to fetch weather:", e)
 
-    # 3. Run Agronomic Recommendation Heuristics
-    # Optimal profiles for major crops
-    crop_profiles = [
-        {"crop": "Wheat", "season": "rabi", "soils": ["loamy", "clay"], "ph_range": (6.0, 7.5), "npk": (100, 50, 40), "base_yield": "1.8 - 2.2 tons/acre", "profit": 72000},
-        {"crop": "Paddy (Rice)", "season": "kharif", "soils": ["clay", "loamy"], "ph_range": (5.5, 6.5), "npk": (120, 60, 40), "base_yield": "2.1 - 2.5 tons/acre", "profit": 85000},
-        {"crop": "Tomato", "season": "zaid", "soils": ["loamy", "sandy"], "ph_range": (6.0, 7.0), "npk": (80, 60, 60), "base_yield": "9.5 - 12.0 tons/acre", "profit": 110000},
-        {"crop": "Maize", "season": "kharif", "soils": ["loamy", "black"], "ph_range": (5.8, 7.2), "npk": (110, 55, 40), "base_yield": "2.2 - 2.6 tons/acre", "profit": 60000},
-    ]
-
-    matched_crops = []
+    # 3. Run Agronomic Recommendation Heuristics / ML Model
     season_lower = season.lower()
     soil_lower = soil_type.lower()
-
-    for profile in crop_profiles:
-        score = 50
-        # Check season
-        if profile["season"] == season_lower:
-            score += 25
-        # Check soil type
-        if soil_lower in profile["soils"]:
-            score += 15
-        # Check pH compatibility
-        min_ph, max_ph = profile["ph_range"]
-        if min_ph <= pH <= max_ph:
-            score += 10
+    
+    # Estimate rainfall based on season
+    if season_lower == "kharif":
+        estimated_rainfall = 180.0
+    elif season_lower == "rabi":
+        estimated_rainfall = 60.0
+    else: # zaid
+        estimated_rainfall = 80.0
         
-        # Calculate NPK gap index penalty
-        t_n, t_p, t_k = profile["npk"]
-        dist = ((t_n - n)**2 + (t_p - p)**2 + (t_k - k)**2)**0.5
-        score -= min(15, int(dist * 0.1))
+    CROP_DISPLAY_NAMES = {
+        "rice": "Paddy (Rice)",
+        "maize": "Maize (Corn)",
+        "chickpea": "Chickpea",
+        "kidneybeans": "Kidney Beans",
+        "pigeonpeas": "Pigeon Peas",
+        "mothbeans": "Moth Beans",
+        "mungbean": "Mung Beans",
+        "blackgram": "Black Gram",
+        "lentil": "Lentils",
+        "pomegranate": "Pomegranate",
+        "banana": "Banana",
+        "mango": "Mango",
+        "grapes": "Grapes",
+        "watermelon": "Watermelon",
+        "muskmelon": "Muskmelon",
+        "apple": "Apple",
+        "orange": "Orange",
+        "papaya": "Papaya",
+        "coconut": "Coconut",
+        "cotton": "Cotton",
+        "jute": "Jute",
+        "coffee": "Coffee"
+    }
 
-        matched_crops.append({
-            "crop": profile["crop"],
-            "score": max(10, min(98, score)),
-            "predictedYield": profile["base_yield"],
-            "estimatedProfit": f"₹{int(profile['profit'] * land_size):,}/acre",
-            "npkTarget": profile["npk"]
-        })
+    matched_crops = []
+
+    if crop_model_data is not None:
+        model = crop_model_data["model"]
+        features = crop_model_data["features"]
+        classes = crop_model_data["classes"]
+        crop_stats = crop_model_data["crop_stats"]
+        
+        # Build features dataframe
+        X_new = pd.DataFrame([[n, p, k, temp, humidity, pH, estimated_rainfall]], columns=features)
+        
+        try:
+            probabilities = model.predict_proba(X_new)[0]
+            class_prob_map = dict(zip(classes, probabilities))
+        except Exception as e:
+            print(f"[Advisory ML Error] Prediction failed: {e}")
+            class_prob_map = {}
+            
+        for crop_cls in classes:
+            stats = crop_stats.get(crop_cls, {})
+            disp_name = CROP_DISPLAY_NAMES.get(crop_cls, crop_cls.capitalize())
+            
+            # Start base compatibility score at 60
+            score = 60
+            
+            # 1. Season bonus
+            crop_season = stats.get("season", "whole year").lower()
+            if crop_season == "whole year" or crop_season == season_lower:
+                score += 15
+            else:
+                score -= 15
+                
+            # 2. Soil compatibility bonus
+            crop_soils = stats.get("soils", ["loamy"])
+            if soil_lower in crop_soils:
+                score += 10
+            else:
+                score -= 5
+                
+            # 3. pH compatibility bonus
+            avg_ph = stats.get("ph", 6.5)
+            if abs(pH - avg_ph) <= 0.8:
+                score += 10
+            else:
+                score -= min(15, int(abs(pH - avg_ph) * 10))
+                
+            # 4. NPK gap penalty
+            t_n, t_p, t_k = stats.get("N", 50), stats.get("P", 40), stats.get("K", 40)
+            dist = ((t_n - n)**2 + (t_p - p)**2 + (t_k - k)**2)**0.5
+            score -= min(25, int(dist * 0.12))
+            
+            # 5. Model prediction bonus
+            prob = class_prob_map.get(crop_cls, 0.0)
+            score += int(prob * 20)
+            
+            final_score = max(10, min(98, score))
+            
+            matched_crops.append({
+                "crop": disp_name,
+                "score": final_score,
+                "predictedYield": stats.get("yield", "1.5 - 2.0 tons/acre"),
+                "estimatedProfit": f"₹{int(stats.get('profit', 50000) * land_size):,}/acre",
+                "npkTarget": (int(t_n), int(t_p), int(t_k)),
+                "raw_prob": prob
+            })
+    else:
+        # Fallback to local heuristics if model failed to load
+        print("[Advisory Fallback] Model data is not available, falling back to static profiles.")
+        crop_profiles = [
+            {"crop": "Wheat", "season": "rabi", "soils": ["loamy", "clay"], "ph_range": (6.0, 7.5), "npk": (100, 50, 40), "base_yield": "1.8 - 2.2 tons/acre", "profit": 72000},
+            {"crop": "Paddy (Rice)", "season": "kharif", "soils": ["clay", "loamy"], "ph_range": (5.5, 6.5), "npk": (120, 60, 40), "base_yield": "2.1 - 2.5 tons/acre", "profit": 85000},
+            {"crop": "Tomato", "season": "zaid", "soils": ["loamy", "sandy"], "ph_range": (6.0, 7.0), "npk": (80, 60, 60), "base_yield": "9.5 - 12.0 tons/acre", "profit": 110000},
+            {"crop": "Maize", "season": "kharif", "soils": ["loamy", "black"], "ph_range": (5.8, 7.2), "npk": (110, 55, 40), "base_yield": "2.2 - 2.6 tons/acre", "profit": 60000},
+        ]
+        for profile in crop_profiles:
+            score = 50
+            if profile["season"] == season_lower:
+                score += 25
+            if soil_lower in profile["soils"]:
+                score += 15
+            min_ph, max_ph = profile["ph_range"]
+            if min_ph <= pH <= max_ph:
+                score += 10
+            t_n, t_p, t_k = profile["npk"]
+            dist = ((t_n - n)**2 + (t_p - p)**2 + (t_k - k)**2)**0.5
+            score -= min(15, int(dist * 0.1))
+            matched_crops.append({
+                "crop": profile["crop"],
+                "score": max(10, min(98, score)),
+                "predictedYield": profile["base_yield"],
+                "estimatedProfit": f"₹{int(profile['profit'] * land_size):,}/acre",
+                "npkTarget": profile["npk"]
+            })
 
     # Sort crop suggestions by feasibility score
     matched_crops.sort(key=lambda x: x["score"], reverse=True)

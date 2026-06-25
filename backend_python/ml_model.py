@@ -94,16 +94,20 @@ CLASSES = [
 ]
 
 def get_dataset_classes():
+    """
+    Load class names from dataset_loader (preferred) or fall back to classes.json / hardcoded list.
+    dataset_loader auto-detects the local PlantVillage dataset first, then classes.json.
+    """
+    try:
+        from dataset_loader import list_disease_classes
+        classes = list_disease_classes()
+        if classes:
+            return classes
+    except Exception:
+        pass
+
+    # Legacy fallback paths
     checkpoint_dir = os.path.dirname(os.path.abspath(__file__))
-    classes_txt_path = os.path.join(checkpoint_dir, "..", "archive", "140_crops_list.txt")
-    if os.path.exists(classes_txt_path):
-        try:
-            with open(classes_txt_path, "r", encoding="utf-8") as f:
-                classes = [line.strip() for line in f if line.strip()]
-            return sorted(classes)
-        except Exception:
-            pass
-            
     classes_json_path = os.path.join(checkpoint_dir, "classes.json")
     if os.path.exists(classes_json_path):
         try:
@@ -111,7 +115,7 @@ def get_dataset_classes():
                 return json.load(f)
         except Exception:
             pass
-            
+
     return CLASSES
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -442,7 +446,7 @@ def get_torch_model():
                 print(f"[ML] Weight load error: {e}")
                 return None
         else:
-            print("[ML] No custom weights (crop_model_weights.pth or disease_model_weights.pth) found. Skipping local PyTorch model inference.")
+            print("[ML] No custom weights found. Run train.py to generate weights from the PlantVillage dataset.")
             return None
     return _torch_model
 
