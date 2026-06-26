@@ -526,21 +526,7 @@ const AgriHealthPortal = () => {
               {currLabel.subtitle}
             </p>
           </div>
-          <div style={{
-            display: "flex", alignItems: "center", gap: 6,
-            background: "rgba(255,255,255,0.15)",
-            backdropFilter: "blur(10px)",
-            padding: "8px 14px",
-            borderRadius: 20,
-            border: "1px solid rgba(255,255,255,0.3)",
-            fontSize: 12,
-            fontWeight: 700,
-            color: "white",
-            whiteSpace: "nowrap"
-          }}>
-            <span>🤖</span>
-            <span>Powered by Google Gemini 1.5 Flash</span>
-          </div>
+
         </div>
       </div>
 
@@ -851,7 +837,6 @@ const AgriHealthPortal = () => {
             {!diagResult ? (
               <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", minHeight: 200, color: "var(--text-muted)" }}>
                 <span style={{ fontSize: 48 }}>📋</span>
-                <p style={{ marginTop: 12 }}>Upload a photo and click analyze to generate diagnosis.</p>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>

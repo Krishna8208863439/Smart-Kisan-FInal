@@ -108,9 +108,7 @@ const CropDiseaseDetectionSection = () => {
   const [isOffline, setIsOffline] = useState(false);
 
 
-  const defaultStatus = language === "mr"
-    ? "पिकाचा प्रकार निवडा, फोटो अपलोड करा आणि 'तपासा आणि निदान करा' वर क्लिक करा."
-    : "Select your crop, upload a photo, and click \"Analyze Image\" to detect disease.";
+  const defaultStatus = "";
 
   const [status, setStatus] = useState(defaultStatus);
   const fileInputRef = useRef(null);
@@ -232,9 +230,7 @@ const CropDiseaseDetectionSection = () => {
     setFileName(selectedFile.name);
     setResult(null);
     setIsOffline(false);
-    setStatus(language === "mr"
-      ? "फोटो तयार आहे. रोग तपासण्यासाठी 'तपासा आणि निदान करा' वर क्लिक करा."
-      : "Image ready. Click 'Analyze Image' to detect disease.");
+    setStatus("");
     setPreviewUrl(URL.createObjectURL(selectedFile));
   };
 
@@ -342,21 +338,7 @@ const CropDiseaseDetectionSection = () => {
         </div>
       )}
 
-      {/* Gemini badge */}
-      <div style={{
-        display: "inline-flex", alignItems: "center", gap: 6,
-        background: "linear-gradient(135deg,#1a73e8,#0d9488)",
-        color: "white", padding: "4px 12px", borderRadius: 14,
-        fontSize: 11, fontWeight: 700, marginBottom: 12
-      }}>
-        🤖 {language === "mr" ? "गूगल जेमिनी १.५ Flash व्हिजन एआय" : "Powered by Google Gemini 1.5 Flash Vision AI"}
-      </div>
 
-      <p style={{ marginBottom: 16, color: "#555", fontSize: 14 }}>
-        {language === "mr"
-          ? "पिकाचा प्रकार निवडा आणि रोगट पिकाच्या पानाचा स्पष्ट फोटो अपलोड करा. एआय मॉडेल प्रत्यक्ष फोटो पाहून संभाव्य रोग आणि उपाय सुचवेल."
-          : "Select your crop type and upload a clear photo of the affected plant. The AI will look at the actual image and detect the real disease — not a generic result."}
-      </p>
 
       <div style={{
         display: "grid",
@@ -383,11 +365,7 @@ const CropDiseaseDetectionSection = () => {
                 </option>
               ))}
             </select>
-            <p style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>
-              {language === "mr"
-                ? "⚠️ अचूक निदानासाठी योग्य पीक निवडा"
-                : "⚠️ Select the correct crop for accurate diagnosis"}
-            </p>
+
           </div>
 
           {/* Drop zone */}
@@ -455,7 +433,7 @@ const CropDiseaseDetectionSection = () => {
               : (language === "mr" ? "तपासा आणि निदान करा" : "Analyze Image")}
           </button>
 
-          <p style={{ fontSize: 13, color: "#6b7280", marginTop: 8 }}>{status}</p>
+          {status && <p style={{ fontSize: 13, color: "#6b7280", marginTop: 8 }}>{status}</p>}
         </div>
 
         {/* ── Right: Results ────────────────────────────────────────────────── */}
@@ -497,13 +475,7 @@ const CropDiseaseDetectionSection = () => {
             </div>
           )}
 
-          {!result && !isOffline && (
-            <p style={{ fontSize: 14, color: "#6b7280" }}>
-              {language === "mr"
-                ? "पानाचा फोटो तपासा वर क्लिक केल्यावर अहवाल येथे दिसेल."
-                : "Results will appear here after you analyze an image."}
-            </p>
-          )}
+
 
           {result && (
             <div style={{ marginTop: 8 }}>
