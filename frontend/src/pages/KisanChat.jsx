@@ -542,14 +542,7 @@ const KisanChat = () => {
         }
       `}</style>
 
-      {/* Rotating Priority Alert Banner */}
-      {currentAlert && (
-        <div className="alert-ribbon">
-          <div style={{ fontSize: 20 }}>⚠️</div>
-          <div style={{ flex: 1 }} dangerouslySetInnerHTML={{ __html: currentAlert.text }} />
 
-        </div>
-      )}
 
       <div className="chat-container">
         
@@ -668,16 +661,7 @@ const KisanChat = () => {
               <option value="mr">मराठी (Marathi)</option>
             </select>
 
-            <button 
-              className="button button-secondary" 
-              style={{ width: "100%", padding: "6px 12px", fontSize: 12 }}
-              onClick={() => setShowKeyConfig(!showKeyConfig)}
-            >
-              ⚙️
-            </button>
-            <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6, textAlign: "center" }}>
-              {customKey ? `✅ ${ui.activeCustomKey}` : `⚠️ ${ui.activeOffline}`}
-            </p>
+
           </div>
 
           {showKeyConfig && (
