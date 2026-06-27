@@ -547,12 +547,7 @@ const KisanChat = () => {
         <div className="alert-ribbon">
           <div style={{ fontSize: 20 }}>⚠️</div>
           <div style={{ flex: 1 }} dangerouslySetInnerHTML={{ __html: currentAlert.text }} />
-          <button 
-            style={{ background: "transparent", border: "none", fontSize: 12, cursor: "pointer", color: "#b45309" }}
-            onClick={() => handleSendMessage(currentAlert.text.replace(/\*\*|🚨|🤝|🐛/g, ""))}
-          >
-            {language === 'mr' ? 'सल्ला घ्या 🔍' : language === 'hi' ? 'सलाह लें 🔍' : 'Get Advice 🔍'}
-          </button>
+
         </div>
       )}
 
@@ -678,7 +673,7 @@ const KisanChat = () => {
               style={{ width: "100%", padding: "6px 12px", fontSize: 12 }}
               onClick={() => setShowKeyConfig(!showKeyConfig)}
             >
-              ⚙️ {ui.keyConfig}
+              ⚙️
             </button>
             <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6, textAlign: "center" }}>
               {customKey ? `✅ ${ui.activeCustomKey}` : `⚠️ ${ui.activeOffline}`}
