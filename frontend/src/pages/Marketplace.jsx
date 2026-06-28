@@ -775,38 +775,7 @@ const Marketplace = () => {
                     </div>
                   )}
 
-                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>
-                    {t("bazaarPhotoPreset")}
-                  </label>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "6px 0 12px 0" }}>
-                    {SAMPLE_IMAGES.map((img) => (
-                      <button
-                        key={img.label}
-                        type="button"
-                        style={{
-                          padding: "4px 8px",
-                          borderRadius: 6,
-                          border: "1px solid",
-                          borderColor: sellForm.image === img.url ? "var(--primary)" : "var(--border-color)",
-                          background: sellForm.image === img.url ? "var(--primary-light)" : "white",
-                          fontSize: 12,
-                          cursor: "pointer"
-                        }}
-                        onClick={() => setSellForm({ ...sellForm, image: img.url })}
-                      >
-                        {img.label}
-                      </button>
-                    ))}
-                  </div>
 
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder={t("bazaarCustomImageUrl")}
-                    value={sellForm.image}
-                    onChange={(e) => setSellForm({ ...sellForm, image: e.target.value })}
-                    style={{ marginBottom: 12 }}
-                  />
 
                   {sellForm.image && (
                     <div style={{ marginBottom: 12, textAlign: "center" }}>
@@ -1170,35 +1139,7 @@ const Marketplace = () => {
                     </div>
                   )}
 
-                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Select Crop Preset Photo</label>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "6px 0 12px 0" }}>
-                    {SAMPLE_IMAGES.map((img) => (
-                      <button
-                        key={img.label}
-                        type="button"
-                        style={{
-                          padding: "4px 8px",
-                          borderRadius: 6,
-                          border: "1px solid",
-                          borderColor: sellForm.image === img.url ? "var(--primary)" : "var(--border-color)",
-                          background: sellForm.image === img.url ? "var(--primary-light)" : "white",
-                          fontSize: 12,
-                          cursor: "pointer"
-                        }}
-                        onClick={() => setSellForm({ ...sellForm, image: img.url })}
-                      >
-                        {img.label}
-                      </button>
-                    ))}
-                  </div>
 
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="Or enter Custom Image URL..."
-                    value={sellForm.image}
-                    onChange={(e) => setSellForm({ ...sellForm, image: e.target.value })}
-                  />
 
                   {sellForm.image && (
                     <div style={{ marginBottom: 12, textAlign: "center" }}>
