@@ -627,9 +627,10 @@ router.post("/analyze", protect, upload.single("image"), async (req, res) => {
     ];
 
     const containsNonCrop = nonCropKeywords.some(kw => combined.includes(kw));
+    // Only block if clearly non-crop and not whitelisted — be permissive for legitimate crops
     const isWhitelisted = WHITELISTED_CROPS.some(keyword => combined.includes(keyword));
 
-    if (containsNonCrop || (!isWhitelisted && cropLower.length > 0)) {
+    if (containsNonCrop) {
       const refusal = REFUSAL_MESSAGES[activeLang] || REFUSAL_MESSAGES["en"];
       return res.json({
         success: true,

@@ -415,7 +415,7 @@ const Marketplace = () => {
         category: sellForm.category,
         price: Number(sellForm.price),
         unit: sellForm.unit,
-        image: sellForm.image,
+        image: "", // backend will use default image based on category
         description: detailedDesc
       });
 
@@ -808,67 +808,7 @@ const Marketplace = () => {
                     onChange={(e) => setSellForm({ ...sellForm, description: e.target.value })}
                   />
 
-                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Upload Product Image (Recommended)</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageFileChange}
-                    style={{ marginBottom: 12, display: "block", fontSize: 13 }}
-                    disabled={uploadingImage}
-                  />
-                  {uploadingImage && (
-                    <div style={{ fontSize: 12, color: "var(--primary)", marginBottom: 10, fontWeight: 700 }}>
-                      ⏳ Uploading photo to server...
-                    </div>
-                  )}
-
-                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>{t("bazaarPhotoPreset")}</label>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "6px 0 12px 0" }}>
-                    {SAMPLE_IMAGES.map((img) => (
-                      <button
-                        key={img.label}
-                        type="button"
-                        style={{
-                          padding: "6px 10px",
-                          borderRadius: 8,
-                          border: "1px solid",
-                          borderColor: sellForm.image === img.url ? "var(--primary)" : "var(--border-color)",
-                          background: sellForm.image === img.url ? "var(--primary-light)" : "var(--bg-card)",
-                          color: sellForm.image === img.url ? "var(--primary-hover)" : "var(--text-dark)",
-                          fontSize: 12,
-                          cursor: "pointer",
-                          fontWeight: 600
-                        }}
-                        onClick={() => setSellForm({ ...sellForm, image: img.url })}
-                      >
-                        {img.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="Or enter Custom Image URL..."
-                    value={sellForm.image}
-                    onChange={(e) => setSellForm({ ...sellForm, image: e.target.value })}
-                  />
-
-                  {sellForm.image && (
-                    <div style={{ marginBottom: 12, textAlign: "center" }}>
-                      <img 
-                        src={getProductImageUrl(sellForm.image)} 
-                        alt="Listing Preview" 
-                        style={{ height: 80, borderRadius: 8, objectFit: "cover", border: "1px solid var(--border-color)" }}
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = getFallbackImage({ category: sellForm.category, name: sellForm.name });
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  <button type="submit" className="button" style={{ width: "100%", background: "#16a34a" }} disabled={sellLoading}>
+                  <button type="submit" className="button" style={{ width: "100%", background: "#16a34a", marginTop: 8 }} disabled={sellLoading}>
                     {sellLoading ? t("bazaarPublishing") : t("bazaarPublishListing")}
                   </button>
                 </div>

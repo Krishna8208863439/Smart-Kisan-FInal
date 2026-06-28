@@ -310,7 +310,15 @@ router.post("/", protect, async (req, res) => {
       return res.status(400).json({ message: "Please provide all required fields." });
     }
 
-    const defaultImage = image || "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=900&q=80";
+    const CATEGORY_DEFAULT_IMAGES = {
+      "Seeds": "https://images.unsplash.com/photo-1523301343968-6a6ebf63c672?auto=format&fit=crop&w=600&q=80",
+      "Fertilizers": "https://images.unsplash.com/photo-1628352081506-83c43123ed6d?auto=format&fit=crop&w=600&q=80",
+      "Tools": "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&w=600&q=80",
+      "Equipment": "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&w=600&q=80",
+      "Pesticides": "https://images.unsplash.com/photo-1599599810769-bcde5a160d32?auto=format&fit=crop&w=600&q=80",
+      "Produce": "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=600&q=80"
+    };
+    const defaultImage = (image && image.trim()) ? image : (CATEGORY_DEFAULT_IMAGES[category] || "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=600&q=80");
 
     const product = await Product.create({
       name,

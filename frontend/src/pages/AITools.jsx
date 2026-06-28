@@ -7,6 +7,12 @@ const TABS = ["Disease Detection", "Irrigation", "Fertilizer / NPK", "Smart Cale
 const CROP_NPK_TARGETS = {
   Tomato: { n: 120, p: 60, k: 60, ph: "6.0 - 7.0", name: "Tomato" },
   Paddy: { n: 100, p: 40, k: 40, ph: "5.5 - 6.5", name: "Paddy / Rice" },
+};
+
+// Extended targets for Irrigation and Fertilizer tabs (more crops)
+const CROP_NPK_TARGETS_EXTENDED = {
+  Tomato: { n: 120, p: 60, k: 60, ph: "6.0 - 7.0", name: "Tomato" },
+  Paddy: { n: 100, p: 40, k: 40, ph: "5.5 - 6.5", name: "Paddy / Rice" },
   Wheat: { n: 120, p: 60, k: 40, ph: "6.0 - 7.0", name: "Wheat" },
   Potato: { n: 150, p: 80, k: 120, ph: "5.2 - 6.4", name: "Potato" },
   Mustard: { n: 80, p: 40, k: 40, ph: "6.0 - 7.5", name: "Mustard" },
@@ -348,8 +354,8 @@ const AITools = () => {
   // --- Handlers: Fertilizer NPK Advisor ---
   const handleCalculateFertilizer = (e) => {
     e.preventDefault();
-    const target = fertCrop !== "Other" ? CROP_NPK_TARGETS[fertCrop] : null;
-    const activeCropName = fertCrop === "Other" ? (fertCustomCrop.trim() || "Custom Crop") : (CROP_NPK_TARGETS[fertCrop]?.name || fertCrop);
+    const target = fertCrop !== "Other" ? CROP_NPK_TARGETS_EXTENDED[fertCrop] : null;
+    const activeCropName = fertCrop === "Other" ? (fertCustomCrop.trim() || "Custom Crop") : (CROP_NPK_TARGETS_EXTENDED[fertCrop]?.name || fertCrop);
     
     // For "Other" crop: use moderate defaults
     const effectiveTarget = target || { n: 100, p: 50, k: 60, ph: "6.0 - 7.0", name: activeCropName };
@@ -418,16 +424,41 @@ const AITools = () => {
 
   const handleToggleTask = async (calId, taskId, currentStatus) => {
     const nextStatus = currentStatus === "pending" ? "completed" : "pending";
+    // Optimistic update first for responsive UI
+    setActiveCalendars((prev) =>
+      prev.map((c) => {
+        if (c._id !== calId) return c;
+        return {
+          ...c,
+          tasks: c.tasks.map((task) =>
+            task._id === taskId ? { ...task, status: nextStatus } : task
+          )
+        };
+      })
+    );
     try {
       const res = await api.patch(`/crop-calendar/${calId}/task`, {
         taskId,
         status: nextStatus
       });
+      // Sync with server response
       setActiveCalendars((prev) =>
         prev.map((c) => (c._id === calId ? res.data : c))
       );
     } catch (err) {
       console.error(err);
+      // Revert optimistic update on error
+      setActiveCalendars((prev) =>
+        prev.map((c) => {
+          if (c._id !== calId) return c;
+          return {
+            ...c,
+            tasks: c.tasks.map((task) =>
+              task._id === taskId ? { ...task, status: currentStatus } : task
+            )
+          };
+        })
+      );
     }
   };
 
@@ -473,12 +504,15 @@ const AITools = () => {
     return Math.round((completed / cal.tasks.length) * 100);
   };
 
-  // Lifecycle stepper calculation
+  // Lifecycle stepper calculation — fixed day calculation to avoid timezone "0 days" bug
   const getCropLifecycleStage = (cal) => {
-    if (!cal) return { stage: "Nursery", progress: 0 };
-    const sowing = new Date(cal.sowingDate);
+    if (!cal) return { stage: "Nursery", progress: 0, daysElapsed: 0, stages: [] };
+    // Parse sowing date at midnight local time to avoid timezone offset issues
+    const sowingRaw = new Date(cal.sowingDate);
+    const sowing = new Date(sowingRaw.getFullYear(), sowingRaw.getMonth(), sowingRaw.getDate());
     const today = new Date();
-    const daysElapsed = Math.max(0, Math.floor((today - sowing) / (1000 * 60 * 60 * 24)));
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const daysElapsed = Math.max(0, Math.floor((todayMidnight - sowing) / (1000 * 60 * 60 * 24)));
 
     let stages = [];
     if (cal.cropName === "Tomato") {
@@ -537,14 +571,16 @@ const AITools = () => {
     return `${month}/${day}/${year}`;
   };
 
-  // Helper to format date offset strings
+  // Helper to format date offset strings — fixed day calculation
   const getRelativeDateString = (targetDateStr) => {
+    if (!targetDateStr) return "";
     const target = new Date(targetDateStr);
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    target.setHours(0, 0, 0, 0);
+    // Normalize both to midnight UTC to avoid timezone drift
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const targetMidnight = new Date(target.getFullYear(), target.getMonth(), target.getDate());
     
-    const diffTime = target - today;
+    const diffTime = targetMidnight.getTime() - todayMidnight.getTime();
     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
     
     if (diffDays === 0) return language === 'mr' ? "आज" : "Today";
@@ -598,7 +634,7 @@ const AITools = () => {
                 onChange={(e) => setDiseaseCropHint(e.target.value)}
               >
                 {Object.keys(CROP_NPK_TARGETS).map(crop => (
-                  <option key={crop} value={crop}>{crop}</option>
+                  <option key={crop} value={crop}>{CROP_NPK_TARGETS[crop].name}</option>
                 ))}
               </select>
 
@@ -862,8 +898,8 @@ const AITools = () => {
               <form onSubmit={handleCalculateIrrigation}>
                 <label style={{ fontWeight: 600, fontSize: 13 }}>{t("selectCrop")}</label>
                 <select className="input" value={irrCrop} onChange={(e) => setIrrCrop(e.target.value)}>
-                  {Object.keys(CROP_NPK_TARGETS).map(crop => (
-                    <option key={crop} value={crop}>{CROP_NPK_TARGETS[crop].name}</option>
+                  {Object.keys(CROP_NPK_TARGETS_EXTENDED).map(crop => (
+                    <option key={crop} value={crop}>{CROP_NPK_TARGETS_EXTENDED[crop].name}</option>
                   ))}
                   <option value="Sugarcane">Sugarcane</option>
                   <option value="Onion">Onion</option>
@@ -965,8 +1001,8 @@ const AITools = () => {
                   <div>
                     <label style={{ fontWeight: 600, fontSize: 13 }}>{language === 'mr' ? 'निवडलेले पीक' : 'Target Crop'}</label>
                     <select className="input" value={fertCrop} onChange={(e) => { setFertCrop(e.target.value); setFertResult(null); }}>
-                      {Object.keys(CROP_NPK_TARGETS).map(crop => (
-                        <option key={crop} value={crop}>{language === 'mr' ? t(crop) : CROP_NPK_TARGETS[crop].name}</option>
+                      {Object.keys(CROP_NPK_TARGETS_EXTENDED).map(crop => (
+                        <option key={crop} value={crop}>{language === 'mr' ? t(crop) : CROP_NPK_TARGETS_EXTENDED[crop].name}</option>
                       ))}
                       <option value="Other">{language === 'mr' ? 'इतर (नाव टाइप करा)' : 'Other (Type name...)'}</option>
                     </select>
@@ -1009,7 +1045,7 @@ const AITools = () => {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingBottom: 12 }}>
                     <span style={{ fontSize: 11, background: "var(--bg-main)", padding: "8px 10px", borderRadius: 8, textAlign: "center", color: "var(--text-muted)" }}>
-                      Target pH: <strong>{CROP_NPK_TARGETS[fertCrop]?.ph || "6.0 - 7.0"}</strong>
+                      Target pH: <strong>{CROP_NPK_TARGETS_EXTENDED[fertCrop]?.ph || "6.0 - 7.0"}</strong>
                     </span>
                   </div>
                 </div>
@@ -1018,7 +1054,7 @@ const AITools = () => {
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <label style={{ fontWeight: 600, fontSize: 13 }}>Nitrogen (N): <strong>{fertN} kg/ha</strong></label>
-                    <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Target: {CROP_NPK_TARGETS[fertCrop]?.n || 100}</span>
+                    <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Target: {CROP_NPK_TARGETS_EXTENDED[fertCrop]?.n || 100}</span>
                   </div>
                   <input
                     type="range"
@@ -1033,7 +1069,7 @@ const AITools = () => {
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <label style={{ fontWeight: 600, fontSize: 13 }}>Phosphorus (P): <strong>{fertP} kg/ha</strong></label>
-                    <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Target: {CROP_NPK_TARGETS[fertCrop]?.p || 50}</span>
+                    <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Target: {CROP_NPK_TARGETS_EXTENDED[fertCrop]?.p || 50}</span>
                   </div>
                   <input
                     type="range"
@@ -1048,7 +1084,7 @@ const AITools = () => {
                 <div style={{ marginBottom: 16 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <label style={{ fontWeight: 600, fontSize: 13 }}>Potassium (K): <strong>{fertK} kg/ha</strong></label>
-                    <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Target: {CROP_NPK_TARGETS[fertCrop]?.k || 60}</span>
+                    <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Target: {CROP_NPK_TARGETS_EXTENDED[fertCrop]?.k || 60}</span>
                   </div>
                   <input
                     type="range"
@@ -1210,8 +1246,8 @@ const AITools = () => {
               <form onSubmit={handleCreateCalendar}>
                 <label style={{ fontWeight: 600, fontSize: 13 }}>{t("selectCrop")}</label>
                 <select className="input" value={calCrop} onChange={(e) => { setCalCrop(e.target.value); if (e.target.value !== "Other") setCalCustomCrop(""); }}>
-                  {Object.keys(CROP_NPK_TARGETS).map(crop => (
-                    <option key={crop} value={crop}>{language === 'mr' ? t(crop) : CROP_NPK_TARGETS[crop].name}</option>
+                  {Object.keys(CROP_NPK_TARGETS_EXTENDED).map(crop => (
+                    <option key={crop} value={crop}>{language === 'mr' ? t(crop) : CROP_NPK_TARGETS_EXTENDED[crop].name}</option>
                   ))}
                   <option value="Other">{language === 'mr' ? 'इतर (नाव टाइप करा)' : 'Other (Type name...)'}</option>
                 </select>
@@ -1264,16 +1300,19 @@ const AITools = () => {
                         cursor: "pointer",
                         display: "flex",
                         justifyContent: "space-between",
-                        alignItems: "center"
+                        alignItems: "center",
+                        transition: "all 0.2s"
                       }}
                     >
-                      <div>
-                        <strong style={{ fontSize: 14, color: "var(--text-dark)" }}>{cal.cropName === "Other" ? (cal.customCropName || "Custom Crop") : t(cal.cropName)}</strong>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <strong style={{ fontSize: 14, color: "var(--text-dark)", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {cal.cropName === "Other" ? (cal.customCropName || "Custom Crop") : t(cal.cropName)}
+                        </strong>
                         <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
                           {language === 'mr' ? "पेरणीची तारीख" : "Sown"}: {new Date(cal.sowingDate).toLocaleDateString()}
                         </div>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                         <span style={{ fontSize: 12, fontWeight: 700, color: "var(--primary)" }}>
                           {getProgressPercent(cal)}%
                         </span>
@@ -1288,8 +1327,10 @@ const AITools = () => {
                             border: "none",
                             color: "#ef4444",
                             cursor: "pointer",
-                            fontSize: 14
+                            fontSize: 14,
+                            padding: "2px 4px"
                           }}
+                          title="Delete calendar"
                         >
                           🗑️
                         </button>

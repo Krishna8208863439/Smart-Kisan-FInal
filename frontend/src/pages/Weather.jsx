@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import api from "../api";
 
 // Wind direction helper
@@ -21,6 +21,87 @@ const POPULAR_CITIES = [
   "Kolkata", "Pune", "Ahmedabad", "Jaipur", "Lucknow",
   "Bhopal", "Patna", "Chandigarh", "Nagpur", "Indore"
 ];
+
+// Client-side farming advisory generator based on forecast day data
+function generateDayFarmingAdvice(dayData) {
+  if (!dayData) return [];
+  const tips = [];
+  const maxTemp = dayData.maxTemp;
+  const minTemp = dayData.minTemp;
+  const rainChance = dayData.rainChance || 0;
+  const rainfall = parseFloat(dayData.rainfall) || 0;
+  const wind = dayData.maxWind || 0;
+  const uv = dayData.uvIndex || 0;
+
+  // Rain-based advice
+  if (rainChance > 70 || rainfall > 10) {
+    tips.push({
+      icon: "🌧️", type: "warning", title: "Heavy Rain Expected",
+      text: `${rainChance}% chance of rain with ${rainfall}mm expected. Suspend irrigation and postpone fertilizer application. Clear field drainage channels to prevent waterlogging.`
+    });
+  } else if (rainChance > 40) {
+    tips.push({
+      icon: "⛈️", type: "warning", title: "Moderate Rain Possible",
+      text: `${rainChance}% rain probability. Skip irrigation for this day. Delay pesticide spraying — chemical drift and wash-off risk is high.`
+    });
+  } else if (rainChance < 15 && rainfall === 0) {
+    tips.push({
+      icon: "💧", type: "info", title: "Good Day to Irrigate",
+      text: "Low rain probability. Good conditions for scheduled irrigation. Water early morning to minimize evaporation losses."
+    });
+  }
+
+  // Temperature-based advice
+  if (maxTemp > 38) {
+    tips.push({
+      icon: "🔥", type: "danger", title: "Heat Stress Alert",
+      text: `Max temperature ${maxTemp}°C. Irrigate crops in early morning or late evening. Apply mulching around root zones to retain moisture and reduce soil temperature.`
+    });
+  } else if (minTemp < 8) {
+    tips.push({
+      icon: "❄️", type: "info", title: "Cold Stress Risk",
+      text: `Min temperature ${minTemp}°C. Cover seedlings and nursery beds overnight. Light irrigation before frost protects crop roots from cold damage.`
+    });
+  } else if (maxTemp >= 20 && maxTemp <= 30) {
+    tips.push({
+      icon: "✅", type: "success", title: "Optimal Growing Conditions",
+      text: `Temperature range ${minTemp}°C - ${maxTemp}°C is ideal for most crops. Excellent day for transplanting, sowing, and field operations.`
+    });
+  }
+
+  // Wind advice
+  if (wind > 40) {
+    tips.push({
+      icon: "💨", type: "warning", title: "High Wind Warning",
+      text: `Wind speed up to ${wind} km/h. Avoid pesticide and fertilizer spraying — chemical drift risk. Support tall crops like maize and sugarcane with stakes.`
+    });
+  }
+
+  // UV index
+  if (uv >= 8) {
+    tips.push({
+      icon: "☀️", type: "info", title: "High UV Index",
+      text: `UV Index ${uv} (Very High). Field work recommended before 11 AM or after 4 PM. Wear protective clothing and stay hydrated.`
+    });
+  }
+
+  // Harvest suitability
+  if (rainChance < 20 && maxTemp >= 25 && maxTemp <= 35 && wind < 30) {
+    tips.push({
+      icon: "🌾", type: "success", title: "Excellent Harvest Conditions",
+      text: "Low rain risk, moderate temperature, and calm winds make this an ideal day for harvesting, threshing, and drying harvested produce."
+    });
+  }
+
+  if (tips.length === 0) {
+    tips.push({
+      icon: "🌾", type: "success", title: "Good Day for Farm Work",
+      text: "Weather conditions look favorable. Suitable for general field activities including weeding, earthing-up, and crop inspection."
+    });
+  }
+
+  return tips;
+}
 
 const Weather = () => {
   const [location, setLocation] = useState("");
@@ -101,8 +182,18 @@ const Weather = () => {
   const curr = data?.current;
   const forecast = data?.forecast || [];
   const hourly = data?.hourly || [];
-  const farmingAdvice = data?.farmingAdvice || [];
   const selectedDay = forecast[activeDay];
+
+  // Dynamic farming advisory — updates whenever selected day changes
+  const farmingAdvice = useMemo(() => {
+    if (!data) return [];
+    if (activeDay === 0) {
+      // Use server-generated advice for today (current conditions)
+      return data.farmingAdvice || [];
+    }
+    // Generate client-side advice for future forecast days
+    return generateDayFarmingAdvice(selectedDay);
+  }, [data, activeDay, selectedDay]);
 
   return (
     <div className="app-container">
@@ -306,9 +397,16 @@ const Weather = () => {
           {/* Farming Advisory Section */}
           {farmingAdvice.length > 0 && (
             <div className="card" style={{ marginBottom: 24 }}>
-              <h3 style={{ marginBottom: 16, fontWeight: 800 }}>🌾 Farming Advisory</h3>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <h3 style={{ fontWeight: 800 }}>🌾 Farming Advisory</h3>
+                <span style={{ fontSize: 12, background: "var(--primary-light)", color: "var(--primary-hover)", padding: "3px 10px", borderRadius: 12, fontWeight: 700 }}>
+                  {selectedDay ? selectedDay.dayName : "Today"}
+                </span>
+              </div>
               <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>
-                AI-generated crop management tips based on current weather conditions.
+                {activeDay === 0
+                  ? "AI-generated crop management tips based on current weather conditions."
+                  : `Forecast-based farming recommendations for ${selectedDay?.dayName || "this day"}.`}
               </p>
               <div className="weather-advice-grid">
                 {farmingAdvice.map((tip, i) => (

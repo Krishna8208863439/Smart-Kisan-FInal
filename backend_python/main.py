@@ -21,6 +21,7 @@ except ImportError:
 
 from database import init_db, get_db, DiseaseReport, CropLog, WeatherCache, User, PushSubscription, EmergencyAlert, CommunityOfficer, CommunityWebinar, GovernmentScheme, seed_db
 from ml_model import predict_image, get_gemini_api_key
+from use_dataset_for_disease_detection import register_dataset_routes, get_dataset_stats, load_dataset_classes
 
 # Global crop recommendation model data
 crop_model_data = None
@@ -56,6 +57,19 @@ def startup_event():
     seed_db()
     print("[Server] Database initialized successfully and seeded.")
     
+    # Register dataset routes for PlantVillage disease data
+    register_dataset_routes(app)
+    
+    # Log dataset status on startup
+    try:
+        ds_stats = get_dataset_stats()
+        if ds_stats["dataset_found"]:
+            print(f"[Server] PlantVillage dataset loaded: {ds_stats['total_classes']} classes, {ds_stats['total_images']} images.")
+        else:
+            print("[Server] PlantVillage dataset not found. Using API + static fallback for disease detection.")
+    except Exception as e:
+        print(f"[Server] Dataset check error: {e}")
+    
     # Train or load crop recommendation model
     model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "crop_recommendation_model.pkl")
     if not os.path.exists(model_path):
@@ -78,6 +92,71 @@ def startup_event():
 @app.get("/api/health")
 def health_check():
     return {"status": "healthy", "service": "Smart Kisan Python API", "timestamp": datetime.utcnow().isoformat()}
+
+
+# --- Dataset-aware Disease Analysis endpoint ---
+@app.post("/api/dataset/analyze-from-dataset")
+async def analyze_with_dataset_context(
+    image: UploadFile = File(...),
+    crop: Optional[str] = Form(None),
+    x_gemini_key: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Analyze a crop disease image using the local PlantVillage dataset for context.
+    Falls back to Gemini Vision → HuggingFace → Dataset-backed static advice.
+    """
+    if not image.content_type.startswith("image/"):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="File must be an image.")
+
+    # Save file
+    file_ext = os.path.splitext(image.filename)[1]
+    unique_filename = f"leaf_{int(datetime.utcnow().timestamp())}_{image.filename}"
+    file_path = os.path.join(UPLOAD_DIR, unique_filename)
+    with open(file_path, "wb") as buffer:
+        import shutil
+        shutil.copyfileobj(image.file, buffer)
+    image_url = f"/uploads/{unique_filename}"
+
+    with open(file_path, "rb") as f:
+        img_bytes = f.read()
+
+    # Run prediction using ml_model pipeline
+    prediction = predict_image(img_bytes, crop_hint=crop, filename=image.filename, custom_key=x_gemini_key)
+
+    # Save to DB
+    report = DiseaseReport(
+        user_id=None,
+        crop=prediction["crop"],
+        disease=prediction["disease"],
+        severity=prediction["severity"],
+        confidence=prediction["confidence"],
+        advice=prediction["advice"],
+        image_url=image_url,
+        region="Dataset Analysis"
+    )
+    db.add(report)
+    db.commit()
+    db.refresh(report)
+
+    # Load dataset classes to enrich response
+    dataset_classes = load_dataset_classes()
+
+    return {
+        "success": True,
+        "report_id": report.id,
+        "crop": report.crop,
+        "disease": report.disease,
+        "severity": report.severity,
+        "confidence": report.confidence,
+        "advice": report.advice,
+        "imageUrl": report.image_url,
+        "ai_model": prediction.get("model", "ML Pipeline"),
+        "gemini_powered": prediction.get("gemini_powered", False),
+        "dataset_classes_available": len(dataset_classes),
+        "dataset_integrated": True
+    }
 
 # --- MODULE A: AI Disease Diagnosis (Computer Vision) ---
 @app.post("/api/diagnose", status_code=status.HTTP_201_CREATED)

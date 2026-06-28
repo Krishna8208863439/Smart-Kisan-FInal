@@ -911,6 +911,21 @@ def _parse_hf_label(hf_label: str, confidence: float, crop_hint: str = None) -> 
 
     meta = DISEASE_METADATA.get(matched_key)
     if not meta:
+        # Try dataset-backed metadata as a secondary source
+        try:
+            from use_dataset_for_disease_detection import predict_from_dataset, DATASET_DISEASE_METADATA
+            ds_result = predict_from_dataset(matched_key, confidence)
+            if ds_result:
+                return {
+                    "disease":    ds_result["disease"],
+                    "crop":       ds_result["crop"],
+                    "severity":   ds_result["severity"],
+                    "confidence": round(confidence, 3),
+                    "advice":     ds_result["advice"],
+                    "hf_label":   hf_label,
+                }
+        except ImportError:
+            pass
         return None
 
     return {
@@ -930,8 +945,33 @@ def _parse_hf_label(hf_label: str, confidence: float, crop_hint: str = None) -> 
 def predict_via_static_fallback(crop_hint: str = None, filename: str = None) -> dict:
     """
     Last resort fallback. Uses crop_hint and filename keywords to return the crop's disease.
+    Also integrates the local PlantVillage dataset metadata for enriched results.
     NEVER defaults to Tomato if a different crop is hinted.
     """
+    # First try dataset-backed metadata
+    try:
+        from use_dataset_for_disease_detection import (
+            DATASET_DISEASE_METADATA,
+            predict_from_dataset
+        )
+        # Try to match crop_hint against dataset class names
+        crop_lower = (crop_hint or "").lower().strip()
+        file_lower = (filename or "").lower().strip()
+        combined = f"{crop_lower} {file_lower}"
+
+        for class_name, meta in DATASET_DISEASE_METADATA.items():
+            crop_key = class_name.split("___")[0].lower().replace("_", " ")
+            disease_key = class_name.split("___")[1].lower().replace("_", " ") if "___" in class_name else ""
+            if crop_key and crop_key in combined:
+                # Match on disease keyword in filename if possible
+                if disease_key and any(w in file_lower for w in disease_key.split() if len(w) > 3):
+                    return predict_from_dataset(class_name, confidence=0.76)
+                # Otherwise use first disease for this crop (skip healthy)
+                if "healthy" not in class_name.lower():
+                    return predict_from_dataset(class_name, confidence=0.60)
+    except ImportError:
+        pass  # dataset module not available, fall through to local dict
+
     crop_lower = (crop_hint or "").lower().strip()
     file_lower = (filename or "").lower().strip()
 

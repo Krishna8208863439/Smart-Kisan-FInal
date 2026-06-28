@@ -849,8 +849,6 @@ const KisanChat = () => {
               </button>
             </div>
           )}
-
-          {/* Input Area */}
           <div className="chat-input-area">
             {activeMode === "diagnostics" && (
               <>
@@ -866,9 +864,9 @@ const KisanChat = () => {
                   className="button button-secondary"
                   style={{ margin: 0, padding: "10px 14px", display: "flex", alignItems: "center", gap: 4 }}
                   onClick={() => fileInputRef.current?.click()}
-                  title={ui.imageUpload}
+                  title="Upload crop image"
                 >
-                  📷 {ui.uploadBtn}
+                  {ui.uploadBtn}
                 </button>
               </>
             )}

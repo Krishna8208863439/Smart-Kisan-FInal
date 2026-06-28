@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-route
 import { useEffect, useState } from "react";
 import Navbar from "./components/Navbar";
 import BottomNav from "./components/BottomNav";
-import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -54,6 +53,7 @@ const App = () => {
           <OfflineBar />
           <Routes>
             <Route path="/" element={<RootRoute />} />
+            <Route path="/home" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
             <Route path="/weather" element={<ProtectedRoute><Weather /></ProtectedRoute>} />
