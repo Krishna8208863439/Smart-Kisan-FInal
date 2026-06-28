@@ -130,8 +130,7 @@ const Marketplace = () => {
   const [selectedCategory, setSelectedCategory] = useState("All Products");
   const [sortBy, setSortBy] = useState("popular");
   
-  // Stock filter
-  const [showInStockOnly, setShowInStockOnly] = useState(false);
+
 
   // Uploading state
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -269,11 +268,6 @@ const Marketplace = () => {
       );
     }
 
-    // Availability filter
-    if (showInStockOnly) {
-      list = list.filter((p) => p.stock === "In Stock");
-    }
-
     if (sortBy === "price-low") {
       list.sort((a, b) => a.price - b.price);
     } else if (sortBy === "price-high") {
@@ -283,7 +277,7 @@ const Marketplace = () => {
     }
 
     return list;
-  }, [products, search, selectedCategory, sortBy, showInStockOnly]);
+  }, [products, search, selectedCategory, sortBy]);
 
   // Cart actions
   const handleAddToCart = (product, e) => {
@@ -604,32 +598,7 @@ const Marketplace = () => {
             )}
           </div>
 
-          {/* Detailed Filters Row */}
-          <div 
-            style={{ 
-              display: "flex", 
-              gap: 16, 
-              alignItems: "center", 
-              margin: "-12px 0 24px 0",
-              flexWrap: "wrap",
-              background: "var(--bg-card)",
-              padding: "12px 16px",
-              borderRadius: 12,
-              border: "1px solid var(--border-color)",
-              animation: "fadeIn 0.2s ease"
-            }}
-          >
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dark)", display: "flex", alignItems: "center", gap: 4 }}>⚙️ Filters:</span>
-            
-            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, cursor: "pointer", userSelect: "none", color: "var(--text-dark)", fontWeight: 600 }}>
-              <input
-                type="checkbox"
-                checked={showInStockOnly}
-                onChange={(e) => setShowInStockOnly(e.target.checked)}
-              />
-              Show In Stock Only
-            </label>
-          </div>
+
 
           {/* Sell Form */}
           {showSellForm && (
