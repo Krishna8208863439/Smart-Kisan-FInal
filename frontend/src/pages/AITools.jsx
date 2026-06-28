@@ -6,7 +6,12 @@ const TABS = ["Disease Detection", "Irrigation", "Fertilizer / NPK", "Smart Cale
 
 const CROP_NPK_TARGETS = {
   Tomato: { n: 120, p: 60, k: 60, ph: "6.0 - 7.0", name: "Tomato" },
-  Paddy: { n: 100, p: 40, k: 40, ph: "5.5 - 6.5", name: "Paddy / Rice" }
+  Paddy: { n: 100, p: 40, k: 40, ph: "5.5 - 6.5", name: "Paddy / Rice" },
+  Wheat: { n: 120, p: 60, k: 40, ph: "6.0 - 7.0", name: "Wheat" },
+  Potato: { n: 150, p: 80, k: 120, ph: "5.2 - 6.4", name: "Potato" },
+  Mustard: { n: 80, p: 40, k: 40, ph: "6.0 - 7.5", name: "Mustard" },
+  Chilli: { n: 100, p: 60, k: 60, ph: "6.0 - 7.0", name: "Chilli" },
+  Cotton: { n: 120, p: 60, k: 60, ph: "6.0 - 7.5", name: "Cotton" }
 };
 
 const SOIL_DRY_DRAIN = {
@@ -961,7 +966,7 @@ const AITools = () => {
                     <label style={{ fontWeight: 600, fontSize: 13 }}>{language === 'mr' ? 'निवडलेले पीक' : 'Target Crop'}</label>
                     <select className="input" value={fertCrop} onChange={(e) => { setFertCrop(e.target.value); setFertResult(null); }}>
                       {Object.keys(CROP_NPK_TARGETS).map(crop => (
-                        <option key={crop} value={crop}>{CROP_NPK_TARGETS[crop].name}</option>
+                        <option key={crop} value={crop}>{language === 'mr' ? t(crop) : CROP_NPK_TARGETS[crop].name}</option>
                       ))}
                       <option value="Other">{language === 'mr' ? 'इतर (नाव टाइप करा)' : 'Other (Type name...)'}</option>
                     </select>

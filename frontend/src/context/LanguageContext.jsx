@@ -10,6 +10,7 @@ const LanguageContext = createContext({
 const TRANSLATIONS = {
   en: {
     // Navbar
+    title: "Smart Kisan",
     home: "Home",
     dashboard: "Dashboard",
     chat: "🤖 Chat",
@@ -260,6 +261,7 @@ const TRANSLATIONS = {
   },
   mr: {
     // Navbar
+    title: "स्मार्ट किसान",
     home: "मुख्यपृष्ठ",
     dashboard: "डॅशबोर्ड",
     chat: "🤖 गप्पा",

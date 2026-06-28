@@ -176,7 +176,7 @@ const Navbar = () => {
               onClick={toggleLanguage}
               style={{ gap: 8, fontSize: 14 }}
             >
-              🌐 {language === 'en' ? 'मराठी' : language === 'mr' ? 'हिंदी' : 'English'}
+              🌐 {language === 'en' ? 'मराठी' : 'English'}
             </button>
 
             <button

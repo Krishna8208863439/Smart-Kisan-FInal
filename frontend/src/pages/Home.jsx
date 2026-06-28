@@ -245,21 +245,6 @@ const Home = () => {
               </button>
             )}
           </div>
-
-          {/* Stats Row */}
-          <div style={{ display: "flex", gap: 24, marginTop: 32, flexWrap: "wrap" }}>
-            {[
-              { value: "15,000+", label: language === 'en' ? "Farmers" : "शेतकरी" },
-              { value: "94.2%", label: language === 'en' ? "AI Accuracy" : "एआय अचूकता" },
-              { value: "₹0", label: language === 'en' ? "Commission" : "कमिशन" },
-              { value: "500+ Tons", label: language === 'en' ? "Traded" : "व्यापार" },
-            ].map((s, i) => (
-              <div key={i} style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 22, fontWeight: 900, color: "#86efac" }}>{s.value}</div>
-                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.65)", fontWeight: 600 }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
