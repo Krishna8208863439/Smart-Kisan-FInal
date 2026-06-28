@@ -66,9 +66,9 @@ const Navbar = () => {
               onClick={toggleLanguage}
               aria-label="Toggle language"
               style={{ fontWeight: 800, minWidth: 72, justifyContent: 'center', fontSize: 13 }}
-              title={language === 'en' ? 'Switch to Marathi' : language === 'mr' ? 'Switch to Hindi' : 'Switch to English'}
+              title={language === 'en' ? 'Switch to Marathi' : 'Switch to English'}
             >
-              {language === 'en' ? '🌐 मराठी' : language === 'mr' ? '🌐 हिंदी' : '🌐 EN'}
+              {language === 'en' ? '🌐 मराठी' : '🌐 EN'}
             </button>
 
             {/* Dark Mode Toggle */}

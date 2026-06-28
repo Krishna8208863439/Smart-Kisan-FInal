@@ -13,6 +13,7 @@ const cropCalendarSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     cropName: { type: String, required: true },
+    customCropName: { type: String, default: "" },
     sowingDate: { type: Date, required: true },
     tasks: [calendarTaskSchema]
   },

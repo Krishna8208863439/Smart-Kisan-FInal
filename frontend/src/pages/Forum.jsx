@@ -363,19 +363,6 @@ const Forum = () => {
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
         />
-        <button
-          onClick={() => setShowSchemeForm(!showSchemeForm)}
-          style={{
-            background: showSchemeForm ? "#dc2626" : "#16a34a",
-            color: "white", border: "none", borderRadius: 10,
-            padding: "10px 18px", fontSize: 14, fontWeight: 700,
-            cursor: "pointer", whiteSpace: "nowrap"
-          }}
-        >
-          {showSchemeForm
-            ? (language === "mr" ? "✕ बंद" : "✕ Close")
-            : (language === "mr" ? "+ योजना जोडा" : "+ Add Scheme")}
-        </button>
       </div>
 
       {/* Category Filters */}
@@ -397,54 +384,7 @@ const Forum = () => {
         ))}
       </div>
 
-      {/* Add Scheme Form */}
-      {showSchemeForm && (
-        <form onSubmit={handleAddScheme} className="card" style={{ border: "2px solid #16a34a", marginBottom: 24 }}>
-          <h3 style={{ color: "var(--primary)", marginBottom: 16 }}>
-            🏛️ {language === "mr" ? "नवीन सरकारी योजना जोडा" : "Add New Government Scheme"}
-          </h3>
-          {schemeError && (
-            <div style={{ color: "#dc2626", background: "#fef2f2", padding: "10px 14px", borderRadius: 8, fontSize: 13, marginBottom: 12 }}>
-              ⚠️ {schemeError}
-            </div>
-          )}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
-            <div>
-              <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Scheme Title (English) *</label>
-              <input type="text" className="input" required placeholder="e.g. PM Kisan Samman Nidhi" value={schemeTitleEn} onChange={e => setSchemeTitleEn(e.target.value)} />
-            </div>
-            <div>
-              <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>योजनेचे नाव (मराठी) *</label>
-              <input type="text" className="input" required placeholder="उदा. पीएम किसान सन्मान निधी" value={schemeTitleMr} onChange={e => setSchemeTitleMr(e.target.value)} />
-            </div>
-            <div style={{ gridColumn: "1 / -1" }}>
-              <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Description (English) *</label>
-              <textarea className="input" required rows={2} placeholder="Brief description of this scheme..." value={schemeDescEn} onChange={e => setSchemeDescEn(e.target.value)} />
-            </div>
-            <div style={{ gridColumn: "1 / -1" }}>
-              <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>वर्णन (मराठी) *</label>
-              <textarea className="input" required rows={2} placeholder="या योजनेचे थोडक्यात वर्णन..." value={schemeDescMr} onChange={e => setSchemeDescMr(e.target.value)} />
-            </div>
-            <div>
-              <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Category</label>
-              <select className="input" value={schemeCategory} onChange={e => setSchemeCategory(e.target.value)}>
-                {categories.filter(c => c !== "All").map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Benefit Summary</label>
-              <input type="text" className="input" placeholder="e.g. ₹6,000/year" value={schemeBenefit} onChange={e => setSchemeBenefit(e.target.value)} />
-            </div>
-            <div style={{ gridColumn: "1 / -1" }}>
-              <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>Portal Link / Application URL *</label>
-              <input type="url" className="input" required placeholder="https://pmkisan.gov.in" value={schemeUrl} onChange={e => setSchemeUrl(e.target.value)} />
-            </div>
-          </div>
-          <button type="submit" className="button" style={{ width: "100%", marginTop: 16, background: "#16a34a" }} disabled={schemeSubmitting}>
-            {schemeSubmitting ? (language === "mr" ? "जतन करत आहे..." : "Saving...") : (language === "mr" ? "योजना जतन करा 🏛️" : "Save Scheme 🏛️")}
-          </button>
-        </form>
-      )}
+
 
       {/* Schemes Grid */}
       {schemesLoading ? (

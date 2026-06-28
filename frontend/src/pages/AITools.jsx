@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
 
-const TABS = ["Disease Detection", "Irrigation", "Fertilizer / NPK", "Smart Calendar", "Crop Q&A Assistant"];
+const TABS = ["Disease Detection", "Irrigation", "Fertilizer / NPK", "Smart Calendar"];
 
 const CROP_NPK_TARGETS = {
   Tomato: { n: 120, p: 60, k: 60, ph: "6.0 - 7.0", name: "Tomato" },
@@ -104,6 +104,7 @@ const AITools = () => {
 
   // State: Smart Calendar
   const [calCrop, setCalCrop] = useState("Tomato");
+  const [calCustomCrop, setCalCustomCrop] = useState("");
   const [calDate, setCalDate] = useState(new Date().toISOString().split("T")[0]);
   const [activeCalendars, setActiveCalendars] = useState([]);
   const [selectedCalId, setSelectedCalId] = useState(null);
@@ -396,10 +397,12 @@ const AITools = () => {
     try {
       const res = await api.post("/crop-calendar", {
         cropName: calCrop,
+        customCropName: calCustomCrop,
         sowingDate: calDate
       });
       setActiveCalendars((prev) => [res.data, ...prev]);
       setSelectedCalId(res.data._id);
+      setCalCustomCrop("");
     } catch (err) {
       console.error(err);
       alert("Failed to generate calendar. Make sure you are logged in.");
@@ -1001,7 +1004,7 @@ const AITools = () => {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingBottom: 12 }}>
                     <span style={{ fontSize: 11, background: "var(--bg-main)", padding: "8px 10px", borderRadius: 8, textAlign: "center", color: "var(--text-muted)" }}>
-                      Target pH: <strong>{CROP_NPK_TARGETS[fertCrop].ph}</strong>
+                      Target pH: <strong>{CROP_NPK_TARGETS[fertCrop]?.ph || "6.0 - 7.0"}</strong>
                     </span>
                   </div>
                 </div>
@@ -1010,7 +1013,7 @@ const AITools = () => {
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <label style={{ fontWeight: 600, fontSize: 13 }}>Nitrogen (N): <strong>{fertN} kg/ha</strong></label>
-                    <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Target: {CROP_NPK_TARGETS[fertCrop].n}</span>
+                    <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Target: {CROP_NPK_TARGETS[fertCrop]?.n || 100}</span>
                   </div>
                   <input
                     type="range"
@@ -1025,7 +1028,7 @@ const AITools = () => {
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <label style={{ fontWeight: 600, fontSize: 13 }}>Phosphorus (P): <strong>{fertP} kg/ha</strong></label>
-                    <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Target: {CROP_NPK_TARGETS[fertCrop].p}</span>
+                    <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Target: {CROP_NPK_TARGETS[fertCrop]?.p || 50}</span>
                   </div>
                   <input
                     type="range"
@@ -1040,7 +1043,7 @@ const AITools = () => {
                 <div style={{ marginBottom: 16 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <label style={{ fontWeight: 600, fontSize: 13 }}>Potassium (K): <strong>{fertK} kg/ha</strong></label>
-                    <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Target: {CROP_NPK_TARGETS[fertCrop].k}</span>
+                    <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Target: {CROP_NPK_TARGETS[fertCrop]?.k || 60}</span>
                   </div>
                   <input
                     type="range"
@@ -1201,11 +1204,23 @@ const AITools = () => {
 
               <form onSubmit={handleCreateCalendar}>
                 <label style={{ fontWeight: 600, fontSize: 13 }}>{t("selectCrop")}</label>
-                <select className="input" value={calCrop} onChange={(e) => setCalCrop(e.target.value)}>
+                <select className="input" value={calCrop} onChange={(e) => { setCalCrop(e.target.value); if (e.target.value !== "Other") setCalCustomCrop(""); }}>
                   {Object.keys(CROP_NPK_TARGETS).map(crop => (
                     <option key={crop} value={crop}>{language === 'mr' ? t(crop) : CROP_NPK_TARGETS[crop].name}</option>
                   ))}
+                  <option value="Other">{language === 'mr' ? 'इतर (नाव टाइप करा)' : 'Other (Type name...)'}</option>
                 </select>
+                {calCrop === "Other" && (
+                  <input
+                    type="text"
+                    className="input"
+                    style={{ marginTop: 6 }}
+                    placeholder={language === 'mr' ? 'पिकाचे नाव लिहा...' : 'e.g. Soybean, Sunflower...'}
+                    value={calCustomCrop}
+                    onChange={e => setCalCustomCrop(e.target.value)}
+                    required
+                  />
+                )}
 
                 <label style={{ fontWeight: 600, fontSize: 13 }}>{t("sowingDate")}</label>
                 <input

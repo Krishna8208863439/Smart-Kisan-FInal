@@ -462,9 +462,6 @@ const KisanChat = () => {
             <button className="button" style={{ background: "#0d9488" }} onClick={() => handleLangSelect("en")}>
               English (English)
             </button>
-            <button className="button" style={{ background: "#16a34a" }} onClick={() => handleLangSelect("hi")}>
-              हिंदी (Hindi)
-            </button>
             <button className="button" style={{ background: "#d97706" }} onClick={() => handleLangSelect("mr")}>
               मराठी (Marathi)
             </button>
@@ -700,7 +697,6 @@ const KisanChat = () => {
               style={{ padding: 6, fontSize: 12, marginTop: 4, marginBottom: 12 }}
             >
               <option value="en">English</option>
-              <option value="hi">हिन्दी (Hindi)</option>
               <option value="mr">मराठी (Marathi)</option>
             </select>
             

@@ -75,8 +75,18 @@ import mimetypes
 os.environ['no_proxy'] = '127.0.0.1,localhost,krishna3114.pythonanywhere.com'
 os.environ['NO_PROXY'] = '127.0.0.1,localhost,krishna3114.pythonanywhere.com'
 
-NODE_PORT = 5050
-PYTHON_PORT = 31142
+def find_free_port():
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(('127.0.0.1', 0))
+    port = s.getsockname()[1]
+    s.close()
+    return port
+
+NODE_PORT = find_free_port()
+PYTHON_PORT = find_free_port()
+
+with open('/home/Krishna3114/active_ports.txt', 'w') as f:
+    f.write(f"NODE_PORT={NODE_PORT}\\nPYTHON_PORT={PYTHON_PORT}\\n")
 
 NODE_PATH = '/home/Krishna3114/.nvm/versions/node/v18.20.8/bin/node'
 SERVER_JS = '/home/Krishna3114/smart-kisan-backend/server.js'
@@ -107,9 +117,12 @@ if os.path.exists(backend_zip):
         with zipfile.ZipFile(backend_zip, 'r') as zip_ref:
             zip_ref.extractall('/home/Krishna3114/smart-kisan-backend')
         os.remove(backend_zip)
+        env = os.environ.copy()
+        env['PATH'] = '/home/Krishna3114/.nvm/versions/node/v18.20.8/bin:' + env.get('PATH', '')
         subprocess.run(
             ['/home/Krishna3114/.nvm/versions/node/v18.20.8/bin/npm', 'install', '--production'],
             cwd='/home/Krishna3114/smart-kisan-backend',
+            env=env,
             stdout=open('/home/Krishna3114/node_stdout.log', 'a'),
             stderr=open('/home/Krishna3114/node_stderr.log', 'a')
         )

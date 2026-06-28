@@ -1324,7 +1324,7 @@ label {
 
 .login-split-left {
   background-size: cover;
-  background-position: center center;
+  background-position: right center;
   background-repeat: no-repeat;
   color: white;
   padding: 48px;

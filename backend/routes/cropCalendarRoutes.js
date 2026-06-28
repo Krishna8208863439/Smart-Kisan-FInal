@@ -84,7 +84,7 @@ router.get("/", protect, async (req, res) => {
 // POST /api/crop-calendar
 router.post("/", protect, async (req, res) => {
   try {
-    const { cropName, sowingDate } = req.body;
+    const { cropName, customCropName, sowingDate } = req.body;
     if (!cropName || !sowingDate) {
       return res.status(400).json({ message: "Crop name and sowing date are required" });
     }
@@ -107,6 +107,7 @@ router.post("/", protect, async (req, res) => {
     const calendar = await CropCalendar.create({
       user: req.user._id,
       cropName,
+      customCropName: customCropName || "",
       sowingDate: startDate,
       tasks
     });

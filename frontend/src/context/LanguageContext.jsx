@@ -883,7 +883,7 @@ const TRANSLATIONS = {
 export const LanguageProvider = ({ children }) => {
   const [language, setLanguage] = useState(() => {
     const saved = localStorage.getItem('sk-lang');
-    return saved === 'mr' ? 'mr' : saved === 'hi' ? 'hi' : 'en';
+    return saved === 'mr' ? 'mr' : 'en';
   });
 
   useEffect(() => {
@@ -891,7 +891,7 @@ export const LanguageProvider = ({ children }) => {
   }, [language]);
 
   const toggleLanguage = () => {
-    setLanguage((prev) => (prev === 'en' ? 'mr' : prev === 'mr' ? 'hi' : 'en'));
+    setLanguage((prev) => (prev === 'en' ? 'mr' : 'en'));
   };
 
   const t = (key) => {
