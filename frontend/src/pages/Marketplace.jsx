@@ -419,7 +419,7 @@ const Marketplace = () => {
       alert("Product listed successfully in the Bazaar!");
     } catch (err) {
       console.error(err);
-      alert("Failed to submit listing. Make sure you are logged in.");
+      alert("Failed to submit listing: " + (err.response?.data?.message || err.message));
     } finally {
       setSellLoading(false);
     }
