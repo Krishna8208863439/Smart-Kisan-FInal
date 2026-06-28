@@ -422,36 +422,7 @@ const Weather = () => {
             </div>
           )}
 
-          {/* Sunrise/Sunset for Today */}
-          {forecast[0] && (
-            <div className="weather-sun-card card">
-              <div className="weather-sun-item">
-                <div style={{ fontSize: 36 }}>🌅</div>
-                <div className="weather-sun-label">Sunrise</div>
-                <div className="weather-sun-time">{forecast[0].sunrise}</div>
-              </div>
-              <div className="weather-sun-divider" />
-              <div className="weather-sun-item">
-                <div style={{ fontSize: 36 }}>🌇</div>
-                <div className="weather-sun-label">Sunset</div>
-                <div className="weather-sun-time">{forecast[0].sunset}</div>
-              </div>
-              <div className="weather-sun-divider" />
-              <div className="weather-sun-item">
-                <div style={{ fontSize: 36 }}>🌧️</div>
-                <div className="weather-sun-label">Today's Rainfall</div>
-                <div className="weather-sun-time">{forecast[0].rainfall} mm</div>
-              </div>
-              <div className="weather-sun-divider" />
-              <div className="weather-sun-item">
-                <div style={{ fontSize: 36 }}>☀️</div>
-                <div className="weather-sun-label">UV Index</div>
-                <div className="weather-sun-time" style={{ color: uvLabel(forecast[0].uvIndex).color }}>
-                  {forecast[0].uvIndex} · {uvLabel(forecast[0].uvIndex).label}
-                </div>
-              </div>
-            </div>
-          )}
+
 
           {/* Data Source Notice */}
           <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 12, marginTop: 8, marginBottom: 16 }}>

@@ -130,9 +130,7 @@ const Marketplace = () => {
   const [selectedCategory, setSelectedCategory] = useState("All Products");
   const [sortBy, setSortBy] = useState("popular");
   
-  // Price and stock filters
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
+  // Stock filter
   const [showInStockOnly, setShowInStockOnly] = useState(false);
 
   // Uploading state
@@ -271,16 +269,6 @@ const Marketplace = () => {
       );
     }
 
-    // Min price filter
-    if (minPrice !== "") {
-      list = list.filter((p) => p.price >= Number(minPrice));
-    }
-
-    // Max price filter
-    if (maxPrice !== "") {
-      list = list.filter((p) => p.price <= Number(maxPrice));
-    }
-
     // Availability filter
     if (showInStockOnly) {
       list = list.filter((p) => p.stock === "In Stock");
@@ -295,7 +283,7 @@ const Marketplace = () => {
     }
 
     return list;
-  }, [products, search, selectedCategory, sortBy, minPrice, maxPrice, showInStockOnly]);
+  }, [products, search, selectedCategory, sortBy, showInStockOnly]);
 
   // Cart actions
   const handleAddToCart = (product, e) => {
@@ -415,7 +403,7 @@ const Marketplace = () => {
         category: sellForm.category,
         price: Number(sellForm.price),
         unit: sellForm.unit,
-        image: "", // backend will use default image based on category
+        image: sellForm.image || "",
         description: detailedDesc
       });
 
@@ -633,30 +621,6 @@ const Marketplace = () => {
           >
             <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-dark)", display: "flex", alignItems: "center", gap: 4 }}>⚙️ Filters:</span>
             
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>Min Price (₹):</span>
-              <input
-                type="number"
-                className="input"
-                style={{ width: 80, padding: "6px 10px", margin: 0, fontSize: 12.5 }}
-                placeholder="Min"
-                value={minPrice}
-                onChange={(e) => setMinPrice(e.target.value)}
-              />
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>Max Price (₹):</span>
-              <input
-                type="number"
-                className="input"
-                style={{ width: 90, padding: "6px 10px", margin: 0, fontSize: 12.5 }}
-                placeholder="Max"
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
-              />
-            </div>
-
             <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, cursor: "pointer", userSelect: "none", color: "var(--text-dark)", fontWeight: 600 }}>
               <input
                 type="checkbox"
@@ -665,20 +629,6 @@ const Marketplace = () => {
               />
               Show In Stock Only
             </label>
-
-            {(minPrice !== "" || maxPrice !== "" || showInStockOnly) && (
-              <button 
-                className="button" 
-                style={{ padding: "4px 10px", fontSize: 11, margin: 0, background: "#ef4444" }}
-                onClick={() => {
-                  setMinPrice("");
-                  setMaxPrice("");
-                  setShowInStockOnly(false);
-                }}
-              >
-                Clear Filters
-              </button>
-            )}
           </div>
 
           {/* Sell Form */}
@@ -807,6 +757,70 @@ const Marketplace = () => {
                     value={sellForm.description}
                     onChange={(e) => setSellForm({ ...sellForm, description: e.target.value })}
                   />
+
+                  {/* Upload Image Section */}
+                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginTop: 12, marginBottom: 4 }}>
+                    {t("bazaarUploadImage")}
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageFileChange}
+                    style={{ marginBottom: 12, display: "block", fontSize: 13 }}
+                    disabled={uploadingImage}
+                  />
+                  {uploadingImage && (
+                    <div style={{ fontSize: 12, color: "var(--primary)", marginBottom: 10, fontWeight: 700 }}>
+                      {t("bazaarUploadingImage")}
+                    </div>
+                  )}
+
+                  <label style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 4 }}>
+                    {t("bazaarPhotoPreset")}
+                  </label>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "6px 0 12px 0" }}>
+                    {SAMPLE_IMAGES.map((img) => (
+                      <button
+                        key={img.label}
+                        type="button"
+                        style={{
+                          padding: "4px 8px",
+                          borderRadius: 6,
+                          border: "1px solid",
+                          borderColor: sellForm.image === img.url ? "var(--primary)" : "var(--border-color)",
+                          background: sellForm.image === img.url ? "var(--primary-light)" : "white",
+                          fontSize: 12,
+                          cursor: "pointer"
+                        }}
+                        onClick={() => setSellForm({ ...sellForm, image: img.url })}
+                      >
+                        {img.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder={t("bazaarCustomImageUrl")}
+                    value={sellForm.image}
+                    onChange={(e) => setSellForm({ ...sellForm, image: e.target.value })}
+                    style={{ marginBottom: 12 }}
+                  />
+
+                  {sellForm.image && (
+                    <div style={{ marginBottom: 12, textAlign: "center" }}>
+                      <img 
+                        src={getProductImageUrl(sellForm.image)} 
+                        alt="Listing Preview" 
+                        style={{ height: 80, borderRadius: 8, objectFit: "cover", border: "1px solid var(--border-color)" }}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = getFallbackImage({ category: sellForm.category, name: sellForm.name });
+                        }}
+                      />
+                    </div>
+                  )}
 
                   <button type="submit" className="button" style={{ width: "100%", background: "#16a34a", marginTop: 8 }} disabled={sellLoading}>
                     {sellLoading ? t("bazaarPublishing") : t("bazaarPublishListing")}
