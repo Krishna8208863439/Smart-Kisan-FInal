@@ -2,16 +2,11 @@ import React, { useRef, useState, useEffect } from "react";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
 
-const TABS = ["Disease Detection", "Irrigation", "Fertilizer / NPK", "Smart Calendar"];
+const TABS = ["Disease Detection", "Irrigation", "Fertilizer / NPK", "Smart Calendar", "Crop Q&A Assistant"];
 
 const CROP_NPK_TARGETS = {
   Tomato: { n: 120, p: 60, k: 60, ph: "6.0 - 7.0", name: "Tomato" },
-  Paddy: { n: 100, p: 40, k: 40, ph: "5.5 - 6.5", name: "Paddy / Rice" },
-  Wheat: { n: 120, p: 50, k: 40, ph: "6.0 - 7.5", name: "Wheat" },
-  Potato: { n: 150, p: 80, k: 100, ph: "5.0 - 6.0", name: "Potato" },
-  Mustard: { n: 80, p: 40, k: 40, ph: "6.0 - 7.5", name: "Mustard" },
-  Chilli: { n: 120, p: 60, k: 80, ph: "6.0 - 7.0", name: "Chilli" },
-  Cotton: { n: 100, p: 50, k: 50, ph: "6.0 - 8.0", name: "Cotton" }
+  Paddy: { n: 100, p: 40, k: 40, ph: "5.5 - 6.5", name: "Paddy / Rice" }
 };
 
 const SOIL_DRY_DRAIN = {
@@ -23,12 +18,7 @@ const SOIL_DRY_DRAIN = {
 
 const REFERENCE_HEALTHY_LEAVES = {
   Tomato: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=300&q=80",
-  Paddy: "https://images.unsplash.com/photo-1536304997881-a372c179924b?auto=format&fit=crop&w=300&q=80",
-  Wheat: "https://images.unsplash.com/photo-1506619216599-9d16d0903dfd?auto=format&fit=crop&w=300&q=80",
-  Potato: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=300&q=80",
-  Mustard: "https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?auto=format&fit=crop&w=300&q=80",
-  Chilli: "https://images.unsplash.com/photo-1596797038530-2c107229654b?auto=format&fit=crop&w=300&q=80",
-  Cotton: "https://images.unsplash.com/photo-1594900010629-9e0c52a420b9?auto=format&fit=crop&w=300&q=80"
+  Paddy: "https://images.unsplash.com/photo-1536304997881-a372c179924b?auto=format&fit=crop&w=300&q=80"
 };
 
 const AITools = () => {
@@ -36,12 +26,46 @@ const AITools = () => {
   const [activeTab, setActiveTab] = useState("Disease Detection");
   const isLoggedIn = !!localStorage.getItem("sk_token");
 
+  // Q&A states
+  const [qaInput, setQaInput] = useState("");
+  const [qaResponse, setQaResponse] = useState("");
+  const [qaLoading, setQaLoading] = useState(false);
+  const [qaCrop, setQaCrop] = useState("Tomato");
+
   const displayTabName = (tab) => {
     if (tab === "Disease Detection") return t("leafDiagnostics");
     if (tab === "Irrigation") return language === 'mr' ? 'सिंचन वेळापत्रक' : 'Irrigation';
-    if (tab === "Fertilizer / NPK") return language === 'mr' ? 'खत / NPK सल्लागार' : 'Fertilizer / NPK';
-    if (tab === "Smart Calendar") return language === 'mr' ? 'स्मार्ट वेळापत्रक' : 'Smart Calendar';
+    if (tab === "Fertilizer / NPK") return language === 'mr' ? 'खत / NPK' : 'Fertilizer / NPK';
+    if (tab === "Smart Calendar") return language === 'mr' ? 'स्मार्ट कॅलेंडर' : 'Smart Calendar';
+    if (tab === "Crop Q&A Assistant") return language === 'mr' ? 'पीक प्रश्नोत्तरे' : 'Crop Q&A Assistant';
     return tab;
+  };
+
+  const handleAskQuestion = async (e) => {
+    e.preventDefault();
+    if (!qaInput.trim()) return;
+    setQaLoading(true);
+    setQaResponse("");
+    try {
+      const key = localStorage.getItem("sk_gemini_key") || "";
+      const headers = {};
+      if (key) headers["x-gemini-key"] = key;
+
+      const res = await api.post("/ai/chat", {
+        message: qaInput,
+        language: language,
+        cropHint: qaCrop
+      }, { headers });
+
+      setQaResponse(res.data.response);
+    } catch (err) {
+      console.error(err);
+      setQaResponse(language === 'mr' 
+        ? "माहिती मिळवण्यात त्रुटी आली. कृपया शेताचे खत व्यवस्थापन, पाणी भरणे आणि पिकाचे कीड नियंत्रण वेळेवर करा." 
+        : "AI server is currently offline. Local crop advice: Keep soil well-drained, inspect leaves for symptoms daily, and apply NPK in split doses.");
+    } finally {
+      setQaLoading(false);
+    }
   };
 
   // State: Disease Detection
@@ -63,12 +87,14 @@ const AITools = () => {
 
   // State: Irrigation
   const [irrCrop, setIrrCrop] = useState("Tomato");
+  const [irrCustomCrop, setIrrCustomCrop] = useState("");
   const [irrStage, setIrrStage] = useState("Vegetative");
   const [irrSoil, setIrrSoil] = useState("loamy");
   const [irrResult, setIrrResult] = useState(null);
 
   // State: Fertilizer / NPK Advisor
   const [fertCrop, setFertCrop] = useState("Tomato");
+  const [fertCustomCrop, setFertCustomCrop] = useState("");
   const [fertSoil, setFertSoil] = useState("loamy");
   const [fertN, setFertN] = useState(50);
   const [fertP, setFertP] = useState(30);
@@ -249,52 +275,103 @@ const AITools = () => {
   // --- Handlers: Irrigation ---
   const handleCalculateIrrigation = (e) => {
     e.preventDefault();
+    const activeCropKey = irrCrop === "Other" ? (irrCustomCrop.trim() || "Custom") : irrCrop;
     let baseRate = 4.5; // mm/day
-    let interval = 3; 
+    let interval = 3;
+    let cropAdviceName = activeCropKey;
 
-    if (irrCrop === "Paddy") { baseRate = 8.0; interval = 1; }
-    else if (irrCrop === "Wheat") { baseRate = 3.5; interval = 6; }
-    else if (irrCrop === "Potato") { baseRate = 4.8; interval = 4; }
-    else if (irrCrop === "Mustard") { baseRate = 2.8; interval = 8; }
-    else if (irrCrop === "Chilli") { baseRate = 5.2; interval = 3; }
-    else if (irrCrop === "Cotton") { baseRate = 6.0; interval = 5; }
+    // Standard crop-specific rates
+    const cropRates = {
+      Tomato: { rate: 4.5, interval: 3 },
+      Paddy: { rate: 8.0, interval: 1 },
+      Wheat: { rate: 3.5, interval: 6 },
+      Potato: { rate: 4.8, interval: 4 },
+      Mustard: { rate: 2.8, interval: 8 },
+      Chilli: { rate: 5.2, interval: 3 },
+      Cotton: { rate: 6.0, interval: 5 },
+      Sugarcane: { rate: 7.5, interval: 2 },
+      Onion: { rate: 3.8, interval: 5 },
+      Soybean: { rate: 4.2, interval: 4 },
+      Groundnut: { rate: 3.6, interval: 6 },
+      Sunflower: { rate: 4.0, interval: 5 },
+      Maize: { rate: 5.5, interval: 4 },
+      Bajra: { rate: 3.0, interval: 7 },
+      Jowar: { rate: 3.2, interval: 7 },
+      Turmeric: { rate: 4.0, interval: 5 },
+      Ginger: { rate: 4.5, interval: 4 },
+      Banana: { rate: 6.5, interval: 2 },
+    };
 
-    if (irrSoil === "sandy") { interval = Math.max(1, interval - 1); }
-    else if (irrSoil === "clay") { interval += 1; }
-
-    if (irrStage === "Flowering" || irrStage === "Fruiting" || irrStage === "Reproductive") {
-      baseRate *= 1.25;
+    if (irrCrop !== "Other" && cropRates[irrCrop]) {
+      baseRate = cropRates[irrCrop].rate;
+      interval = cropRates[irrCrop].interval;
+    } else if (irrCrop === "Other") {
+      // Generic for custom crops
+      baseRate = 4.5;
+      interval = 4;
     }
+
+    if (irrSoil === "sandy") { interval = Math.max(1, interval - 1); baseRate *= 1.1; }
+    else if (irrSoil === "clay") { interval += 1; baseRate *= 0.9; }
+    else if (irrSoil === "peaty") { interval += 0; baseRate *= 0.95; }
+
+    if (irrStage === "Flowering" || irrStage === "Reproductive") { baseRate *= 1.25; }
+    else if (irrStage === "Nursery") { baseRate *= 0.7; interval = Math.max(1, interval - 1); }
+    else if (irrStage === "Harvesting") { baseRate *= 0.65; interval += 2; }
+
+    const stageAdviceMap = {
+      Nursery: language === 'mr' ? `${cropAdviceName} उगवण काळात माती सतत ओलसर ठेवा. हलक्या फवाऱ्याने पाणी द्या.` : `Keep soil consistently moist during ${cropAdviceName} nursery phase. Use gentle sprinklers to avoid seedling damage.`,
+      Vegetative: language === 'mr' ? `शाकीय वाढीच्या काळात ${cropAdviceName} ला नियमित पाणी द्या. मुळांजवळ पाणी द्या.` : `Water ${cropAdviceName} regularly during vegetative growth. Direct water near root zone for deep penetration.`,
+      Flowering: language === 'mr' ? `फुलधारणेच्या काळात ${cropAdviceName} ला पाण्याची कमतरता होऊ देऊ नका.` : `Maintain consistent moisture for ${cropAdviceName} during flowering - water stress now severely reduces yield.`,
+      Reproductive: language === 'mr' ? `${cropAdviceName} च्या फळधारणेच्या काळात पाण्याचे प्रमाण वाढवा.` : `Increase water frequency for ${cropAdviceName} during reproductive/boll-pod formation phase for better fruit set.`,
+      Harvesting: language === 'mr' ? `${cropAdviceName} काढणीपूर्वी १०-१२ दिवस आधी पाणी कमी करा.` : `Gradually reduce irrigation for ${cropAdviceName} 10-12 days before harvest to improve produce quality and storability.`
+    };
 
     setIrrResult({
       dailyRate: baseRate.toFixed(1),
       interval,
-      stageAdvice: `Keep soil moisture balanced during ${irrStage} stage to maximize crop yield and fruit size. Avoid waterlogging during active root development.`,
-      warning: Math.random() > 0.5 
-        ? "⚠️ Local weather predicts high ambient temperature: consider irrigating in early morning to minimize evaporation." 
-        : "🌧️ Local forecasts suggest slight precipitation within 48h. Monitor soil closely to reduce watering costs."
+      stageAdvice: stageAdviceMap[irrStage] || `Irrigate ${cropAdviceName} based on soil moisture levels during the ${irrStage} growth phase.`,
+      warning: irrSoil === "sandy"
+        ? (language === 'mr' ? "⚠️ वाळूमय जमिनीत पाण्याचा निचरा वेगाने होतो. खत वाहून जाऊ नये म्हणून विभाजित डोसमध्ये खत द्या." : "⚠️ Sandy soil drains fast. Apply fertilizers in split doses to avoid nutrient leaching.")
+        : irrSoil === "clay"
+        ? (language === 'mr' ? "⚠️ चिकण मातीत जास्त पाणी साचते. अतिपाणी टाळा; पाण्याचा निचरा सुनिश्चित करा." : "⚠️ Clay soil retains excess water. Avoid over-irrigation; ensure proper drainage channels.")
+        : (language === 'mr' ? "🌿 सकाळी लवकर किंवा सायंकाळी पाणी द्या म्हणजे बाष्पीभवन कमी होईल." : "🌿 Water in early morning or evening to minimize evaporation losses and maximize root absorption.")
     });
   };
 
   // --- Handlers: Fertilizer NPK Advisor ---
   const handleCalculateFertilizer = (e) => {
     e.preventDefault();
-    const target = CROP_NPK_TARGETS[fertCrop];
-    if (!target) return;
+    const target = fertCrop !== "Other" ? CROP_NPK_TARGETS[fertCrop] : null;
+    const activeCropName = fertCrop === "Other" ? (fertCustomCrop.trim() || "Custom Crop") : (CROP_NPK_TARGETS[fertCrop]?.name || fertCrop);
+    
+    // For "Other" crop: use moderate defaults
+    const effectiveTarget = target || { n: 100, p: 50, k: 60, ph: "6.0 - 7.0", name: activeCropName };
 
     // Deficits
-    const defN = Math.max(0, target.n - fertN);
-    const defP = Math.max(0, target.p - fertP);
-    const defK = Math.max(0, target.k - fertK);
+    const defN = Math.max(0, effectiveTarget.n - fertN);
+    const defP = Math.max(0, effectiveTarget.p - fertP);
+    const defK = Math.max(0, effectiveTarget.k - fertK);
 
-    // standard bag calculations:
-    // 1 bag (50kg) Urea = 23kg N
-    // 1 bag (50kg) DAP = 9kg N + 23kg P
-    // 1 bag (50kg) MOP = 30kg K
+    // Bag calculations (50kg bags)
     let dapBags = (defP / 23) * fertArea;
     let ureaBags = ((defN - (dapBags * 9)) / 23) * fertArea;
     if (ureaBags < 0) ureaBags = 0;
     let mopBags = (defK / 30) * fertArea;
+
+    // Crop-specific organic compost recommendations
+    const compostMap = {
+      Tomato: 3.0,
+      Paddy: 2.0,
+      Wheat: 2.5,
+      Potato: 4.0,
+      Mustard: 1.8,
+      Chilli: 3.5,
+      Cotton: 2.8,
+      Other: 2.5
+    };
+    const compostRate = compostMap[fertCrop] || 2.5;
+    const compostTons = (fertArea * compostRate).toFixed(1);
 
     // Soil specific amendments
     let soilAdvice = SOIL_DRY_DRAIN[fertSoil].advice;
@@ -303,10 +380,12 @@ const AITools = () => {
       dap: parseFloat(dapBags.toFixed(1)),
       urea: parseFloat(ureaBags.toFixed(1)),
       mop: parseFloat(mopBags.toFixed(1)),
-      compost: (fertArea * 2.5).toFixed(1),
+      compost: compostTons,
+      compostDesc: `Recommended for ${activeCropName}: ${compostRate} Tons/Acre of FYM/organic matter to improve microbial activity and soil structure.`,
       deficits: { n: defN, p: defP, k: defK },
-      targets: target,
-      soilAdvice
+      targets: effectiveTarget,
+      soilAdvice,
+      cropName: activeCropName
     });
   };
 
@@ -778,7 +857,30 @@ const AITools = () => {
                   {Object.keys(CROP_NPK_TARGETS).map(crop => (
                     <option key={crop} value={crop}>{CROP_NPK_TARGETS[crop].name}</option>
                   ))}
+                  <option value="Sugarcane">Sugarcane</option>
+                  <option value="Onion">Onion</option>
+                  <option value="Soybean">Soybean</option>
+                  <option value="Groundnut">Groundnut</option>
+                  <option value="Maize">Maize / Corn</option>
+                  <option value="Banana">Banana</option>
+                  <option value="Turmeric">Turmeric</option>
+                  <option value="Ginger">Ginger</option>
+                  <option value="Other">{language === 'mr' ? 'इतर (नाव प्रविष्ट करा)' : 'Other (Type crop name...)'}</option>
                 </select>
+
+                {irrCrop === "Other" && (
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ fontWeight: 600, fontSize: 13 }}>{language === 'mr' ? 'पिकाचे नाव लिहा' : 'Type Crop Name'}</label>
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder={language === 'mr' ? 'उदा. कापूस, ज्वारी, बाजरी...' : 'e.g. Bajra, Jowar, Cauliflower...'}
+                      value={irrCustomCrop}
+                      onChange={e => setIrrCustomCrop(e.target.value)}
+                      required
+                    />
+                  </div>
+                )}
 
                 <label style={{ fontWeight: 600, fontSize: 13 }}>{language === 'mr' ? 'वाढीचा टप्पा' : 'Growth Stage'}</label>
                 <select className="input" value={irrStage} onChange={(e) => setIrrStage(e.target.value)}>
@@ -854,11 +956,23 @@ const AITools = () => {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   <div>
                     <label style={{ fontWeight: 600, fontSize: 13 }}>{language === 'mr' ? 'निवडलेले पीक' : 'Target Crop'}</label>
-                    <select className="input" value={fertCrop} onChange={(e) => setFertCrop(e.target.value)}>
+                    <select className="input" value={fertCrop} onChange={(e) => { setFertCrop(e.target.value); setFertResult(null); }}>
                       {Object.keys(CROP_NPK_TARGETS).map(crop => (
                         <option key={crop} value={crop}>{CROP_NPK_TARGETS[crop].name}</option>
                       ))}
+                      <option value="Other">{language === 'mr' ? 'इतर (नाव टाइप करा)' : 'Other (Type name...)'}</option>
                     </select>
+                    {fertCrop === "Other" && (
+                      <input
+                        type="text"
+                        className="input"
+                        style={{ marginTop: 6 }}
+                        placeholder={language === 'mr' ? 'पिकाचे नाव लिहा...' : 'e.g. Soybean, Sunflower...'}
+                        value={fertCustomCrop}
+                        onChange={e => setFertCustomCrop(e.target.value)}
+                        required
+                      />
+                    )}
                   </div>
 
                   <div>
@@ -1039,12 +1153,18 @@ const AITools = () => {
                   </div>
 
                   {/* Compost and Soil advice */}
-                  <div style={{ background: "#ecfdf5", padding: 12, borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div>
-                      <strong style={{ fontSize: 13, color: "#065f46" }}>Organic Compost / Carbon:</strong>
-                      <p style={{ fontSize: 11, color: "#047857", margin: 0 }}>To boost microbial soil biomes</p>
+                  <div style={{ background: "#ecfdf5", padding: 12, borderRadius: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <strong style={{ fontSize: 13, color: "#065f46" }}>
+                          {language === 'mr' ? 'सेंद्रिय खत / FYM:' : 'Organic Compost / FYM:'}
+                        </strong>
+                        <p style={{ fontSize: 11, color: "#047857", margin: "2px 0 0 0" }}>
+                          {fertResult.compostDesc || 'To boost microbial soil biomes and organic carbon'}
+                        </p>
+                      </div>
+                      <strong style={{ fontSize: 18, color: "#047857", flexShrink: 0, marginLeft: 12 }}>{fertResult.compost} {language === 'mr' ? 'टन' : 'Tons'}</strong>
                     </div>
-                    <strong style={{ fontSize: 18, color: "#047857" }}>{fertResult.compost} Tons</strong>
                   </div>
 
                   <div style={{ background: "var(--bg-main)", padding: 12, borderRadius: 8, fontSize: 12 }}>
@@ -1092,6 +1212,7 @@ const AITools = () => {
                   type="date"
                   className="input"
                   value={calDate}
+                  min={new Date().toISOString().split('T')[0]}
                   onChange={(e) => setCalDate(e.target.value)}
                 />
 
@@ -1210,23 +1331,29 @@ const AITools = () => {
                   {/* Horizontal Lifecycle Stepper */}
                   <div style={{ margin: "20px 0", borderTop: "2px solid #e2e8f0", paddingTop: 10, position: "relative" }}>
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      {lifecycle.stages.map((stg) => (
-                        <div key={stg.name} style={{ textAlign: "center", position: "relative", top: -16 }}>
-                          <div 
-                            style={{ 
-                              width: 12, 
-                              height: 12, 
-                              borderRadius: "50%", 
-                              background: lifecycle.stage === stg.name ? "var(--primary)" : "#cbd5e1",
-                              margin: "0 auto 4px auto",
-                              border: lifecycle.stage === stg.name ? "3px solid var(--primary-light)" : "none"
-                            }} 
-                          />
-                          <span style={{ fontSize: 10, fontWeight: lifecycle.stage === stg.name ? 700 : 500, color: lifecycle.stage === stg.name ? "var(--primary-hover)" : "var(--text-muted)" }}>
-                            {t(stg.name)}
-                          </span>
-                        </div>
-                      ))}
+                      {lifecycle.stages.map((stg, sIdx) => {
+                        const activeStageIdx = lifecycle.stages.findIndex(s => s.name === lifecycle.stage);
+                        const isCompletedOrActive = sIdx <= activeStageIdx;
+                        return (
+                          <div key={stg.name} style={{ textAlign: "center", position: "relative", top: -16 }}>
+                            <div 
+                              style={{ 
+                                width: 12, 
+                                height: 12, 
+                                borderRadius: "50%", 
+                                background: isCompletedOrActive ? "var(--primary)" : "#cbd5e1",
+                                margin: "0 auto 4px auto",
+                                border: lifecycle.stage === stg.name ? "3px solid var(--primary-light)" : "none",
+                                boxShadow: isCompletedOrActive ? "0 0 8px var(--primary)" : "none",
+                                transition: "all 0.3s ease"
+                              }} 
+                            />
+                            <span style={{ fontSize: 10, fontWeight: isCompletedOrActive ? 700 : 500, color: isCompletedOrActive ? "var(--primary-hover)" : "var(--text-muted)" }}>
+                              {t(stg.name)}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -1297,6 +1424,48 @@ const AITools = () => {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* --- CROP Q&A ASSISTANT TAB --- */}
+        {activeTab === "Crop Q&A Assistant" && (
+          <div className="card">
+            <h3>💬 {language === 'mr' ? 'पीक कृषी-एआय सहाय्यक' : 'Crop Q&A Assistant'}</h3>
+            <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
+              {language === 'mr' 
+                ? 'टोमॅटो किंवा भात (Paddy) पिकांविषयी कोणताही प्रश्न विचारा, आमचे एआय तुम्हाला अचूक उत्तर देईल.'
+                : 'Ask any agronomic or pest question about Tomato or Paddy, and get instant answers from our AI Engine.'}
+            </p>
+            <form onSubmit={handleAskQuestion}>
+              <label style={{ fontWeight: 600, fontSize: 13 }}>{t("selectCrop")}</label>
+              <select className="input" value={qaCrop} onChange={e => setQaCrop(e.target.value)}>
+                <option value="Tomato">Tomato</option>
+                <option value="Paddy">Paddy / Rice</option>
+              </select>
+
+              <label style={{ fontWeight: 600, fontSize: 13, marginTop: 12, display: "block" }}>
+                {language === 'mr' ? 'तुमचा प्रश्न विचारा:' : 'Ask Your Question:'}
+              </label>
+              <textarea
+                className="input"
+                rows={3}
+                placeholder={language === 'mr' ? 'उदा. टोमॅटोवरील पांढऱ्या माशीचे नियंत्रण कसे करावे?' : 'e.g. How to manage bacterial leaf blight in Paddy?'}
+                value={qaInput}
+                onChange={e => setQaInput(e.target.value)}
+                required
+              />
+
+              <button type="submit" className="button" style={{ width: "100%", marginTop: 12 }} disabled={qaLoading}>
+                {qaLoading ? (language === 'mr' ? 'विचारत आहे...' : 'Processing Q&A...') : (language === 'mr' ? 'उत्तर मिळवा 🔍' : 'Get AI Answer 🔍')}
+              </button>
+            </form>
+
+            {qaResponse && (
+              <div style={{ marginTop: 20, padding: 16, background: "var(--bg-main)", borderRadius: 10, borderLeft: "4px solid var(--primary)", animation: "fadeIn 0.3s ease" }}>
+                <strong style={{ fontSize: 14, color: "var(--primary-hover)" }}>🤖 Agri-AI Answer:</strong>
+                <p style={{ fontSize: 13.5, color: "var(--text-dark)", marginTop: 6, whiteSpace: "pre-line", lineHeight: 1.6 }}>{qaResponse}</p>
+              </div>
+            )}
           </div>
         )}
 

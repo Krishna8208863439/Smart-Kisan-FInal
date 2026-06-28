@@ -530,40 +530,18 @@ const AgriHealthPortal = () => {
         </div>
       </div>
 
-      {/* Tabs Menu */}
+      {/* Tabs Menu — Disease Diagnosis Only */}
       <div className="ai-tabs" style={{ display: "flex", gap: 8, margin: "24px 0" }}>
         <button
-          className={`ai-tab ${activeTab === "diagnosis" ? "ai-tab-active" : ""}`}
+          className={`ai-tab ai-tab-active`}
           style={{ flex: 1, padding: "12px 6px", fontSize: 13.5 }}
-          onClick={() => setActiveTab("diagnosis")}
         >
-          🔍 {currLabel.diagnosisTab}
-        </button>
-        <button
-          className={`ai-tab ${activeTab === "advisory" ? "ai-tab-active" : ""}`}
-          style={{ flex: 1, padding: "12px 6px", fontSize: 13.5 }}
-          onClick={() => setActiveTab("advisory")}
-        >
-          🌱 {currLabel.advisoryTab}
-        </button>
-        <button
-          className={`ai-tab ${activeTab === "alerts" ? "ai-tab-active" : ""}`}
-          style={{ flex: 1, padding: "12px 6px", fontSize: 13.5 }}
-          onClick={() => setActiveTab("alerts")}
-        >
-          🚨 {currLabel.alertsTab}
-        </button>
-        <button
-          className={`ai-tab ${activeTab === "directory" ? "ai-tab-active" : ""}`}
-          style={{ flex: 1, padding: "12px 6px", fontSize: 13.5 }}
-          onClick={() => setActiveTab("directory")}
-        >
-          👥 {language === "mr" ? "संपर्क सूची" : "Directory"}
+          🔍 {language === "mr" ? "रोग निदान" : "Disease Diagnosis"}
         </button>
       </div>
 
-      {/* DIAGNOSIS TAB */}
-      {activeTab === "diagnosis" && (
+      {/* DIAGNOSIS TAB — Always Visible */}
+      {true && (
         <div className="grid-2">
           {/* Upload card */}
           <div className="card">

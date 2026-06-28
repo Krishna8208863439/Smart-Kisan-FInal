@@ -93,7 +93,7 @@ a {
 
 /* ── App Container ── */
 .app-container {
-  max-width: 1200px;
+  max-width: 1540px;
   margin: 0 auto;
   padding: 24px 16px;
   /* Extra bottom padding for mobile bottom nav */
@@ -140,7 +140,7 @@ a {
 }
 
 .nav-container {
-  max-width: 1200px;
+  max-width: 1540px;
   margin: 0 auto;
   padding: 0 16px;
   height: 100%;

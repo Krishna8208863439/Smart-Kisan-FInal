@@ -354,10 +354,21 @@ router.post("/checkout", protect, async (req, res) => {
 
     // Mock successful order
     const orderId = "ORD-" + Date.now() + "-" + Math.floor(1000 + Math.random() * 9000);
+    const userEmail = req.user.email || "kisan@gmail.com";
+
+    // Simulate email dispatch
+    console.log(`\n=============================================================`);
+    console.log(`📧 [EMAIL SENT] Order Confirmation Email Dispatched!`);
+    console.log(`✉️  Recipient: ${userEmail}`);
+    console.log(`📦 Order ID: ${orderId}`);
+    console.log(`💸 Total Items: ${cartItems.length}`);
+    console.log(`=============================================================\n`);
+
     return res.json({
       success: true,
       orderId,
-      message: "Order placed successfully! Verified by Kisan SMS network."
+      email: userEmail,
+      message: `Order placed successfully! A confirmation email and digital receipt have been sent to ${userEmail}.`
     });
   } catch (error) {
     console.error(error);

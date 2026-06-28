@@ -149,8 +149,16 @@ const Marketplace = () => {
     const saved = localStorage.getItem("sk_cart");
     return saved ? JSON.parse(saved) : [];
   });
-  const [isCartOpen, setIsCartOpen] = useState(false);
+   const [isCartOpen, setIsCartOpen] = useState(false);
   const [checkoutStatus, setCheckoutStatus] = useState(null);
+  
+  // BillDesk gateway states
+  const [showBillDesk, setShowBillDesk] = useState(false);
+  const [billDeskLoading, setBillDeskLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("upi"); // upi, cards, netbanking
+  const [paymentDetails, setPaymentDetails] = useState({ upiId: "", cardNumber: "", expiry: "", cvv: "", netBank: "sbi" });
+  const [paymentStep, setPaymentStep] = useState(1); // 1 = select method, 2 = simulated OTP/processing, 3 = success
+  const [paymentOtp, setPaymentOtp] = useState("");
 
   // Farmers Bazaar: Sell Form state
   const [showSellForm, setShowSellForm] = useState(false);
@@ -344,22 +352,34 @@ const Marketplace = () => {
 
   const cartTotal = cartTotalBeforeDiscount - cartDiscount;
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (!isLoggedIn) {
       alert("Please log in to complete your purchase.");
       window.location.href = "/login";
       return;
     }
+    setShowBillDesk(true);
+    setPaymentStep(1);
+    setPaymentOtp("");
+  };
+
+  const completeBillDeskPayment = async () => {
+    setBillDeskLoading(true);
+    // Simulate loading for verification
+    await new Promise((resolve) => setTimeout(resolve, 1500));
     try {
       const res = await api.post("/marketplace/checkout", {
         cartItems: cart.map((i) => ({ productId: i.product._id, quantity: i.quantity }))
       });
       setCheckoutStatus(res.data);
       setCart([]); // Clear cart
+      setShowBillDesk(false);
       fetchProducts(); // Refresh list to catch stock updates
     } catch (err) {
       console.error(err);
       alert("Checkout failed. Please verify you are logged in.");
+    } finally {
+      setBillDeskLoading(false);
     }
   };
 
@@ -837,9 +857,13 @@ const Marketplace = () => {
                   {sellForm.image && (
                     <div style={{ marginBottom: 12, textAlign: "center" }}>
                       <img 
-                        src={sellForm.image} 
+                        src={getProductImageUrl(sellForm.image)} 
                         alt="Listing Preview" 
                         style={{ height: 80, borderRadius: 8, objectFit: "cover", border: "1px solid var(--border-color)" }}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = getFallbackImage({ category: sellForm.category, name: sellForm.name });
+                        }}
                       />
                     </div>
                   )}
@@ -1225,9 +1249,13 @@ const Marketplace = () => {
                   {sellForm.image && (
                     <div style={{ marginBottom: 12, textAlign: "center" }}>
                       <img 
-                        src={sellForm.image} 
+                        src={getProductImageUrl(sellForm.image)} 
                         alt="Listing Preview" 
                         style={{ height: 80, borderRadius: 8, objectFit: "cover", border: "1px solid var(--border-color)" }}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = getFallbackImage({ category: sellForm.category, name: sellForm.name });
+                        }}
                       />
                     </div>
                   )}
@@ -1497,12 +1525,31 @@ const Marketplace = () => {
 
           <div style={{ flex: 1, overflowY: "auto", padding: 16, background: "#fafafa" }}>
             {checkoutStatus ? (
-              <div style={{ textAlign: "center", padding: "20px 0" }}>
-                <span style={{ fontSize: 48 }}>🎉</span>
-                <h4 style={{ color: "var(--primary)", marginTop: 12 }}>Order Confirmed!</h4>
-                <p style={{ fontSize: 13, fontWeight: 700, margin: "8px 0" }}>{checkoutStatus.orderId}</p>
-                <p style={{ fontSize: 12, color: "var(--text-muted)", padding: "0 10px" }}>{checkoutStatus.message}</p>
-                <button className="button" style={{ marginTop: 16 }} onClick={() => { setIsCartOpen(false); setCheckoutStatus(null); }}>
+              <div style={{ textAlign: "center", padding: "24px 12px", background: "#f0fdf4", borderRadius: 12, border: "1px solid #bbf7d0", animation: "scaleUp 0.3s ease" }}>
+                <span style={{ fontSize: 54, display: "block", marginBottom: 12 }}>🎉</span>
+                <h4 style={{ color: "#166534", marginTop: 0, fontSize: 18, fontWeight: 800 }}>Order Confirmed!</h4>
+                
+                <div style={{ background: "white", padding: 12, borderRadius: 8, margin: "14px 0", border: "1px solid #e2e8f0" }}>
+                  <span style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", display: "block", fontWeight: 700 }}>Transaction Order ID</span>
+                  <strong style={{ fontSize: 14, color: "#0f172a", fontFamily: "monospace" }}>{checkoutStatus.orderId}</strong>
+                </div>
+
+                <p style={{ fontSize: 13, color: "#14532d", margin: "12px 0 16px 0", lineHeight: 1.5 }}>
+                  {checkoutStatus.message}
+                </p>
+
+                <div style={{ background: "#e0f2fe", padding: 12, borderRadius: 8, borderLeft: "4px solid #0284c7", textAlign: "left", display: "flex", gap: 10, alignItems: "center" }}>
+                  <span style={{ fontSize: 20 }}>📧</span>
+                  <div style={{ fontSize: 12, color: "#0369a1" }}>
+                    <strong>Email Confirmation:</strong> Digital invoice & dispatch details sent to your registered account email.
+                  </div>
+                </div>
+
+                <button 
+                  className="button" 
+                  style={{ marginTop: 20, width: "100%", background: "#16a34a" }} 
+                  onClick={() => { setIsCartOpen(false); setCheckoutStatus(null); }}
+                >
                   Back to Bazaar
                 </button>
               </div>
@@ -1571,6 +1618,237 @@ const Marketplace = () => {
               </button>
             </footer>
           )}
+        </div>
+      )}
+
+      {/* --- BillDesk Payment Gateway Modal --- */}
+      {showBillDesk && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.6)",
+            zIndex: 1200,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: 20
+          }}
+        >
+          <div
+            className="card"
+            style={{
+              maxWidth: 620,
+              width: "100%",
+              borderRadius: 16,
+              overflow: "hidden",
+              padding: 0,
+              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.2)",
+              border: "1px solid #e2e8f0"
+            }}
+          >
+            {/* BillDesk Corporate Header */}
+            <div style={{ background: "#0c3161", color: "white", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 24 }}>💳</span>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 18, color: "white", fontWeight: 800 }}>billdesk</h3>
+                  <span style={{ fontSize: 10, opacity: 0.8, textTransform: "uppercase", letterSpacing: 0.5 }}>All Payments Secured</span>
+                </div>
+              </div>
+              <button 
+                style={{ background: "transparent", border: "none", color: "white", fontSize: 20, cursor: "pointer" }} 
+                onClick={() => setShowBillDesk(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Merchant Details Ribbon */}
+            <div style={{ background: "#f8fafc", padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e2e8f0" }}>
+              <div>
+                <span style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", display: "block" }}>Merchant Name</span>
+                <strong style={{ fontSize: 14, color: "#0f172a" }}>Smart Kisan AI Bazaar</strong>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <span style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", display: "block" }}>Amount Payable</span>
+                <strong style={{ fontSize: 18, color: "#15803d" }}>₹{cartTotal}</strong>
+              </div>
+            </div>
+
+            {/* Gateway UI Content */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1.8fr", minHeight: 280 }}>
+              
+              {/* Payment Methods Side Bar */}
+              <div style={{ background: "#f1f5f9", borderRight: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
+                <button
+                  style={{
+                    padding: "16px 20px", textAlign: "left", background: paymentMethod === "upi" ? "white" : "transparent",
+                    color: paymentMethod === "upi" ? "#0c3161" : "#64748b", fontWeight: 700, border: "none",
+                    borderLeft: paymentMethod === "upi" ? "4px solid #f97316" : "4px solid transparent", cursor: "pointer", transition: "all 0.2s"
+                  }}
+                  onClick={() => { setPaymentMethod("upi"); setPaymentStep(1); }}
+                >
+                  📱 UPI / QR Code
+                </button>
+                <button
+                  style={{
+                    padding: "16px 20px", textAlign: "left", background: paymentMethod === "cards" ? "white" : "transparent",
+                    color: paymentMethod === "cards" ? "#0c3161" : "#64748b", fontWeight: 700, border: "none",
+                    borderLeft: paymentMethod === "cards" ? "4px solid #f97316" : "4px solid transparent", cursor: "pointer", transition: "all 0.2s"
+                  }}
+                  onClick={() => { setPaymentMethod("cards"); setPaymentStep(1); }}
+                >
+                  💳 Credit & Debit Card
+                </button>
+                <button
+                  style={{
+                    padding: "16px 20px", textAlign: "left", background: paymentMethod === "netbanking" ? "white" : "transparent",
+                    color: paymentMethod === "netbanking" ? "#0c3161" : "#64748b", fontWeight: 700, border: "none",
+                    borderLeft: paymentMethod === "netbanking" ? "4px solid #f97316" : "4px solid transparent", cursor: "pointer", transition: "all 0.2s"
+                  }}
+                  onClick={() => { setPaymentMethod("netbanking"); setPaymentStep(1); }}
+                >
+                  🏛️ Net Banking
+                </button>
+              </div>
+
+              {/* Payment Input Panel */}
+              <div style={{ padding: 24, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                {billDeskLoading ? (
+                  <div style={{ textAlign: "center", padding: "40px 0" }}>
+                    <div style={{ border: "4px solid #f3f3f3", borderTop: "4px solid #f97316", borderRadius: "50%", width: 40, height: 40, animation: "spin 1s linear infinite", margin: "0 auto 16px auto" }} />
+                    <strong style={{ color: "#0c3161", display: "block" }}>Verifying secure token...</strong>
+                    <span style={{ fontSize: 11, color: "#64748b" }}>Please do not close this window or hit back.</span>
+                  </div>
+                ) : paymentStep === 1 ? (
+                  <div>
+                    {paymentMethod === "upi" && (
+                      <div style={{ animation: "fadeIn 0.2s" }}>
+                        <h4 style={{ margin: "0 0 12px 0", color: "#0f172a" }}>Pay using UPI ID</h4>
+                        <input
+                          type="text"
+                          className="input"
+                          placeholder="e.g. user@ybl, mobile@upi"
+                          value={paymentDetails.upiId}
+                          onChange={(e) => setPaymentDetails({ ...paymentDetails, upiId: e.target.value })}
+                          style={{ marginBottom: 12 }}
+                        />
+                        <div style={{ textAlign: "center", background: "#f8fafc", padding: 12, borderRadius: 8, border: "1px dashed #cbd5e1", marginBottom: 12 }}>
+                          <span style={{ fontSize: 12, color: "#475569", display: "block" }}>OR Scan BHIM UPI QR Code</span>
+                          <div style={{ fontSize: 48, margin: "6px 0" }}>🔳</div>
+                          <span style={{ fontSize: 10, color: "#64748b" }}>Universal Dynamic QR Code generated securely</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {paymentMethod === "cards" && (
+                      <div style={{ animation: "fadeIn 0.2s", display: "flex", flexDirection: "column", gap: 10 }}>
+                        <h4 style={{ margin: 0, color: "#0f172a" }}>Enter Card Credentials</h4>
+                        <div>
+                          <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>Card Number</label>
+                          <input
+                            type="text"
+                            className="input"
+                            placeholder="xxxx xxxx xxxx xxxx"
+                            value={paymentDetails.cardNumber}
+                            onChange={(e) => setPaymentDetails({ ...paymentDetails, cardNumber: e.target.value })}
+                            maxLength="19"
+                          />
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                          <div>
+                            <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>Expiry Date</label>
+                            <input
+                              type="text"
+                              className="input"
+                              placeholder="MM/YY"
+                              value={paymentDetails.expiry}
+                              onChange={(e) => setPaymentDetails({ ...paymentDetails, expiry: e.target.value })}
+                              maxLength="5"
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>CVV</label>
+                            <input
+                              type="password"
+                              className="input"
+                              placeholder="***"
+                              value={paymentDetails.cvv}
+                              onChange={(e) => setPaymentDetails({ ...paymentDetails, cvv: e.target.value })}
+                              maxLength="3"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {paymentMethod === "netbanking" && (
+                      <div style={{ animation: "fadeIn 0.2s" }}>
+                        <h4 style={{ margin: "0 0 12px 0", color: "#0f172a" }}>Select Your Bank</h4>
+                        <select
+                          className="input"
+                          value={paymentDetails.netBank}
+                          onChange={(e) => setPaymentDetails({ ...paymentDetails, netBank: e.target.value })}
+                        >
+                          <option value="sbi">State Bank of India</option>
+                          <option value="hdfc">HDFC Bank</option>
+                          <option value="icici">ICICI Bank</option>
+                          <option value="axis">Axis Bank</option>
+                          <option value="boi">Bank of India</option>
+                        </select>
+                        <div style={{ fontSize: 12, color: "#64748b", marginTop: 12 }}>
+                          💻 You will be redirected to the secure NetBanking credentials portal of your choice.
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      className="button"
+                      onClick={() => setPaymentStep(2)}
+                      style={{ width: "100%", background: "#f97316", border: "none", color: "white", fontSize: 15, fontWeight: 700, marginTop: 20 }}
+                      disabled={paymentMethod === "upi" && !paymentDetails.upiId.includes("@")}
+                    >
+                      Authorize Payment of ₹{cartTotal}
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: "center" }}>
+                    <h4 style={{ margin: "0 0 12px 0", color: "#0f172a" }}>Verify Secure OTP Code</h4>
+                    <span style={{ fontSize: 12, color: "#475569", display: "block", marginBottom: 12 }}>
+                      A secure OTP verification pin has been sent to your linked mobile number via Indian Telecom services.
+                    </span>
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder="Enter 6-Digit OTP"
+                      maxLength="6"
+                      value={paymentOtp}
+                      onChange={(e) => setPaymentOtp(e.target.value)}
+                      style={{ width: 180, textAlign: "center", fontSize: 18, fontWeight: "bold", letterSpacing: 3, margin: "0 auto 12px auto" }}
+                    />
+                    <button
+                      className="button"
+                      onClick={completeBillDeskPayment}
+                      style={{ width: "100%", background: "#16a34a", border: "none", color: "white", fontSize: 14, fontWeight: 700, marginTop: 12 }}
+                      disabled={paymentOtp.length < 4}
+                    >
+                      Confirm Payment Action
+                    </button>
+                  </div>
+                )}
+              </div>
+
+            </div>
+
+            {/* BillDesk Footer */}
+            <div style={{ background: "#f1f5f9", padding: "12px 24px", fontSize: 11, color: "#64748b", textAlign: "center", borderTop: "1px solid #e2e8f0" }}>
+              🔒 Verified by Visa • MasterCard SecureCode • RuPay PaySecure • ISO 27001 Certified Gateway
+            </div>
+          </div>
         </div>
       )}
     </main>

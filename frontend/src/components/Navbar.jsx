@@ -46,7 +46,7 @@ const Navbar = () => {
                 <NavLink to="/marketplace" className={navLinkClass}>{t('bazaar')}</NavLink>
                 <NavLink to="/weather" className={navLinkClass}>{t('weather')}</NavLink>
                 <NavLink to="/market" className={navLinkClass}>{t('mandiPrices')}</NavLink>
-                <NavLink to="/forum" className={navLinkClass}>{t('community')}</NavLink>
+                <NavLink to="/forum" className={navLinkClass}>{language === 'mr' ? '🏛️ शासकीय योजना' : '🏛️ Govt Scheme'}</NavLink>
                 <NavLink to="/recommendations" className={navLinkClass}>{t('recommendations')}</NavLink>
               </>
             )}
@@ -65,9 +65,10 @@ const Navbar = () => {
               className="nav-icon-btn"
               onClick={toggleLanguage}
               aria-label="Toggle language"
-              style={{ fontWeight: 800, minWidth: 62, justifyContent: 'center' }}
+              style={{ fontWeight: 800, minWidth: 72, justifyContent: 'center', fontSize: 13 }}
+              title={language === 'en' ? 'Switch to Marathi' : language === 'mr' ? 'Switch to Hindi' : 'Switch to English'}
             >
-              {language === 'en' ? 'मराठी' : 'EN'}
+              {language === 'en' ? '🌐 मराठी' : language === 'mr' ? '🌐 हिंदी' : '🌐 EN'}
             </button>
 
             {/* Dark Mode Toggle */}
@@ -155,7 +156,7 @@ const Navbar = () => {
                 <NavLink to="/ai-tools" className={navLinkClass}>{t('aiCenter')}</NavLink>
                 <NavLink to="/agri-health" className={navLinkClass}>🏥 {language === 'mr' ? 'कृषी-आरोग्य' : 'Agri-Health'}</NavLink>
                 <NavLink to="/marketplace" className={navLinkClass}>{t('bazaar')}</NavLink>
-                <NavLink to="/forum" className={navLinkClass}>{t('community')}</NavLink>
+                <NavLink to="/forum" className={navLinkClass}>{language === 'mr' ? '🏛️ शासकीय योजना' : '🏛️ Govt Scheme'}</NavLink>
                 <NavLink to="/weather" className={navLinkClass}>{t('weather')}</NavLink>
                 <NavLink to="/market" className={navLinkClass}>{t('mandiPrices')}</NavLink>
                 <NavLink to="/recommendations" className={navLinkClass}>{t('recommendations')}</NavLink>
@@ -175,7 +176,7 @@ const Navbar = () => {
               onClick={toggleLanguage}
               style={{ gap: 8, fontSize: 14 }}
             >
-              🌐 {language === 'en' ? 'मराठी (Marathi)' : 'English'}
+              🌐 {language === 'en' ? 'मराठी' : language === 'mr' ? 'हिंदी' : 'English'}
             </button>
 
             <button

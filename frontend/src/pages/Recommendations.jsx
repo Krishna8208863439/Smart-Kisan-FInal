@@ -2,6 +2,25 @@ import { useState, useEffect } from "react";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
 
+const POPULAR_AGRICULTURAL_REGIONS = [
+  { name: "Pune, Maharashtra", lat: 18.5204, lon: 73.8567 },
+  { name: "Nashik, Maharashtra", lat: 19.9975, lon: 73.7898 },
+  { name: "Nagpur, Maharashtra", lat: 21.1458, lon: 79.0882 },
+  { name: "Amravati, Maharashtra", lat: 20.9374, lon: 77.7796 },
+  { name: "Kolhapur, Maharashtra", lat: 16.7050, lon: 74.2433 },
+  { name: "Ludhiana, Punjab", lat: 30.9010, lon: 75.8573 },
+  { name: "Bathinda, Punjab", lat: 30.2076, lon: 74.9455 },
+  { name: "Karnal, Haryana", lat: 29.6857, lon: 76.9905 },
+  { name: "Indore, Madhya Pradesh", lat: 22.7196, lon: 75.8577 },
+  { name: "Vijayawada, Andhra Pradesh", lat: 16.5062, lon: 80.6480 },
+  { name: "Coimbatore, Tamil Nadu", lat: 11.0168, lon: 76.9558 },
+  { name: "Anand, Gujarat", lat: 22.5645, lon: 72.9289 },
+  { name: "Kota, Rajasthan", lat: 25.2138, lon: 75.8648 },
+  { name: "Meerut, Uttar Pradesh", lat: 28.9845, lon: 77.7064 },
+  { name: "Aligarh, Uttar Pradesh", lat: 27.8974, lon: 78.0880 },
+  { name: "Patna, Bihar", lat: 25.5941, lon: 85.1376 },
+];
+
 const Recommendations = () => {
   const { t, language } = useLanguage();
   const [form, setForm] = useState({
@@ -143,7 +162,43 @@ const Recommendations = () => {
             </div>
 
             <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, display: "block", marginBottom: 4 }}>{t("regionState")}</label>
+              <label style={{ fontSize: 13, fontWeight: 600, display: "block", marginBottom: 4 }}>
+                {language === 'mr' ? 'शहर / जिल्हा निवडा' : 'Select City / Agricultural District'}
+              </label>
+              <select
+                className="input"
+                style={{ width: "100%", height: 42, marginBottom: 8 }}
+                value={form.region}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const match = POPULAR_AGRICULTURAL_REGIONS.find(r => r.name === val);
+                  if (match) {
+                    setForm({
+                      ...form,
+                      region: match.name,
+                      lat: match.lat,
+                      lon: match.lon
+                    });
+                  } else {
+                    setForm({
+                      ...form,
+                      region: val,
+                      lat: "",
+                      lon: ""
+                    });
+                  }
+                }}
+              >
+                <option value="">{language === 'mr' ? '-- निवडा किंवा खाली टाईप करा --' : '-- Select Region or Type Custom Below --'}</option>
+                {POPULAR_AGRICULTURAL_REGIONS.map((r) => (
+                  <option key={r.name} value={r.name}>{r.name}</option>
+                ))}
+                <option value="custom">{language === 'mr' ? 'इतर शहर / जिल्हा प्रविष्ट करा' : 'Other (Type below)'}</option>
+              </select>
+
+              <label style={{ fontSize: 13, fontWeight: 600, display: "block", marginBottom: 4 }}>
+                {language === 'mr' ? 'सानुकूल शहर / राज्य' : 'Custom City / State / Region'}
+              </label>
               <div style={{ display: "flex", gap: 8 }}>
                 <input
                   className="input"
@@ -164,7 +219,7 @@ const Recommendations = () => {
               </div>
               {form.lat && (
                 <span style={{ fontSize: 11, color: "var(--primary)", marginTop: 4, display: "block" }}>
-                  Coordinates: {parseFloat(form.lat).toFixed(4)}, {parseFloat(form.lon).toFixed(4)}
+                  Coordinates loaded: {parseFloat(form.lat).toFixed(4)}, {parseFloat(form.lon).toFixed(4)}
                 </span>
               )}
             </div>

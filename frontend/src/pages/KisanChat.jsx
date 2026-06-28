@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 
 const CHIPS_TRANSLATIONS = {
   en: [
@@ -138,10 +139,14 @@ const UI_TRANSLATIONS = {
 const KisanChat = () => {
   const { language: contextLang, setLanguage: setContextLanguage } = useLanguage();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // If no language is selected yet, we show the welcome layout initialization screen
   const [langInitialized, setLangInitialized] = useState(!!localStorage.getItem("sk-lang"));
   const [language, setLanguage] = useState(localStorage.getItem("sk-lang") || "en");
+
+  // Determine key for history storage
+  const historyKey = user && user.email ? `sk_chat_history_${user.email}` : "sk_chat_history_guest";
 
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
@@ -216,10 +221,21 @@ const KisanChat = () => {
     setLangInitialized(true);
   };
 
-  // Welcome system greeting triggers on language selection
+  // Load history from localStorage when user/key or language/init changes
   useEffect(() => {
     if (!langInitialized) return;
+    
+    const saved = localStorage.getItem(historyKey);
+    if (saved) {
+      try {
+        setMessages(JSON.parse(saved));
+        return; // Don't set initial greeting if saved messages exist
+      } catch (e) {
+        console.error("Error loading chat history:", e);
+      }
+    }
 
+    // Default system greeting if no history found
     const greetings = {
       en: "Namaste Kisan Bhai/Behan! I am **AgriExpert**, your elite AI agricultural assistant. Thank you for your hard work in feeding our nation.\n\nI can help you with:\n1. 🏥 **Disease Diagnostics** (Upload a photo of crop foliage)\n2. 🚜 **Marketplace Listings** (Sell crops or find organic seeds/fertilizers)\n3. 📅 **Weekly Sowing Calendars** (Custom advice for your soil)\n4. 💧 **Drip Irrigation Schedules** (Personalized run times)\n\nHow can I help you today?",
       hi: "नमस्ते किसान भाई/बहन! मैं **AgriExpert** हूँ, आपका एआई कृषि विशेषज्ञ। हमारे देश को अन्न देने के लिए आपका बहुत-बहुत धन्यवाद।\n\nमैं आपकी निम्नलिखित सहायता कर सकता हूँ:\n1. 🏥 **फसल रोग निदान** (तस्वीर अपलोड कर बीमारी पहचानें)\n2. 🚜 **फसल बिक्री/खरीद** (उपज बेचें या उच्च गुणवत्ता वाले उर्वरक/बीज खोजें)\n3. 📅 **साप्ताहिक कृषि कैलेंडर** (मिट्टी के अनुसार योजना)\n4. 💧 **ड्रिप सिंचाई अनुसूची** (सिंचाई का सही समय और पानी की मात्रा)\n\nआज मैं आपके लिए क्या कर सकता हूँ?",
@@ -233,7 +249,34 @@ const KisanChat = () => {
         timestamp: new Date()
       }
     ]);
-  }, [language, langInitialized]);
+  }, [language, langInitialized, historyKey]);
+
+  // Persist messages to localStorage whenever they change
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem(historyKey, JSON.stringify(messages));
+    }
+  }, [messages, historyKey]);
+
+  // Handler to clear chat history
+  const handleClearHistory = () => {
+    if (!window.confirm(language === 'mr' ? 'तुम्हाला खरोखरच चॅट हिस्ट्री मिटवायची आहे का?' : 'Are you sure you want to clear your chat history?')) return;
+    localStorage.removeItem(historyKey);
+    
+    const greetings = {
+      en: "Namaste Kisan Bhai/Behan! I am **AgriExpert**, your elite AI agricultural assistant. Thank you for your hard work in feeding our nation.\n\nI can help you with:\n1. 🏥 **Disease Diagnostics** (Upload a photo of crop foliage)\n2. 🚜 **Marketplace Listings** (Sell crops or find organic seeds/fertilizers)\n3. 📅 **Weekly Sowing Calendars** (Custom advice for your soil)\n4. 💧 **Drip Irrigation Schedules** (Personalized run times)\n\nHow can I help you today?",
+      hi: "नमस्ते किसान भाई/बहन! मैं **AgriExpert** हूँ, आपका एआई कृषि विशेषज्ञ। हमारे देश को अन्न देने के लिए आपका बहुत-बहुत धन्यवाद।\n\nमैं आपकी निम्नलिखित सहायता कर सकता हूँ:\n1. 🏥 **फसल रोग निदान** (तस्वीर अपलोड कर बीमारी पहचानें)\n2. 🚜 **फसल बिक्री/खरीद** (उपज बेचें या उच्च गुणवत्ता वाले उर्वरक/बीज खोजें)\n3. 📅 **साप्ताहिक कृषि कैलेंडर** (मिट्टी के अनुसार योजना)\n4. 💧 **ड्रिप सिंचाई अनुसूची** (सिंचाई का सही समय और पानी की मात्रा)\n\nआज मैं आपके लिए क्या कर सकता हूँ?",
+      mr: "नमस्ते शेतकरी बंधू आणि भगिनींनो! मी **AgriExpert** आहे, तुमचा एआय कृषी सल्लागार. देशासाठी अन्न पिकवणाऱ्या आपल्या कष्टाला माझा सलाम.\n\nमी खालील बाबींमध्ये मदत करू शकतो:\n1. 🏥 **पीक रोग निदान** (बाधित पानाचा फोटो अपलोड करा)\n2. 🚜 **बाजार खरेदी-विक्री** (शेतमाल विक्री नोंदवा किंवा बियाणे/खते शोधा)\n3. 📅 **साप्ताहिक पीक वेळापत्रक** (मातीच्या प्रकारानुसार सल्ला)\n4. 💧 **ठिबक सिंचन वेळापत्रक** (नियोजनाचे मार्गदर्शन)\n\nआज आपण काय चर्चा करूया?"
+    };
+
+    setMessages([
+      {
+        sender: "ai",
+        text: greetings[language] || greetings.en,
+        timestamp: new Date()
+      }
+    ]);
+  };
 
   const chatEndRef = useRef(null);
 
@@ -660,8 +703,30 @@ const KisanChat = () => {
               <option value="hi">हिन्दी (Hindi)</option>
               <option value="mr">मराठी (Marathi)</option>
             </select>
-
-
+            
+            <button
+              onClick={handleClearHistory}
+              style={{
+                width: "100%",
+                background: "rgba(220, 38, 38, 0.08)",
+                color: "#dc2626",
+                border: "1px solid rgba(220, 38, 38, 0.2)",
+                borderRadius: 8,
+                padding: "8px 12px",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+                transition: "all 0.2s"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(220, 38, 38, 0.15)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(220, 38, 38, 0.08)";
+              }}
+            >
+              🗑️ {language === 'mr' ? 'चॅट इतिहास पुसा' : language === 'hi' ? 'चैट इतिहास साफ करें' : 'Clear Chat History'}
+            </button>
           </div>
 
           {showKeyConfig && (

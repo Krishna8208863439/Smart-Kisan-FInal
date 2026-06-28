@@ -24,6 +24,8 @@ const PREVIEWS = {
   ]
 };
 
+const FARMER_IMAGE_URL = "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=1200&q=80";
+
 const Home = () => {
   const { t, language } = useLanguage();
   const [selectedCrop, setSelectedCrop] = useState("Tomato");
@@ -37,22 +39,19 @@ const Home = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const { isInstallable, isInstalled, installApp } = usePWAInstall();
 
-  // Dynamic Features List (Translated)
-  const FEATURES = [
-    { icon: "🤖", title: t("chat"), desc: language === 'en' ? "Multilingual farming assistant in Hindi, English & 6+ languages" : "हिंदी, इंग्रजी आणि ६+ भाषांमध्ये बहुभाषिक शेती सहाय्यक", link: "/chat", color: "#dcfce7" },
-    { icon: "🏥", title: language === 'en' ? "Agri-Health Portal" : "कृषी-आरोग्य पोर्टल", desc: language === 'en' ? "Plant & livestock disease diagnostics, soil advisory and alert systems" : "वनस्पती आणि जनावरांचे रोग निदान, माती सल्ला आणि रोग चेतावणी संदेश", link: "/agri-health", color: "#ffe4e6" },
-    { icon: "🔬", title: language === 'en' ? "Disease Detection" : "रोग निदान", desc: language === 'en' ? "Upload leaf photos for instant AI-powered disease diagnosis" : "तात्काळ एआय-आधारित पीक रोग निदानासाठी पानावरील फोटो अपलोड करा", link: "/dashboard", color: "#fef3c7" },
-    { icon: "📅", title: language === 'en' ? "Crop Planner" : "पीक नियोजक", desc: t("cropPlannerDesc"), link: "/ai-tools", color: "#dbeafe" },
-    { icon: "🛒", title: t("bazaar"), desc: language === 'en' ? "Buy seeds, sell surplus crops — zero commission peer trading" : "बियाणे खरेदी करा, पीक विक्री करा — शून्य मध्यस्थी थेट व्यापार", link: "/marketplace", color: "#fce7f3" },
-    { icon: "☀️", title: t("weather"), desc: t("impactAccuracy"), link: "/weather", color: "#ede9fe" },
-    { icon: "📈", title: t("mandiPrices"), desc: t("mandiSubtitle"), link: "/market", color: "#d1fae5" },
-    { icon: "🌱", title: language === 'en' ? "Crop Advisor" : "पीक सल्लागार", desc: language === 'en' ? "Predict optimal crops based on soil and location parameters" : "माती आणि हवामानाच्या आधारे फायदेशीर पिकांची शिफारस मिळवा", link: "/recommendations", color: "#fff7ed" },
-  ];
-
   // Live clock
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Online/offline tracking
+  useEffect(() => {
+    const on = () => setIsOnline(true);
+    const off = () => setIsOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
   }, []);
 
   const dismissBanner = () => {
@@ -77,7 +76,7 @@ const Home = () => {
       offsets = [0, 10, 40, 90];
     } else {
       steps = PREVIEWS[selectedCrop] || PREVIEWS["Tomato"];
-      offsets = selectedCrop === "Tomato" ? [0, 25, 45, 95] 
+      offsets = selectedCrop === "Tomato" ? [0, 25, 45, 95]
               : selectedCrop === "Paddy" ? [0, 25, 55, 125]
               : [0, 21, 35, 130];
     }
@@ -119,74 +118,148 @@ const Home = () => {
         </div>
       )}
 
-      {/* Hero Section */}
-      <section className="hero-section" style={{ gridTemplateColumns: "1fr" }}>
-        <div className="hero-content" style={{ textAlign: "center", margin: "0 auto", maxWidth: 700 }}>
-          <div className="hero-badge">{t("trustedFarmers")}</div>
-          <h1 className="hero-title">{t("heroTitle")}</h1>
-          <p className="hero-subtitle">
-            {t("heroSubtitle")}
+      {/* ===== HERO SECTION with Smart Farming Image ===== */}
+      <section className="hero-section" style={{
+        position: "relative",
+        borderRadius: 20,
+        overflow: "hidden",
+        minHeight: 480,
+        display: "flex",
+        alignItems: "center",
+        marginBottom: 36,
+        background: "linear-gradient(135deg, #052e16, #14532d)"
+      }}>
+        {/* Background farming image */}
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          backgroundImage: `url(${FARMER_IMAGE_URL})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          opacity: 0.35,
+          zIndex: 0
+        }} />
+        {/* Gradient overlay */}
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          background: "linear-gradient(90deg, rgba(5,46,22,0.92) 0%, rgba(5,46,22,0.6) 60%, rgba(5,46,22,0.25) 100%)",
+          zIndex: 1
+        }} />
+
+        {/* Content */}
+        <div style={{
+          position: "relative",
+          zIndex: 2,
+          padding: "48px 48px",
+          maxWidth: 700,
+          color: "white"
+        }}>
+          {/* Smart Kisan Badge */}
+          <div style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            background: "rgba(255,255,255,0.12)",
+            backdropFilter: "blur(10px)",
+            border: "1px solid rgba(255,255,255,0.25)",
+            borderRadius: 100,
+            padding: "6px 16px",
+            fontSize: 13,
+            fontWeight: 700,
+            marginBottom: 20,
+            color: "#86efac"
+          }}>
+            🌾 Smart Kisan — {language === 'en' ? 'AI Farming Platform' : 'एआय शेती मंच'}
+          </div>
+
+          <h1 style={{
+            fontSize: "clamp(2rem, 5vw, 3.2rem)",
+            fontWeight: 900,
+            lineHeight: 1.15,
+            margin: "0 0 16px 0",
+            color: "white",
+            letterSpacing: "-0.02em"
+          }}>
+            {language === 'en' ? (
+              <>🌱 Smart Kisan <br/><span style={{ color: "#86efac" }}>AI Farming Assistant</span></>
+            ) : (
+              <>🌱 स्मार्ट किसान<br/><span style={{ color: "#86efac" }}>एआय शेती सहाय्यक</span></>
+            )}
+          </h1>
+
+          <p style={{
+            fontSize: "clamp(1rem, 2vw, 1.15rem)",
+            color: "rgba(255,255,255,0.85)",
+            marginBottom: 32,
+            lineHeight: 1.6,
+            maxWidth: 540
+          }}>
+            {language === 'en'
+              ? "Empowering 15,000+ Indian farmers with AI-powered crop diagnostics, market intelligence, and precision irrigation tools."
+              : "एआय-आधारित पीक निदान, बाजार माहिती आणि अचूक सिंचन साधनांद्वारे १५,०००+ भारतीय शेतकऱ्यांना सक्षम बनवत आहे."}
           </p>
-          <div className="hero-actions" style={{ justifyContent: "center" }}>
+
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <Link to="/register">
-              <button className="button hero-cta-primary">
-                {t("getStarted")}
+              <button className="button" style={{
+                background: "linear-gradient(135deg, #16a34a, #15803d)",
+                padding: "14px 28px",
+                fontSize: 16,
+                fontWeight: 700,
+                borderRadius: 12,
+                boxShadow: "0 4px 20px rgba(22,163,74,0.4)"
+              }}>
+                {t("getStarted")} →
               </button>
             </Link>
             <Link to="/login">
-              <button className="button hero-cta-secondary">
+              <button className="button" style={{
+                background: "rgba(255,255,255,0.12)",
+                backdropFilter: "blur(10px)",
+                border: "1px solid rgba(255,255,255,0.3)",
+                color: "white",
+                padding: "14px 28px",
+                fontSize: 16,
+                fontWeight: 700,
+                borderRadius: 12
+              }}>
                 {t("loginCta")}
               </button>
             </Link>
-            {/* PWA Download App Button */}
             {!isInstalled && (
               <button
-                className="button hero-download-btn"
+                className="button"
                 onClick={installApp}
                 id="hero-download-app-btn"
+                style={{
+                  background: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  color: "rgba(255,255,255,0.8)",
+                  padding: "14px 20px",
+                  fontSize: 15,
+                  borderRadius: 12
+                }}
               >
-                {t("downloadApp")}
+                📲 {t("downloadApp")}
               </button>
             )}
           </div>
-        </div>
-      </section>
 
-      {/* Impact Numbers Grid */}
-      <section className="stats-section">
-        {[
-          { value: "15,000+", label: t("impactFarmers"), icon: "👨‍🌾" },
-          { value: "94.2%", label: t("impactAccuracy"), icon: "🎯" },
-          { value: "500+ Tons", label: t("impactTraded"), icon: "🌾" },
-          { value: "₹0", label: t("impactFees"), icon: "💰" },
-        ].map((stat, idx) => (
-          <div key={idx} className="stat-card">
-            <div className="stat-icon">{stat.icon}</div>
-            <div className="stat-value">{stat.value}</div>
-            <div className="stat-label">{stat.label}</div>
-          </div>
-        ))}
-      </section>
-
-      {/* Features Grid */}
-      <section style={{ marginBottom: 36 }}>
-        <h2 style={{ textAlign: "center", marginBottom: 8, fontSize: 24, fontWeight: 800 }}>
-          {t("featureTitle")}
-        </h2>
-        <p style={{ textAlign: "center", color: "var(--text-muted)", marginBottom: 24, fontSize: 14 }}>
-          {t("featureSubtitle")}
-        </p>
-        <div className="features-grid">
-          {FEATURES.map((feat, idx) => (
-            <Link to={feat.link} key={idx} style={{ textDecoration: "none" }}>
-              <div className="feature-card" style={{ "--feat-bg": feat.color }}>
-                <div className="feature-card-icon">{feat.icon}</div>
-                <h3 className="feature-card-title">{feat.title}</h3>
-                <p className="feature-card-desc">{feat.desc}</p>
-                <span className="feature-card-arrow">→</span>
+          {/* Stats Row */}
+          <div style={{ display: "flex", gap: 24, marginTop: 32, flexWrap: "wrap" }}>
+            {[
+              { value: "15,000+", label: language === 'en' ? "Farmers" : "शेतकरी" },
+              { value: "94.2%", label: language === 'en' ? "AI Accuracy" : "एआय अचूकता" },
+              { value: "₹0", label: language === 'en' ? "Commission" : "कमिशन" },
+              { value: "500+ Tons", label: language === 'en' ? "Traded" : "व्यापार" },
+            ].map((s, i) => (
+              <div key={i} style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 22, fontWeight: 900, color: "#86efac" }}>{s.value}</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.65)", fontWeight: 600 }}>{s.label}</div>
               </div>
-            </Link>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
@@ -258,7 +331,6 @@ const Home = () => {
           )}
         </div>
       </section>
-
 
     </div>
   );
