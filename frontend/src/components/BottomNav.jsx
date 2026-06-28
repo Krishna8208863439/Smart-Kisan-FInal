@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const NAV_ITEMS = [
-  { to: '/', icon: '🏠', label: 'Home', end: true },
+  { to: '/dashboard', icon: '📊', label: 'Dashboard', authRequired: true },
   { to: '/chat', icon: '🤖', label: 'Chat', authRequired: true },
   { to: '/ai-tools', icon: '🛠️', label: 'AI', authRequired: true },
   { to: '/agri-health', icon: '🏥', label: 'Health', authRequired: true },

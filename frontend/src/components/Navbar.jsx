@@ -36,7 +36,6 @@ const Navbar = () => {
 
           {/* Desktop Links */}
           <div className="nav-links nav-links-desktop">
-            <NavLink to="/" className={navLinkClass} end>{t('home')}</NavLink>
             {user && (
               <>
                 <NavLink to="/dashboard" className={navLinkClass}>{t('dashboard')}</NavLink>
@@ -148,7 +147,6 @@ const Navbar = () => {
           )}
 
           <nav className="nav-drawer-links">
-            <NavLink to="/" className={navLinkClass} end>🏠 {t('home')}</NavLink>
             {user && (
               <>
                 <NavLink to="/dashboard" className={navLinkClass}>📊 {t('dashboard')}</NavLink>

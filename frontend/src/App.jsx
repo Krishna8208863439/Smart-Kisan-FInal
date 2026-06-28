@@ -42,7 +42,7 @@ const OfflineBar = () => {
 
 const RootRoute = () => {
   const { user } = useAuth();
-  return user ? <Home /> : <Navigate to="/login" replace />;
+  return user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />;
 };
 
 const App = () => {
