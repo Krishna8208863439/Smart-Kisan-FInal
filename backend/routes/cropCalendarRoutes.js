@@ -147,6 +147,37 @@ router.patch("/:id/task", protect, async (req, res) => {
   }
 });
 
+// PATCH /api/crop-calendar/:id (Update sowing date)
+router.patch("/:id", protect, async (req, res) => {
+  try {
+    const { sowingDate } = req.body;
+    if (!sowingDate) {
+      return res.status(400).json({ message: "Sowing date is required" });
+    }
+
+    const calendar = await CropCalendar.findOne({ _id: req.params.id, user: req.user._id });
+    if (!calendar) {
+      return res.status(404).json({ message: "Crop calendar not found" });
+    }
+
+    const newSowingDate = new Date(sowingDate);
+    calendar.sowingDate = newSowingDate;
+
+    // Recalculate targetDate for all tasks based on their dayOffset
+    calendar.tasks.forEach((task) => {
+      const newTarget = new Date(newSowingDate);
+      newTarget.setDate(newTarget.getDate() + task.dayOffset);
+      task.targetDate = newTarget;
+    });
+
+    await calendar.save();
+    return res.json(calendar);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Failed to update sowing date" });
+  }
+});
+
 // POST /api/crop-calendar/:id/custom-task (Add a custom task to a calendar)
 router.post("/:id/custom-task", protect, async (req, res) => {
   try {

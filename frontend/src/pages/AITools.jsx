@@ -122,6 +122,8 @@ const AITools = () => {
   const [calLoading, setCalLoading] = useState(false);
   const [customTaskTitle, setCustomTaskTitle] = useState("");
   const [customTaskOffset, setCustomTaskOffset] = useState("10");
+  const [isEditingSowingDate, setIsEditingSowingDate] = useState(false);
+  const [tempSowingDate, setTempSowingDate] = useState("");
 
   // Load calendars on mount/refresh
   const loadCalendars = async () => {
@@ -140,6 +142,11 @@ const AITools = () => {
   useEffect(() => {
     loadCalendars();
   }, [isLoggedIn]);
+
+  // Reset editing mode when calendar selection changes
+  useEffect(() => {
+    setIsEditingSowingDate(false);
+  }, [selectedCalId]);
 
   // --- Handlers: Disease Detection ---
   const handleDiseaseFileSelected = (file) => {
@@ -492,6 +499,21 @@ const AITools = () => {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleUpdateSowingDate = async (calId, newDate) => {
+    try {
+      const res = await api.patch(`/crop-calendar/${calId}`, {
+        sowingDate: newDate
+      });
+      setActiveCalendars((prev) =>
+        prev.map((c) => (c._id === calId ? res.data : c))
+      );
+      setIsEditingSowingDate(false);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update sowing date.");
     }
   };
 
@@ -1268,7 +1290,6 @@ const AITools = () => {
                   type="date"
                   className="input"
                   value={calDate}
-                  min={new Date().toISOString().split('T')[0]}
                   onChange={(e) => setCalDate(e.target.value)}
                 />
 
@@ -1352,9 +1373,52 @@ const AITools = () => {
                 <div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
                     <h4 style={{ margin: 0 }}>{selectedCalendar.cropName === "Other" ? (selectedCalendar.customCropName || "Custom Crop") : t(selectedCalendar.cropName)} {t("lifecycleTimeline") || "Lifecycle Timeline"}</h4>
-                    <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                      {t("sowingLabel") || "Sowing"}: {formatDate(selectedCalendar.sowingDate, language)}
-                    </span>
+                    {isEditingSowingDate ? (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-muted)" }}>
+                        {t("sowingLabel") || "Sowing"}:
+                        <input
+                          type="date"
+                          value={tempSowingDate}
+                          onChange={(e) => setTempSowingDate(e.target.value)}
+                          style={{
+                            padding: "2px 4px",
+                            fontSize: 12,
+                            border: "1px solid var(--border-color)",
+                            borderRadius: 4,
+                            background: "var(--bg-main)",
+                            color: "var(--text-dark)"
+                          }}
+                        />
+                        <button
+                          onClick={() => handleUpdateSowingDate(selectedCalendar._id, tempSowingDate)}
+                          style={{ background: "none", border: "none", cursor: "pointer", padding: "2px", fontSize: 14 }}
+                          title="Save"
+                        >
+                          ✔️
+                        </button>
+                        <button
+                          onClick={() => setIsEditingSowingDate(false)}
+                          style={{ background: "none", border: "none", cursor: "pointer", padding: "2px", fontSize: 14 }}
+                          title="Cancel"
+                        >
+                          ❌
+                        </button>
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 12, color: "var(--text-muted)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        {t("sowingLabel") || "Sowing"}: {formatDate(selectedCalendar.sowingDate, language)}
+                        <button
+                          onClick={() => {
+                            setTempSowingDate(selectedCalendar.sowingDate.split('T')[0]);
+                            setIsEditingSowingDate(true);
+                          }}
+                          style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 4px", fontSize: 12 }}
+                          title="Edit Sowing Date"
+                        >
+                          ✏️
+                        </button>
+                      </span>
+                    )}
                   </div>
 
                   {/* Circular SVG Progress & Stage info */}
