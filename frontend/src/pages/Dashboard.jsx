@@ -37,7 +37,9 @@ const getProductImageUrl = (url) => {
   ) {
     return ""; // Force fallback
   }
-  const backendBase = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const backendBase = typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1"
+    ? window.location.origin
+    : (import.meta.env.VITE_API_URL || "http://localhost:5000");
   if (url.startsWith("http://localhost:5000")) {
     return url.replace("http://localhost:5000", backendBase);
   }

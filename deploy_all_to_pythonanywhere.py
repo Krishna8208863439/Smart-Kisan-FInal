@@ -270,10 +270,10 @@ def application(environ, start_response):
     path_info = environ.get('PATH_INFO', '')
     
     # Route python advisory/diagnose/alerts endpoints to Python Port
-    if path_info.startswith('/api/diagnose') or path_info.startswith('/api/advisory') or path_info.startswith('/api/alerts') or path_info.startswith('/api/community') or path_info.startswith('/uploads'):
+    if path_info.startswith('/api/diagnose') or path_info.startswith('/api/advisory') or path_info.startswith('/api/alerts') or path_info.startswith('/api/community'):
         return proxy_request(environ, start_response, PYTHON_PORT)
-    # Route general Node endpoints to Node Port
-    elif path_info.startswith('/api'):
+    # Route uploads static files and general Node endpoints to Node Port
+    elif path_info.startswith('/uploads') or path_info.startswith('/api'):
         return proxy_request(environ, start_response, NODE_PORT)
         
     clean_path = os.path.normpath(path_info).lstrip('/')
