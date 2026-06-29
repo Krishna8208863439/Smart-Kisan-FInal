@@ -3,6 +3,7 @@ import { protect } from "../middleware/authMiddleware.js";
 import Product from "../models/Product.js";
 import BuyRequest from "../models/BuyRequest.js";
 import Contract from "../models/Contract.js";
+import Order from "../models/Order.js";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -360,27 +361,72 @@ router.post("/checkout", protect, async (req, res) => {
       return res.status(400).json({ message: "Cart is empty" });
     }
 
-    // Mock successful order
     const orderId = "ORD-" + Date.now() + "-" + Math.floor(1000 + Math.random() * 9000);
     const userEmail = req.user.email || "kisan@gmail.com";
+
+    // Build order items and calculate total amount
+    const orderItems = [];
+    let totalAmount = 0;
+    for (const item of cartItems) {
+      const product = await Product.findById(item.productId);
+      if (product) {
+        let price = product.price;
+        let quantity = item.quantity;
+        let itemTotal = price * quantity;
+        if (quantity >= 10) {
+          itemTotal = Math.round(itemTotal * 0.9); // Apply 10% bulk discount
+        }
+        orderItems.push({
+          productId: product._id,
+          name: product.name,
+          price: product.price,
+          quantity,
+          unit: product.unit,
+          image: product.image || ""
+        });
+        totalAmount += itemTotal;
+      }
+    }
+
+    // Save order history to database
+    const order = await Order.create({
+      orderId,
+      userId: req.user._id,
+      userEmail,
+      items: orderItems,
+      totalAmount,
+      status: "Processing"
+    });
 
     // Simulate email dispatch
     console.log(`\n=============================================================`);
     console.log(`📧 [EMAIL SENT] Order Confirmation Email Dispatched!`);
     console.log(`✉️  Recipient: ${userEmail}`);
     console.log(`📦 Order ID: ${orderId}`);
-    console.log(`💸 Total Items: ${cartItems.length}`);
+    console.log(`💸 Total Amount: ₹${totalAmount}`);
     console.log(`=============================================================\n`);
 
     return res.json({
       success: true,
       orderId,
       email: userEmail,
-      message: `Order placed successfully! A confirmation email and digital receipt have been sent to ${userEmail}.`
+      message: `Order placed successfully! A confirmation email and digital receipt have been sent to ${userEmail}.`,
+      order
     });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Checkout failed" });
+  }
+});
+
+// GET /api/marketplace/orders
+router.get("/orders", protect, async (req, res) => {
+  try {
+    const orders = await Order.find({ userId: req.user._id }).sort({ createdAt: -1 });
+    return res.json(orders);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Failed to fetch order history" });
   }
 });
 

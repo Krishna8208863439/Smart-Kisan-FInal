@@ -137,6 +137,9 @@ const Marketplace = () => {
 
   // Dashboard view toggle ("browse" or "dashboard")
   const [viewMode, setViewMode] = useState("browse");
+  const [dashboardTab, setDashboardTab] = useState("listings"); // listings or orders
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
 
   // Selected product for detail modal
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -224,10 +227,24 @@ const Marketplace = () => {
     }
   };
 
+  const fetchOrders = async () => {
+    if (!isLoggedIn) return;
+    setOrdersLoading(true);
+    try {
+      const res = await api.get("/marketplace/orders");
+      setOrders(res.data);
+    } catch (err) {
+      console.error("Error fetching order history:", err);
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
     if (isLoggedIn) {
       fetchMyListings();
+      fetchOrders();
     }
   }, [isLoggedIn]);
 
@@ -357,6 +374,7 @@ const Marketplace = () => {
       setCart([]); // Clear cart
       setShowBillDesk(false);
       fetchProducts(); // Refresh list to catch stock updates
+      fetchOrders(); // Refresh order history
     } catch (err) {
       console.error(err);
       alert("Checkout failed. Please verify you are logged in.");
@@ -1132,74 +1150,199 @@ const Marketplace = () => {
             </div>
           )}
 
-          {/* Seller Listings List */}
-          <div className="card">
-            <h3>My Active Bazaar Listings</h3>
-            {myListings.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)" }}>
-                <span>🚜</span>
-                <p style={{ marginTop: 12 }}>You have not listed any items for sale in the Bazaar yet.</p>
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {myListings.map((p) => (
-                  <div 
-                    key={p._id} 
-                    style={{ 
-                      display: "flex", 
-                      alignItems: "center", 
-                      justifyContent: "space-between", 
-                      padding: "12px", 
-                      border: "1px solid var(--border-color)",
-                      borderRadius: 8,
-                      flexWrap: "wrap",
-                      gap: 12
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <img 
-                        src={getProductImageUrl(p.image) || getFallbackImage(p)}
-                        alt={p.name} 
-                        style={{ width: 50, height: 50, borderRadius: 6, objectFit: "cover" }}
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = getFallbackImage(p);
-                        }}
-                      />
-                      <div>
-                        <strong style={{ fontSize: 15, display: "block" }}>{p.name}</strong>
-                        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                          ₹{p.price} {p.unit} • <span style={{ textTransform: "uppercase", fontWeight: 700, color: "var(--primary)" }}>{p.category}</span>
-                        </span>
+          {/* Dashboard Tab Selector */}
+          <div style={{ display: "flex", gap: 10, borderBottom: "1px solid var(--border-color)", paddingBottom: 10, marginBottom: 20 }}>
+            <button
+              type="button"
+              className={`ai-tab ${dashboardTab === "listings" ? "ai-tab-active" : ""}`}
+              style={{
+                background: "transparent",
+                border: "none",
+                fontWeight: 700,
+                fontSize: 14,
+                color: dashboardTab === "listings" ? "var(--primary)" : "var(--text-muted)",
+                borderBottom: dashboardTab === "listings" ? "2px solid var(--primary)" : "none",
+                cursor: "pointer",
+                paddingBottom: 6,
+                margin: 0
+              }}
+              onClick={() => setDashboardTab("listings")}
+            >
+              🚜 {language === 'mr' ? 'माझी विक्री उत्पादने' : 'My Sales Listings'}
+            </button>
+            <button
+              type="button"
+              className={`ai-tab ${dashboardTab === "orders" ? "ai-tab-active" : ""}`}
+              style={{
+                background: "transparent",
+                border: "none",
+                fontWeight: 700,
+                fontSize: 14,
+                color: dashboardTab === "orders" ? "var(--primary)" : "var(--text-muted)",
+                borderBottom: dashboardTab === "orders" ? "2px solid var(--primary)" : "none",
+                cursor: "pointer",
+                paddingBottom: 6,
+                margin: 0
+              }}
+              onClick={() => setDashboardTab("orders")}
+            >
+              📜 {language === 'mr' ? 'माझा खरेदी इतिहास' : 'My Purchase History'}
+            </button>
+          </div>
+
+          {dashboardTab === "listings" ? (
+            /* Seller Listings List */
+            <div className="card">
+              <h3>My Active Bazaar Listings</h3>
+              {myListings.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)" }}>
+                  <span>🚜</span>
+                  <p style={{ marginTop: 12 }}>You have not listed any items for sale in the Bazaar yet.</p>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {myListings.map((p) => (
+                    <div 
+                      key={p._id} 
+                      style={{ 
+                        display: "flex", 
+                        alignItems: "center", 
+                        justifyContent: "space-between", 
+                        padding: "12px", 
+                        border: "1px solid var(--border-color)",
+                        borderRadius: 8,
+                        flexWrap: "wrap",
+                        gap: 12
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <img 
+                          src={getProductImageUrl(p.image) || getFallbackImage(p)}
+                          alt={p.name} 
+                          style={{ width: 50, height: 50, borderRadius: 6, objectFit: "cover" }}
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = getFallbackImage(p);
+                          }}
+                        />
+                        <div>
+                          <strong style={{ fontSize: 15, display: "block" }}>{p.name}</strong>
+                          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                            ₹{p.price} {p.unit} • <span style={{ textTransform: "uppercase", fontWeight: 700, color: "var(--primary)" }}>{p.category}</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <button 
+                          className="button"
+                          style={{ 
+                            background: p.stock === "In Stock" ? "#16a34a" : "#dc2626", 
+                            padding: "6px 12px", 
+                            fontSize: 12,
+                            margin: 0
+                          }}
+                          onClick={() => handleToggleStock(p._id, p.stock)}
+                        >
+                          {p.stock === "In Stock" ? "Mark Sold Out" : "Mark Available"}
+                        </button>
+                        <button 
+                          className="button" 
+                          style={{ background: "#ef4444", padding: "6px 12px", fontSize: 12, margin: 0 }}
+                          onClick={() => handleDeleteListing(p._id)}
+                        >
+                          🗑️ Pull Item
+                        </button>
                       </div>
                     </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Purchase History List */
+            <div className="card">
+              <h3>{language === 'mr' ? 'माझा खरेदी इतिहास' : 'My Purchase History'}</h3>
+              {ordersLoading ? (
+                <div style={{ textAlign: "center", padding: "40px 0" }}>
+                  <span className="spinner-dot"></span>
+                  <p style={{ marginTop: 8 }}>{language === 'mr' ? 'इतिहास लोड करत आहे...' : 'Loading order history...'}</p>
+                </div>
+              ) : orders.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)" }}>
+                  <span style={{ fontSize: 40 }}>🛒</span>
+                  <p style={{ marginTop: 12 }}>{language === 'mr' ? 'तुम्ही अद्याप बाजारातून कोणतीही खरेदी केलेली नाही.' : 'You have not made any purchases in the Bazaar yet.'}</p>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {orders.map((order) => (
+                    <div 
+                      key={order._id}
+                      style={{
+                        border: "1px solid var(--border-color)",
+                        borderRadius: 10,
+                        padding: 16,
+                        background: "#fff",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
+                      }}
+                    >
+                      {/* Order Header */}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, borderBottom: "1px solid #f1f5f9", paddingBottom: 12, marginBottom: 12 }}>
+                        <div>
+                          <strong style={{ fontSize: 14, color: "var(--text-dark)", display: "block" }}>{order.orderId}</strong>
+                          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                            {new Date(order.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span 
+                            style={{ 
+                              padding: "4px 8px", 
+                              borderRadius: 4, 
+                              fontSize: 11, 
+                              fontWeight: 700,
+                              background: "#fef3c7", 
+                              color: "#d97706",
+                              textTransform: "uppercase"
+                            }}
+                          >
+                            {order.status}
+                          </span>
+                          <strong style={{ fontSize: 16, color: "var(--primary)" }}>₹{order.totalAmount}</strong>
+                        </div>
+                      </div>
 
-                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                      <button 
-                        className="button"
-                        style={{ 
-                          background: p.stock === "In Stock" ? "#16a34a" : "#dc2626", 
-                          padding: "6px 12px", 
-                          fontSize: 12,
-                          margin: 0
-                        }}
-                        onClick={() => handleToggleStock(p._id, p.stock)}
-                      >
-                        {p.stock === "In Stock" ? "Mark Sold Out" : "Mark Available"}
-                      </button>
-                      <button 
-                        className="button" 
-                        style={{ background: "#ef4444", padding: "6px 12px", fontSize: 12, margin: 0 }}
-                        onClick={() => handleDeleteListing(p._id)}
-                      >
-                        🗑️ Pull Item
-                      </button>
+                      {/* Order Items */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        {order.items.map((item, idx) => (
+                          <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <img 
+                                src={getProductImageUrl(item.image) || getFallbackImage(item)}
+                                alt={item.name}
+                                style={{ width: 40, height: 40, borderRadius: 6, objectFit: "cover", border: "1px solid #f1f5f9" }}
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = getFallbackImage(item);
+                                }}
+                              />
+                              <div>
+                                <span style={{ fontSize: 13, fontWeight: 600, display: "block", color: "var(--text-dark)" }}>{item.name}</span>
+                                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                                  ₹{item.price} {item.unit} x {item.quantity}
+                                </span>
+                              </div>
+                            </div>
+                            <strong style={{ fontSize: 13 }}>₹{item.price * item.quantity}</strong>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

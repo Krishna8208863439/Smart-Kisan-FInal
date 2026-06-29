@@ -32,6 +32,26 @@ const REFERENCE_HEALTHY_LEAVES = {
   Paddy: "https://images.unsplash.com/photo-1536304997881-a372c179924b?auto=format&fit=crop&w=300&q=80"
 };
 
+const DIAGNOSTIC_CROPS = [
+  { id: "Tomato", en: "Tomato", mr: "टोमॅटो", hi: "टमाटर" },
+  { id: "Paddy", en: "Paddy / Rice", mr: "भात / धान", hi: "धान / चावल" },
+  { id: "Wheat", en: "Wheat", mr: "गहू", hi: "गेहूं" },
+  { id: "Maize", en: "Maize / Corn", mr: "मका", hi: "मक्का" },
+  { id: "Cotton", en: "Cotton", mr: "कापूस", hi: "कपास" },
+  { id: "Sugarcane", en: "Sugarcane", mr: "ऊस", hi: "गन्ना" },
+  { id: "Potato", en: "Potato", mr: "बटाटा", hi: "आलू" },
+  { id: "Groundnut", en: "Groundnut / Peanut", mr: "भूईमूग / शेंगदाणा", hi: "मूंगफली" },
+  { id: "Soybean", en: "Soybean", mr: "सोयाबीन", hi: "सोयाबीन" },
+  { id: "Chilli", en: "Chilli / Pepper", mr: "मिरची", hi: "मिर्च" },
+  { id: "Banana", en: "Banana", mr: "केळी", hi: "केला" },
+  { id: "Onion", en: "Onion", mr: "कांदा", hi: "प्याज़" },
+  { id: "Mango", en: "Mango", mr: "आंबा", hi: "आम" },
+  { id: "Brinjal", en: "Brinjal / Eggplant", mr: "वांगी", hi: "बैंगन" },
+  { id: "Mustard", en: "Mustard", mr: "मोहरी", hi: "सरसों" },
+  { id: "Cattle", en: "Cattle / Livestock", mr: "पशुधन / जनावरे", hi: "पशुधन / गाय-भैंस" },
+  { id: "Other", en: "Other (Type crop name...)", mr: "इतर (नाव प्रविष्ट करा)", hi: "अन्य (नाम दर्ज करें)" }
+];
+
 const AITools = () => {
   const { t, language } = useLanguage();
   const [activeTab, setActiveTab] = useState("Disease Detection");
@@ -83,6 +103,10 @@ const AITools = () => {
   const [diseaseFile, setDiseaseFile] = useState(null);
   const [diseasePreview, setDiseasePreview] = useState("");
   const [diseaseCropHint, setDiseaseCropHint] = useState("Tomato");
+  const [diseaseCustomCrop, setDiseaseCustomCrop] = useState("");
+  const [diseaseGeminiKey, setDiseaseGeminiKey] = useState(localStorage.getItem("sk_gemini_key") || "");
+  const [showKeyInput, setShowKeyInput] = useState(false);
+  const [keySavedStatus, setKeySavedStatus] = useState("");
   const [diseaseLoading, setDiseaseLoading] = useState(false);
   const [diseaseResult, setDiseaseResult] = useState(null);
   const [diseaseStatus, setDiseaseStatus] = useState("Upload a leaf photo and click analyze.");
@@ -189,8 +213,9 @@ const AITools = () => {
 
     try {
       const formData = new FormData();
-      if (diseaseCropHint) {
-        formData.append("crop", diseaseCropHint);
+      const finalCrop = diseaseCropHint === "Other" ? diseaseCustomCrop : diseaseCropHint;
+      if (finalCrop) {
+        formData.append("crop", finalCrop);
       }
       formData.append("image", diseaseFile);
       
@@ -212,9 +237,10 @@ const AITools = () => {
       console.error(err);
       setDiseaseStatus("Network error analyzing leaf. Using diagnostics fallback.");
       // Fallback response for offline demonstration
+      const finalCrop = diseaseCropHint === "Other" ? diseaseCustomCrop : diseaseCropHint;
       setDiseaseResult({
         success: true,
-        crop: diseaseCropHint || "Tomato",
+        crop: finalCrop || "Tomato",
         disease: "Blight Spotting (Simulated)",
         severity: "medium",
         confidence: 0.84,
@@ -526,7 +552,6 @@ const AITools = () => {
     return Math.round((completed / cal.tasks.length) * 100);
   };
 
-  // Lifecycle stepper calculation — fixed day calculation to avoid timezone "0 days" bug
   const getCropLifecycleStage = (cal) => {
     if (!cal) return { stage: "Nursery", progress: 0, daysElapsed: 0, stages: [] };
     // Parse sowing date at midnight local time to avoid timezone offset issues
@@ -534,7 +559,17 @@ const AITools = () => {
     const sowing = new Date(sowingRaw.getFullYear(), sowingRaw.getMonth(), sowingRaw.getDate());
     const today = new Date();
     const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const daysElapsed = Math.max(0, Math.floor((todayMidnight - sowing) / (1000 * 60 * 60 * 24)));
+    
+    // Calculate the maximum dayOffset of completed tasks to dynamically advance the lifecycle
+    const completedTasks = cal.tasks ? cal.tasks.filter((t) => t.status === "completed") : [];
+    const maxCompletedOffset = completedTasks.length > 0 
+      ? Math.max(...completedTasks.map((t) => t.dayOffset)) 
+      : 0;
+
+    const daysElapsed = Math.max(
+      Math.max(0, Math.floor((todayMidnight - sowing) / (1000 * 60 * 60 * 24))),
+      maxCompletedOffset
+    );
 
     let stages = [];
     if (cal.cropName === "Tomato") {
@@ -655,28 +690,57 @@ const AITools = () => {
                 value={diseaseCropHint}
                 onChange={(e) => setDiseaseCropHint(e.target.value)}
               >
-                {Object.keys(CROP_NPK_TARGETS).map(crop => (
-                  <option key={crop} value={crop}>{CROP_NPK_TARGETS[crop].name}</option>
+                {DIAGNOSTIC_CROPS.map(crop => (
+                  <option key={crop.id} value={crop.id}>
+                    {language === 'mr' ? crop.mr : language === 'hi' ? crop.hi : crop.en}
+                  </option>
                 ))}
               </select>
+
+              {diseaseCropHint === "Other" && (
+                <div style={{ marginTop: 8, marginBottom: 12 }}>
+                  <label style={{ fontWeight: 600, fontSize: 13 }}>
+                    {language === 'mr' ? 'पिकाचे नाव प्रविष्ट करा' : 'Type Crop Name'}
+                  </label>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder={language === 'mr' ? 'उदा. सोयाबीन, कांदा, आंबा...' : 'e.g. Soyabean, Onion, Mango...'}
+                    value={diseaseCustomCrop}
+                    onChange={(e) => setDiseaseCustomCrop(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
 
               <div
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
                   e.preventDefault();
-                  handleDiseaseFileSelected(e.dataTransfer.files?.[0]);
+                  if (!diseasePreview) {
+                    handleDiseaseFileSelected(e.dataTransfer.files?.[0]);
+                  }
                 }}
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => {
+                  if (!diseasePreview) {
+                    fileInputRef.current?.click();
+                  }
+                }}
                 style={{
-                  border: "2px dashed var(--border-color)",
+                  border: diseasePreview ? "1px solid var(--border-color)" : "2px dashed var(--border-color)",
                   borderRadius: 12,
-                  padding: 24,
+                  padding: diseasePreview ? 0 : 24,
                   textAlign: "center",
                   background: "var(--bg-main)",
-                  cursor: "pointer",
+                  cursor: diseasePreview ? "default" : "pointer",
                   marginBottom: 16,
                   position: "relative",
-                  overflow: "hidden"
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minHeight: 200
                 }}
               >
                 <input
@@ -689,54 +753,179 @@ const AITools = () => {
                 
                 {diseaseLoading && <div className="scan-line" />}
 
-                <div style={{ fontSize: 36, marginBottom: 8 }}>🍃</div>
-                <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text-dark)" }}>
-                  {diseaseFile ? diseaseFile.name : t("dragDropPhoto")}
-                </div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{t("supportsFormats")}</div>
+                {diseasePreview ? (
+                  <div style={{ position: "relative", width: "100%", height: "200px" }}>
+                    <img
+                      src={diseasePreview}
+                      alt="Leaf preview"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover"
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        clearDiseaseImage();
+                      }}
+                      style={{
+                        position: "absolute",
+                        top: 8,
+                        right: 8,
+                        background: "rgba(220, 38, 38, 0.9)",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "50%",
+                        width: 28,
+                        height: 28,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 14,
+                        fontWeight: "bold",
+                        zIndex: 10,
+                        boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
+                      }}
+                      title="Clear Image"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 36, marginBottom: 8 }}>🍃</div>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text-dark)", marginBottom: 4 }}>
+                      {t("dragDropPhoto")}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 12 }}>
+                      {t("supportsFormats")}
+                    </div>
+                    <button
+                      type="button"
+                      className="button"
+                      style={{
+                        padding: "6px 14px",
+                        fontSize: 12,
+                        margin: 0,
+                        background: "var(--primary)",
+                        color: "white",
+                        border: "none",
+                        borderRadius: 6,
+                        cursor: "pointer",
+                        fontWeight: 600
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        fileInputRef.current?.click();
+                      }}
+                    >
+                      {language === 'mr' ? 'फोटो निवडा' : 'Choose Photo'}
+                    </button>
+                  </>
+                )}
               </div>
 
-              {diseasePreview && (
-                <div style={{ marginBottom: 16, textAlign: "center", position: "relative", display: "inline-block", maxWidth: "100%" }}>
-                  <img
-                    src={diseasePreview}
-                    alt="Leaf preview"
-                    style={{
-                      maxHeight: 200,
-                      maxWidth: "100%",
-                      borderRadius: 8,
-                      border: "1px solid var(--border-color)",
-                      objectFit: "cover"
-                    }}
-                  />
+              {/* Gemini API Key Configuration Panel */}
+              <div style={{
+                marginTop: 16,
+                padding: 12,
+                borderRadius: 8,
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0"
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-dark)" }}>
+                    {diseaseGeminiKey ? "✅ Gemini AI Vision Active" : "⚠️ Gemini API Key Missing"}
+                  </span>
                   <button
                     type="button"
-                    onClick={clearDiseaseImage}
                     style={{
-                      position: "absolute",
-                      top: 8,
-                      right: 8,
-                      background: "rgba(220, 38, 38, 0.9)",
-                      color: "white",
+                      background: "transparent",
+                      color: "var(--primary)",
                       border: "none",
-                      borderRadius: "50%",
-                      width: 24,
-                      height: 24,
+                      fontSize: 12,
+                      fontWeight: 600,
                       cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 14,
-                      fontWeight: "bold",
-                      zIndex: 10
+                      padding: 0
                     }}
-                    title="Clear Image"
+                    onClick={() => setShowKeyInput(!showKeyInput)}
                   >
-                    ✕
+                    {showKeyInput ? (language === 'mr' ? 'बंद करा' : 'Close') : (diseaseGeminiKey ? (language === 'mr' ? 'की बदला' : 'Change Key') : (language === 'mr' ? 'की सेट करा' : 'Configure Key'))}
                   </button>
-                  {diseaseLoading && <div className="scan-line" />}
                 </div>
-              )}
+                
+                {!showKeyInput && !diseaseGeminiKey && (
+                  <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "4px 0 0 0" }}>
+                    {language === 'mr' ? 'अचूक एआय निदानासाठी कृपया गुगल जेमिनी एपीआय की सेट करा.' : 'For accurate real-time AI diagnosis, please configure your Gemini API Key.'}
+                  </p>
+                )}
+
+                {showKeyInput && (
+                  <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                    <input
+                      type="password"
+                      className="input"
+                      style={{ margin: 0, padding: "6px 10px", fontSize: 12 }}
+                      placeholder={language === 'mr' ? 'जेमिनी एपीआय की प्रविष्ट करा...' : 'Enter Gemini API Key...'}
+                      value={diseaseGeminiKey}
+                      onChange={(e) => setDiseaseGeminiKey(e.target.value)}
+                    />
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        type="button"
+                        className="button"
+                        style={{
+                          padding: "4px 10px",
+                          fontSize: 11,
+                          margin: 0,
+                          background: "var(--primary)",
+                          flexGrow: 1
+                        }}
+                        onClick={() => {
+                          if (diseaseGeminiKey.trim()) {
+                            localStorage.setItem("sk_gemini_key", diseaseGeminiKey.trim());
+                            setKeySavedStatus(language === 'mr' ? 'की यशस्वीरित्या जतन केली!' : 'API Key saved successfully!');
+                            setShowKeyInput(false);
+                            setTimeout(() => setKeySavedStatus(""), 3000);
+                          }
+                        }}
+                      >
+                        {language === 'mr' ? 'जतन करा' : 'Save Key'}
+                      </button>
+                      {diseaseGeminiKey && (
+                        <button
+                          type="button"
+                          className="button"
+                          style={{
+                            padding: "4px 10px",
+                            fontSize: 11,
+                            margin: 0,
+                            background: "#dc2626",
+                            color: "white"
+                          }}
+                          onClick={() => {
+                            localStorage.removeItem("sk_gemini_key");
+                            setDiseaseGeminiKey("");
+                            setKeySavedStatus(language === 'mr' ? 'की काढली!' : 'API Key removed!');
+                            setShowKeyInput(false);
+                            setTimeout(() => setKeySavedStatus(""), 3000);
+                          }}
+                        >
+                          {language === 'mr' ? 'काढून टाका' : 'Remove'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {keySavedStatus && (
+                  <p style={{ fontSize: 11, color: "var(--primary)", fontWeight: 600, margin: "4px 0 0 0" }}>
+                    {keySavedStatus}
+                  </p>
+                )}
+              </div>
 
               <button
                 className="button"

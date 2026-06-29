@@ -11,7 +11,7 @@ const initializeDbFile = () => {
   if (!fs.existsSync(DB_FILE)) {
     fs.writeFileSync(
       DB_FILE,
-      JSON.stringify({ users: [], posts: [], calendars: [], products: [], buyRequests: [], contracts: [] }, null, 2)
+      JSON.stringify({ users: [], posts: [], calendars: [], products: [], buyRequests: [], contracts: [], orders: [] }, null, 2)
     );
   }
 };
@@ -23,10 +23,11 @@ const readDb = () => {
     const parsed = JSON.parse(data);
     if (!parsed.buyRequests) parsed.buyRequests = [];
     if (!parsed.contracts) parsed.contracts = [];
+    if (!parsed.orders) parsed.orders = [];
     return parsed;
   } catch (err) {
     console.error("Error reading memory DB file:", err);
-    return { users: [], posts: [], calendars: [], products: [], buyRequests: [], contracts: [] };
+    return { users: [], posts: [], calendars: [], products: [], buyRequests: [], contracts: [], orders: [] };
   }
 };
 
@@ -446,5 +447,32 @@ export const ContractMock = {
     db.contracts[index] = updated;
     writeDb(db);
     return updated;
+  }
+};
+
+// Order Mock Model
+export const OrderMock = {
+  find: (filter) => {
+    const db = readDb();
+    if (!db.orders) db.orders = [];
+    let result = db.orders;
+    if (filter && filter.userId) {
+      result = result.filter((o) => String(o.userId) === String(filter.userId));
+    }
+    return new MemoryQuery(Promise.resolve(result));
+  },
+  create: async (orderData) => {
+    const db = readDb();
+    if (!db.orders) db.orders = [];
+    const newOrder = {
+      _id: generateId(),
+      status: "Processing",
+      ...orderData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    db.orders.push(newOrder);
+    writeDb(db);
+    return newOrder;
   }
 };
