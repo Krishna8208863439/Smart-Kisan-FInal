@@ -269,13 +269,15 @@ def serve_index_html(environ, start_response):
 def application(environ, start_response):
     path_info = environ.get('PATH_INFO', '')
     
-    # Route python advisory/diagnose/alerts endpoints to Python Port
-    if path_info.startswith('/api/diagnose') or path_info.startswith('/api/advisory') or path_info.startswith('/api/alerts') or path_info.startswith('/api/community'):
+    # Route python advisory/diagnose/alerts/dataset/py_uploads endpoints to Python Port
+    if (path_info.startswith('/api/diagnose') or path_info.startswith('/api/advisory')
+            or path_info.startswith('/api/alerts') or path_info.startswith('/api/community')
+            or path_info.startswith('/api/dataset') or path_info.startswith('/py_uploads')):
         return proxy_request(environ, start_response, PYTHON_PORT)
-    # Route uploads static files and general Node endpoints to Node Port
+    # Route Node uploads static files and general Node endpoints to Node Port
     elif path_info.startswith('/uploads') or path_info.startswith('/api'):
         return proxy_request(environ, start_response, NODE_PORT)
-        
+
     clean_path = os.path.normpath(path_info).lstrip('/')
     file_path = os.path.join('/home/Krishna3114/smart-kisan-frontend', clean_path)
     if os.path.isfile(file_path) and file_path.startswith('/home/Krishna3114/smart-kisan-frontend'):

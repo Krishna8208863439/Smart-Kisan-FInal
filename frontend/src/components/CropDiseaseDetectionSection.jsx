@@ -1,7 +1,13 @@
 // frontend/src/components/CropDiseaseDetectionSection.jsx
 import React, { useRef, useState } from "react";
+import axios from "axios";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
+
+// Python backend URL — points to FastAPI server (port 8000 locally, /api in production via WSGI proxy)
+const PY_API_URL = typeof window !== "undefined" && window.location.hostname === "localhost"
+  ? (import.meta.env.VITE_PY_API_URL || "http://localhost:8000/api")
+  : "/api";
 
 // Crop options with Hindi/Marathi labels
 const CROP_OPTIONS = [
@@ -263,8 +269,16 @@ const CropDiseaseDetectionSection = () => {
       formData.append("crop", finalCrop);   // Sends the selected or custom crop
       formData.append("image", file);
 
-      const response = await api.post("/diagnose", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+      // Build headers — include auth token and optional Gemini key
+      const headers = { "Content-Type": "multipart/form-data" };
+      const token = localStorage.getItem("sk_token");
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const geminiKey = localStorage.getItem("sk_gemini_key");
+      if (geminiKey) headers["x-gemini-key"] = geminiKey.trim();
+
+      // POST directly to Python backend (FastAPI /api/diagnose)
+      const response = await axios.post(`${PY_API_URL}/diagnose`, formData, {
+        headers,
         timeout: 50000    // 50s for Gemini to respond
       });
 
@@ -649,7 +663,25 @@ const CropDiseaseDetectionSection = () => {
                     {language === "mr" ? "प्रक्रिया केलेला फोटो:" : "Processed Image:"}
                   </div>
                   <img
-                    src={typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" ? result.imageUrl : "http://localhost:8000" + result.imageUrl}
+                    src={(() => {
+                      const url = result.imageUrl;
+                      if (!url) return "";
+                      // /py_uploads paths are served by the Python backend
+                      if (url.startsWith("/py_uploads")) {
+                        const base = typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1"
+                          ? window.location.origin
+                          : "http://localhost:8000";
+                        return `${base}${url}`;
+                      }
+                      // /uploads paths are served by the Node backend
+                      if (url.startsWith("/uploads")) {
+                        const base = typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1"
+                          ? window.location.origin
+                          : "http://localhost:5000";
+                        return `${base}${url}`;
+                      }
+                      return url;
+                    })()}
                     alt={language === "mr" ? "तपासलेले पान" : "Analyzed leaf"}
                     style={{ maxWidth: "100%", borderRadius: 12, border: "1px solid #e5e7eb", maxHeight: 180, objectFit: "cover" }}
                   />

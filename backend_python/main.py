@@ -47,7 +47,8 @@ UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # Mount static folder to serve uploaded leaves/livestock photos
-app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+# Using /py_uploads (not /uploads) to distinguish from Node backend's /uploads path
+app.mount("/py_uploads", StaticFiles(directory=UPLOAD_DIR), name="py_uploads")
 
 # Initialize database tables on startup
 @app.on_event("startup")
@@ -117,7 +118,7 @@ async def analyze_with_dataset_context(
     with open(file_path, "wb") as buffer:
         import shutil
         shutil.copyfileobj(image.file, buffer)
-    image_url = f"/uploads/{unique_filename}"
+    image_url = f"/py_uploads/{unique_filename}"
 
     with open(file_path, "rb") as f:
         img_bytes = f.read()
@@ -186,7 +187,8 @@ async def diagnose_crop_disease(
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(image.file, buffer)
         
-    image_url = f"/uploads/{unique_filename}"
+    image_url = f"/py_uploads/{unique_filename}"
+
     
     # Read image bytes for PyTorch model prediction
     with open(file_path, "rb") as f:
