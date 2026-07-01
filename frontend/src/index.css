@@ -74,8 +74,6 @@
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
-  overflow-x: hidden;
-  width: 100%;
 }
 
 body {
@@ -86,8 +84,6 @@ body {
   transition: background 0.3s ease, color 0.3s ease;
   /* Safe area for notched phones */
   padding-bottom: env(safe-area-inset-bottom);
-  overflow-x: hidden;
-  width: 100%;
 }
 
 a {
