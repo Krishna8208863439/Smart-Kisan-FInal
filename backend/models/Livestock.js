@@ -31,6 +31,7 @@ const livestockSchema = new mongoose.Schema(
     breed: { type: String, required: true },
     ageYears: { type: Number, required: true },
     healthStatus: { type: String, required: true, enum: ["Healthy", "Sick", "Under Treatment", "Pregnant", "Dry"], default: "Healthy" },
+    imageUrl: { type: String },
     milkRecords: [milkRecordSchema],
     vaccinations: [vaccinationSchema],
     feedingSchedules: [feedingSchema]

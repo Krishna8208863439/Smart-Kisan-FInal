@@ -18,7 +18,7 @@ router.get("/", protect, async (req, res) => {
 // POST /api/livestock - Create a new animal entry
 router.post("/", protect, async (req, res) => {
   try {
-    const { tagNumber, name, type, breed, ageYears, healthStatus } = req.body;
+    const { tagNumber, name, type, breed, ageYears, healthStatus, imageUrl } = req.body;
     if (!tagNumber || !name || !type || !breed || ageYears === undefined) {
       return res.status(400).json({ error: "Required details missing for animal registration." });
     }
@@ -30,7 +30,8 @@ router.post("/", protect, async (req, res) => {
       type,
       breed,
       ageYears: Number(ageYears),
-      healthStatus: healthStatus || "Healthy"
+      healthStatus: healthStatus || "Healthy",
+      imageUrl
     });
 
     return res.status(201).json(animal);
@@ -43,7 +44,7 @@ router.post("/", protect, async (req, res) => {
 // PUT /api/livestock/:id - Update animal profile
 router.put("/:id", protect, async (req, res) => {
   try {
-    const { name, breed, ageYears, healthStatus } = req.body;
+    const { name, breed, ageYears, healthStatus, imageUrl } = req.body;
     const animal = await Livestock.findOne({ _id: req.params.id, user: req.user._id });
     if (!animal) {
       return res.status(404).json({ error: "Animal profile not found." });
@@ -53,6 +54,7 @@ router.put("/:id", protect, async (req, res) => {
     if (breed) animal.breed = breed;
     if (ageYears !== undefined) animal.ageYears = Number(ageYears);
     if (healthStatus) animal.healthStatus = healthStatus;
+    if (imageUrl !== undefined) animal.imageUrl = imageUrl;
 
     await animal.save();
     return res.json(animal);
