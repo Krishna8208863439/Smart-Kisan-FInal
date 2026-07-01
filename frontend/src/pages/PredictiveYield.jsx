@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
+import { useHistory } from "../context/HistoryContext";
 
 const POPULAR_REGIONS = [
   { name: "Pune, Maharashtra", lat: 18.5204, lon: 73.8567 },
@@ -111,6 +112,7 @@ const LOCAL_TRANS = {
 
 const PredictiveYield = () => {
   const { language } = useLanguage();
+  const { addHistoryEntry } = useHistory();
   const lang = language === "mr" ? "mr" : "en";
   const T = LOCAL_TRANS[lang];
 
@@ -202,6 +204,26 @@ const PredictiveYield = () => {
       clearInterval(interval);
       setResult(res.data);
       fetchHistory();
+      // Record in Activity History
+      if (res.data) {
+        const cropName = form.cropName === "Other" ? form.customCropName : form.cropName;
+        const predYield = res.data.predictedYield || res.data.prediction?.predictedYield || "—";
+        const profit = res.data.estimatedProfit || res.data.prediction?.estimatedProfit || "—";
+        addHistoryEntry({
+          type: "yield_prediction",
+          title: lang === "mr" ? `उत्पादन अंदाज — ${cropName}` : `Yield Prediction — ${cropName}`,
+          icon: "📊",
+          summary: `${cropName} · ${predYield} · ${form.area} acres · Profit: ${profit}`,
+          data: {
+            crop: cropName,
+            soil: form.soilType,
+            area: `${form.area} acres`,
+            predictedYield: predYield,
+            estimatedProfit: profit,
+            pH: form.pH,
+          },
+        });
+      }
     } catch (err) {
       clearInterval(interval);
       console.error(err);

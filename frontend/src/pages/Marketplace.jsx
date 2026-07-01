@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
+import { useHistory } from "../context/HistoryContext";
 
 const CATEGORIES = [
   { name: "All Products", icon: "📦", color: "#64748b" },
@@ -122,6 +123,7 @@ const parseDescriptionSpecs = (description) => {
 
 const Marketplace = () => {
   const { t, language } = useLanguage();
+  const { addHistoryEntry } = useHistory();
   const locationState = useLocation();
   const searchParams = new URLSearchParams(locationState.search);
   const initialSearch = searchParams.get("search") || locationState.state?.searchQuery || "";
@@ -374,10 +376,24 @@ const Marketplace = () => {
         cartItems: cart.map((i) => ({ productId: i.product._id, quantity: i.quantity }))
       });
       setCheckoutStatus(res.data);
+      // Record checkout in Activity History
+      const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
+      const totalVal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
+      addHistoryEntry({
+        type: "marketplace",
+        title: language === "mr" ? `बाजार खरेदी` : "Marketplace Order",
+        icon: "🛒",
+        summary: `Order ${res.data.orderId} · ${totalItems} items · ₹${totalVal.toLocaleString("en-IN")}`,
+        data: {
+          orderId: res.data.orderId,
+          items: totalItems,
+          total: `₹${totalVal.toLocaleString("en-IN")}`,
+        },
+      });
       setCart([]); // Clear cart
       setShowBillDesk(false);
-      fetchProducts(); // Refresh list to catch stock updates
-      fetchOrders(); // Refresh order history
+      fetchProducts();
+      fetchOrders();
     } catch (err) {
       console.error(err);
       alert("Checkout failed. Please verify you are logged in.");
@@ -437,6 +453,18 @@ const Marketplace = () => {
       setShowSellForm(false);
       fetchProducts();
       fetchMyListings();
+      // Record in Activity History
+      addHistoryEntry({
+        type: "marketplace",
+        title: language === "mr" ? "बाजारात नोंदणी" : "Product Listed",
+        icon: "🛒",
+        summary: `${sellForm.name} · ₹${sellForm.price}${sellForm.unit} · ${sellForm.category}`,
+        data: {
+          product: sellForm.name,
+          category: sellForm.category,
+          price: `₹${sellForm.price}${sellForm.unit}`,
+        },
+      });
       alert("Product listed successfully in the Bazaar!");
     } catch (err) {
       console.error(err);

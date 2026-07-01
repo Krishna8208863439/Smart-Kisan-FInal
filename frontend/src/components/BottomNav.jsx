@@ -7,7 +7,7 @@ const NAV_ITEMS = [
   { to: '/ai-tools', icon: '🛠️', label: 'AI', authRequired: true },
   { to: '/agri-health', icon: '🏥', label: 'Health', authRequired: true },
   { to: '/marketplace', icon: '🛒', label: 'Market', authRequired: true },
-  { to: '/forum', icon: '👥', label: 'Community', authRequired: true },
+  { to: '/history', icon: '🕘', label: 'History', authRequired: true },
 ];
 
 const BottomNav = () => {

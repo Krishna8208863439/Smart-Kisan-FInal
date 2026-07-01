@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
+import { useHistory } from "../context/HistoryContext";
 
 const TABS = ["Disease Detection", "Irrigation", "Fertilizer / NPK", "Smart Calendar"];
 
@@ -54,6 +55,7 @@ const DIAGNOSTIC_CROPS = [
 
 const AITools = () => {
   const { t, language } = useLanguage();
+  const { addHistoryEntry } = useHistory();
   const [activeTab, setActiveTab] = useState("Disease Detection");
   const isLoggedIn = !!localStorage.getItem("sk_token");
 
@@ -229,6 +231,20 @@ const AITools = () => {
       if (response.data.success) {
         setDiseaseResult(response.data);
         setDiseaseStatus("Diagnostic report complete.");
+        // Record in Activity History
+        addHistoryEntry({
+          type: "disease_scan",
+          title: language === "mr" ? "पीक रोग निदान" : "Disease Scan",
+          icon: "🔬",
+          summary: `${response.data.crop} — ${response.data.disease} (${Math.round((response.data.confidence || 0) * 100)}% confidence, ${response.data.severity} severity)`,
+          data: {
+            crop: response.data.crop,
+            disease: response.data.disease,
+            severity: response.data.severity,
+            confidence: `${Math.round((response.data.confidence || 0) * 100)}%`,
+            aiModel: response.data.ai_model || "Local DB",
+          },
+        });
       } else {
         setDiseaseStatus(response.data.message || "Model analysis failed.");
       }
@@ -432,6 +448,26 @@ const AITools = () => {
       soilAdvice,
       cropName: activeCropName
     });
+
+    // Record in Activity History
+    addHistoryEntry({
+      type: "ai_tool",
+      title: language === "mr" ? `NPK खत नियोजन — ${activeCropName}` : `Fertilizer NPK — ${activeCropName}`,
+      icon: "🛠️",
+      summary: `${activeCropName} · Urea: ${ureaBags.toFixed(1)} bags · DAP: ${dapBags.toFixed(1)} bags · MOP: ${mopBags.toFixed(1)} bags · ${fertArea} acres`,
+      data: {
+        crop: activeCropName,
+        soil: fertSoil,
+        area: `${fertArea} acres`,
+        urea: `${ureaBags.toFixed(1)} bags (50kg)`,
+        dap: `${dapBags.toFixed(1)} bags (50kg)`,
+        mop: `${mopBags.toFixed(1)} bags (50kg)`,
+        compost: `${compostTons} tons`,
+        nDeficit: `${defN} kg/ha`,
+        pDeficit: `${defP} kg/ha`,
+        kDeficit: `${defK} kg/ha`,
+      },
+    });
   };
 
   // --- Handlers: Smart Calendar ---
@@ -447,6 +483,19 @@ const AITools = () => {
       setActiveCalendars((prev) => [res.data, ...prev]);
       setSelectedCalId(res.data._id);
       setCalCustomCrop("");
+      // Record in Activity History
+      const cropLabel = calCrop === "Other" ? (calCustomCrop || "Custom Crop") : calCrop;
+      addHistoryEntry({
+        type: "ai_tool",
+        title: language === "mr" ? `स्मार्ट कॅलेंडर — ${cropLabel}` : `Smart Calendar — ${cropLabel}`,
+        icon: "📅",
+        summary: `${cropLabel} · Sowing: ${new Date(calDate).toLocaleDateString("en-IN")} · ${res.data.tasks?.length || 0} milestones generated`,
+        data: {
+          crop: cropLabel,
+          sowingDate: calDate,
+          milestones: res.data.tasks?.length || 0,
+        },
+      });
     } catch (err) {
       console.error(err);
       alert("Failed to generate calendar. Make sure you are logged in.");

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { NavLink, Link, useLocation } from 'react-router-dom';
+import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -15,6 +15,7 @@ const Navbar = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef(null);
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Close menu on route change
   useEffect(() => setMenuOpen(false), [location]);
@@ -57,7 +58,6 @@ const Navbar = () => {
                 <NavLink to="/chat" className={navLinkClass}>{t('chat')}</NavLink>
                 <NavLink to="/ai-tools" className={navLinkClass}>{t('aiCenter')}</NavLink>
                 <NavLink to="/predictive-yield" className={navLinkClass}>{language === 'mr' ? 'उत्पादन अंदाज' : 'Predictive Yield'}</NavLink>
-                <NavLink to="/pashu-mitra" className={navLinkClass}>{language === 'mr' ? 'पशु मित्र' : 'Pashu Mitra'}</NavLink>
                 <NavLink to="/agri-health" className={navLinkClass}>{language === 'mr' ? 'कृषी-आरोग्य' : 'Agri-Health'}</NavLink>
                 <NavLink to="/marketplace" className={navLinkClass}>{t('bazaar')}</NavLink>
                 <NavLink to="/weather" className={navLinkClass}>{t('weather')}</NavLink>
@@ -129,6 +129,14 @@ const Navbar = () => {
                     )}
 
                     <button
+                      className="nav-profile-dropdown-item"
+                      onClick={() => { navigate('/history'); setProfileOpen(false); }}
+                    >
+                      <span>🕘</span>
+                      <span>{language === 'mr' ? 'क्रियाकलाप इतिहास' : 'Activity History'}</span>
+                    </button>
+
+                    <button
                       className="nav-profile-dropdown-item nav-profile-dropdown-logout"
                       onClick={() => { logout(); setProfileOpen(false); }}
                     >
@@ -189,13 +197,13 @@ const Navbar = () => {
                 <NavLink to="/chat" className={navLinkClass}>{t('chat')}</NavLink>
                 <NavLink to="/ai-tools" className={navLinkClass}>{t('aiCenter')}</NavLink>
                 <NavLink to="/predictive-yield" className={navLinkClass}>📈 {language === 'mr' ? 'उत्पादन अंदाज' : 'Predictive Yield'}</NavLink>
-                <NavLink to="/pashu-mitra" className={navLinkClass}>🐄 {language === 'mr' ? 'पशु मित्र' : 'Pashu Mitra'}</NavLink>
                 <NavLink to="/agri-health" className={navLinkClass}>🏥 {language === 'mr' ? 'कृषी-आरोग्य' : 'Agri-Health'}</NavLink>
                 <NavLink to="/marketplace" className={navLinkClass}>{t('bazaar')}</NavLink>
                 <NavLink to="/forum" className={navLinkClass}>{language === 'mr' ? '🏛️ शासकीय योजना' : '🏛️ Govt Scheme'}</NavLink>
                 <NavLink to="/weather" className={navLinkClass}>{t('weather')}</NavLink>
                 <NavLink to="/market" className={navLinkClass}>{t('mandiPrices')}</NavLink>
                 <NavLink to="/recommendations" className={navLinkClass}>{t('recommendations')}</NavLink>
+                <NavLink to="/history" className={navLinkClass}>🕘 {language === 'mr' ? 'इतिहास' : 'History'}</NavLink>
               </>
             )}
             {!user && (

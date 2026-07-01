@@ -4,6 +4,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { subscribeToTopic, getSubscribedTopics, unsubscribeFromTopic } from "../utils/fcmClient";
 import CommunityDirectory from "../components/CommunityDirectory";
 import { RAW_CROPS, getCropMetadata, getCropDiseaseFallback } from "../utils/cropsData";
+import { useHistory } from "../context/HistoryContext";
 
 const PY_API_URL = typeof window !== "undefined" && window.location.hostname === "localhost"
   ? (import.meta.env.VITE_PY_API_URL || "http://localhost:8000/api")
@@ -11,6 +12,7 @@ const PY_API_URL = typeof window !== "undefined" && window.location.hostname ===
 
 const AgriHealthPortal = () => {
   const { language, t } = useLanguage();
+  const { addHistoryEntry } = useHistory();
   const [activeTab, setActiveTab] = useState("diagnosis");
 
   // Module A: Diagnosis States
@@ -375,6 +377,21 @@ const AgriHealthPortal = () => {
         setDiagResult(res.data);
         const modelUsed = res.data.ai_model || "AI Analysis";
         setDiagStatus(`Diagnosis completed via ${modelUsed}.`);
+        // Record in Activity History
+        addHistoryEntry({
+          type: "agri_health",
+          title: language === "mr" ? `कृषी रोग निदान — ${res.data.crop || cropHint}` : `Agri Health Diagnosis — ${res.data.crop || cropHint}`,
+          icon: "🏥",
+          summary: `${res.data.crop || cropHint} — ${res.data.disease} · ${res.data.severity} severity · ${Math.round((res.data.confidence || 0) * 100)}% confidence`,
+          data: {
+            crop: res.data.crop || cropHint,
+            disease: res.data.disease,
+            severity: res.data.severity,
+            confidence: `${Math.round((res.data.confidence || 0) * 100)}%`,
+            region: regionHint,
+            aiModel: modelUsed,
+          },
+        });
       }
     } catch (err) {
       clearInterval(interval);

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
+import { useHistory } from "../context/HistoryContext";
 
 const POPULAR_AGRICULTURAL_REGIONS = [
   { name: "Pune, Maharashtra", lat: 18.5204, lon: 73.8567 },
@@ -23,6 +24,7 @@ const POPULAR_AGRICULTURAL_REGIONS = [
 
 const Recommendations = () => {
   const { t, language } = useLanguage();
+  const { addHistoryEntry } = useHistory();
   const [form, setForm] = useState({
     soilType: "loamy",
     region: "",
@@ -87,6 +89,23 @@ const Recommendations = () => {
       setResult(res.data);
       if (res.data?.recommendations?.length > 0) {
         setActiveCrop(res.data.recommendations[0].crop);
+        // Record in Activity History
+        const topCrop = res.data.recommendations[0];
+        addHistoryEntry({
+          type: "crop_recommendation",
+          title: language === "mr" ? "पीक शिफारस" : "Crop Recommendation",
+          icon: "🌱",
+          summary: `${topCrop.crop} — ${topCrop.suitabilityScore}% match · ${topCrop.predictedYield}`,
+          data: {
+            topCrop: topCrop.crop,
+            score: `${topCrop.suitabilityScore}%`,
+            yield: topCrop.predictedYield,
+            profit: topCrop.estimatedProfit,
+            season: form.season,
+            soil: form.soilType,
+            region: form.region || "GPS",
+          },
+        });
       }
     } catch (err) {
       console.error(err);

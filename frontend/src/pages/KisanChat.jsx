@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
+import { useHistory } from "../context/HistoryContext";
 
 const CHIPS_TRANSLATIONS = {
   en: [
@@ -140,6 +141,7 @@ const KisanChat = () => {
   const { language: contextLang, setLanguage: setContextLanguage } = useLanguage();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { addHistoryEntry } = useHistory();
 
   // If no language is selected yet, we show the welcome layout initialization screen
   const [langInitialized, setLangInitialized] = useState(!!localStorage.getItem("sk-lang"));
@@ -381,6 +383,21 @@ const KisanChat = () => {
       };
 
       setMessages((prev) => [...prev, aiMsg]);
+
+      // Record in Activity History
+      addHistoryEntry({
+        type: "chat",
+        title: language === "mr" ? "एआय गप्पा" : "AI Chat",
+        icon: "🤖",
+        summary: (response.data.response || "").slice(0, 100).replace(/\*\*/g, "").replace(/\n/g, " "),
+        data: {
+          mode: activeMode,
+          language,
+          source: response.data.source || "local",
+          question: inputContent.slice(0, 80),
+        },
+      });
+
       clearAttachment();
     } catch (error) {
       console.error(error);

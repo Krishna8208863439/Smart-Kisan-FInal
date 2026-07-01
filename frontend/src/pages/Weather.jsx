@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import api from "../api";
+import { useHistory } from "../context/HistoryContext";
 
 // Wind direction helper
 const windDirLabel = (deg) => {
@@ -104,6 +105,7 @@ function generateDayFarmingAdvice(dayData) {
 }
 
 const Weather = () => {
+  const { addHistoryEntry } = useHistory();
   const [location, setLocation] = useState("");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -131,12 +133,28 @@ const Weather = () => {
       setActiveDay(0);
       localStorage.setItem("sk_last_city", query);
       setLastCity(query);
+      // Record in Activity History
+      if (res.data?.current) {
+        addHistoryEntry({
+          type: "weather",
+          title: `Weather — ${res.data.location || query}`,
+          icon: "🌤️",
+          summary: `${res.data.current.temperature}°C · ${res.data.current.condition} · Humidity ${res.data.current.humidity}%`,
+          data: {
+            location: res.data.location,
+            temperature: `${res.data.current.temperature}°C`,
+            condition: res.data.current.condition,
+            humidity: `${res.data.current.humidity}%`,
+            windSpeed: `${res.data.current.windSpeed} km/h`,
+          },
+        });
+      }
     } catch (err) {
       setError(err.response?.data?.error || "Failed to fetch weather. Please check the city name.");
     } finally {
       setLoading(false);
     }
-  }, [location]);
+  }, [location, addHistoryEntry]);
 
   // Geolocation auto-detect
   const handleGeolocate = () => {
@@ -165,6 +183,21 @@ const Weather = () => {
           setActiveDay(0);
           localStorage.setItem("sk_last_city", cityName);
           setLastCity(cityName);
+          // Record in Activity History
+          if (res.data?.current) {
+            addHistoryEntry({
+              type: "weather",
+              title: `Weather — ${cityName}`,
+              icon: "🌤️",
+              summary: `${res.data.current.temperature}°C · ${res.data.current.condition} · Humidity ${res.data.current.humidity}%`,
+              data: {
+                location: cityName,
+                temperature: `${res.data.current.temperature}°C`,
+                condition: res.data.current.condition,
+                humidity: `${res.data.current.humidity}%`,
+              },
+            });
+          }
         } catch (err) {
           setError("Could not detect your location's weather. Try typing your city.");
         } finally {

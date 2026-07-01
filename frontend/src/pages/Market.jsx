@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
+import { useHistory } from "../context/HistoryContext";
 
 const CATEGORIES = ["All", "Cereals", "Pulses", "Oilseeds", "Vegetables", "Cash Crops"];
 
@@ -124,6 +125,7 @@ const PriceChart = ({ data, color = "#15803d" }) => {
 
 const Market = () => {
   const { language, t } = useLanguage();
+  const { addHistoryEntry } = useHistory();
   const [selectedCrop, setSelectedCrop] = useState("Wheat");
   const [activeCategory, setActiveCategory] = useState("All");
   const [data, setData] = useState(null);
@@ -151,12 +153,29 @@ const Market = () => {
       const res = await api.get("/market", { params: { crop } });
       setData(res.data);
       setLastRefresh(new Date());
+      // Record in Activity History
+      if (res.data?.stats) {
+        addHistoryEntry({
+          type: "mandi_prices",
+          title: `Mandi Prices — ${crop}`,
+          icon: "📈",
+          summary: `Avg ₹${res.data.stats.avgPrice}/qtl · ${res.data.trend?.dir === "up" ? "↑ Rising" : res.data.trend?.dir === "down" ? "↓ Falling" : "→ Stable"} · Best sell: ${res.data.stats.bestSellMandi}`,
+          data: {
+            commodity: crop,
+            avgPrice: `₹${res.data.stats.avgPrice}/qtl`,
+            minPrice: `₹${res.data.stats.minPrice}`,
+            maxPrice: `₹${res.data.stats.maxPrice}`,
+            trend: res.data.trend?.dir || "stable",
+            recommendation: res.data.recommendation?.action || "",
+          },
+        });
+      }
     } catch (err) {
       setError(err.response?.data?.error || "Failed to fetch market prices.");
     } finally {
       setLoading(false);
     }
-  }, [selectedCrop]);
+  }, [selectedCrop, addHistoryEntry]);
 
   useEffect(() => {
     fetchPrices(selectedCrop);
