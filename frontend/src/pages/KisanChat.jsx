@@ -672,20 +672,6 @@ const KisanChat = () => {
             </div>
           )}
 
-          {/* Crop hint for diagnostics */}
-          {activeMode === "diagnostics" && (
-            <div style={{ animation: "fadeIn 0.2s" }}>
-              <label style={{ fontSize: 11.5, fontWeight: 600 }}>{ui.cropHintLabel}</label>
-              <input
-                type="text"
-                className="input"
-                style={{ padding: "6px 8px", fontSize: 12, marginTop: 4 }}
-                placeholder="e.g. Tomato, Rice"
-                value={cropHint}
-                onChange={(e) => setCropHint(e.target.value)}
-              />
-            </div>
-          )}
 
           {/* Settings / Configuration */}
           <div style={{ marginTop: "auto" }}>
