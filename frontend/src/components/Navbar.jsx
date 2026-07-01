@@ -63,13 +63,12 @@ const Navbar = () => {
           <div className="nav-actions">
             {/* Language Toggle */}
             <button
-              className="nav-icon-btn"
+              className="nav-icon-btn nav-lang-btn"
               onClick={toggleLanguage}
               aria-label="Toggle language"
-              style={{ fontWeight: 800, minWidth: 72, justifyContent: 'center', fontSize: 13 }}
               title={language === 'en' ? 'Switch to Marathi' : 'Switch to English'}
             >
-              {language === 'en' ? '🌐 मराठी' : '🌐 EN'}
+              🌐 <span className="hide-text-md">{language === 'en' ? 'मराठी' : 'EN'}</span>
             </button>
 
             {/* Dark Mode Toggle */}
@@ -88,21 +87,22 @@ const Navbar = () => {
                 className="nav-install-btn nav-install-btn-desktop"
                 onClick={installApp}
                 aria-label="Install Smart Kisan App"
+                title={t('installApp').replace('📲 ', '')}
               >
-                {t('installApp')}
+                📲 <span className="hide-text-md">{t('installApp').replace('📲 ', '')}</span>
               </button>
             )}
 
             {/* User info (desktop) */}
             {user && (
               <div className="nav-user nav-user-desktop">
-                <span className="nav-user-name">{t('hi')}, {user.name?.split(' ')[0]}</span>
+                <span className="nav-user-name hide-text-lg">{t('hi')}, {user.name?.split(' ')[0]}</span>
                 <button
                   className="nav-icon-btn nav-logout-btn"
                   onClick={logout}
                   title={t('logout')}
                 >
-                  🚪 {t('logout')}
+                  🚪 <span className="hide-text-md">{t('logout')}</span>
                 </button>
               </div>
             )}

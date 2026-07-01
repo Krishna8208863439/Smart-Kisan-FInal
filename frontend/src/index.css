@@ -277,6 +277,15 @@ a {
   background: rgba(255, 255, 255, 0.25) !important;
 }
 
+/* ── Responsive text hide helpers for navbar ── */
+.hide-text-md {
+  display: inline;
+}
+
+.hide-text-lg {
+  display: inline;
+}
+
 /* ── Hamburger Menu (mobile only) ── */
 .nav-hamburger {
   display: none;
@@ -1519,6 +1528,28 @@ label {
   50% { opacity: 0.5; }
 }
 
+/* ── Navbar Desktop Responsiveness & Size Fixes ── */
+@media (max-width: 1500px) {
+  .nav-links-desktop { gap: 2px; }
+  .nav-link { padding: 6px 8px; font-size: 13px; }
+  .nav-container { padding: 0 12px; gap: 8px; }
+  .nav-actions { gap: 6px; }
+}
+
+@media (max-width: 1350px) {
+  .hide-text-lg { display: none !important; }
+}
+
+@media (max-width: 1220px) {
+  .hide-text-md { display: none !important; }
+  .nav-link { padding: 6px 6px; font-size: 12.5px; }
+}
+
+@media (max-width: 1100px) {
+  .nav-link { padding: 4px 4px; font-size: 12px; }
+  .nav-logo { font-size: 18px; }
+}
+
 /* ══════════════════════════════════════════════════
    MOBILE RESPONSIVE BREAKPOINTS
    ══════════════════════════════════════════════════ */
@@ -1528,8 +1559,6 @@ label {
   .features-grid { grid-template-columns: repeat(2, 1fr); }
   .stats-section { grid-template-columns: repeat(2, 1fr); }
   .hero-title { font-size: 34px; }
-  .nav-install-btn-desktop { display: none; }
-  .nav-user-desktop { display: none; }
 }
 
 /* ── Mobile: ≤ 768px ── */
