@@ -10,7 +10,6 @@ const TYPE_META = {
   mandi_prices:       { label: "Mandi Prices",       labelMr: "बाजार भाव",             icon: "📈", color: "#7c3aed" },
   disease_scan:       { label: "Disease Scan",       labelMr: "रोग निदान",             icon: "🔬", color: "#dc2626" },
   yield_prediction:   { label: "Yield Prediction",   labelMr: "उत्पादन अंदाज",         icon: "📊", color: "#d97706" },
-  pashu_mitra:        { label: "Pashu Mitra",        labelMr: "पशु मित्र",             icon: "🐄", color: "#065f46" },
   marketplace:        { label: "Marketplace",        labelMr: "बाजार",                icon: "🛒", color: "#b45309" },
   agri_health:        { label: "Agri Health",        labelMr: "कृषी आरोग्य",           icon: "🏥", color: "#9333ea" },
   ai_tool:            { label: "AI Tool",            labelMr: "कृषी एआय साधन",         icon: "🛠️", color: "#1d4ed8" },
@@ -23,7 +22,6 @@ const FILTER_TABS = [
   { key: "weather",            label: "Weather",     labelMr: "हवामान",         icon: "🌤️" },
   { key: "disease_scan",       label: "Disease",     labelMr: "रोग",            icon: "🔬" },
   { key: "yield_prediction",   label: "Yield",       labelMr: "उत्पन्न",        icon: "📊" },
-  { key: "pashu_mitra",        label: "Livestock",   labelMr: "पशु",            icon: "🐄" },
   { key: "marketplace",        label: "Marketplace", labelMr: "बाजार",          icon: "🛒" },
 ];
 
