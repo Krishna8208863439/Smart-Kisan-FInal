@@ -22,7 +22,8 @@ const CROPS = [
   { id: "Mustard", nameEn: "Mustard", nameMr: "मोहरी" },
   { id: "Chilli", nameEn: "Chilli / Pepper", nameMr: "मिरची" },
   { id: "Cotton", nameEn: "Cotton", nameMr: "कापूस" },
-  { id: "Maize", nameEn: "Maize", nameMr: "मका" }
+  { id: "Maize", nameEn: "Maize", nameMr: "मका" },
+  { id: "Other", nameEn: "Other (Type crop name...)", nameMr: "इतर (नाव प्रविष्ट करा)" }
 ];
 
 const LOCAL_TRANS = {
@@ -115,6 +116,7 @@ const PredictiveYield = () => {
 
   const [form, setForm] = useState({
     cropName: "Tomato",
+    customCropName: "",
     soilType: "loamy",
     pH: 6.5,
     n: 50,
@@ -185,6 +187,7 @@ const PredictiveYield = () => {
     try {
       const payload = {
         ...form,
+        cropName: form.cropName === "Other" ? form.customCropName : form.cropName,
         pH: Number(form.pH),
         n: Number(form.n),
         p: Number(form.p),
@@ -250,6 +253,22 @@ const PredictiveYield = () => {
                   </option>
                 ))}
               </select>
+
+              {form.cropName === "Other" && (
+                <div style={{ marginTop: 8, marginBottom: 12 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, display: "block", marginBottom: 4 }}>
+                    {lang === "mr" ? "पिकाचे नाव प्रविष्ट करा" : "Type Crop Name"}
+                  </label>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder={lang === "mr" ? "उदा. सोयाबीन, कांदा, ऊस..." : "e.g. Soyabean, Onion, Sugarcane..."}
+                    value={form.customCropName}
+                    onChange={(e) => setForm({ ...form, customCropName: e.target.value })}
+                    required
+                  />
+                </div>
+              )}
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
