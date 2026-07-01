@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -12,16 +12,31 @@ const Navbar = () => {
   const { isInstallable, isInstalled, installApp } = usePWAInstall();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef(null);
   const location = useLocation();
 
   // Close menu on route change
   useEffect(() => setMenuOpen(false), [location]);
+  // Close profile dropdown on route change
+  useEffect(() => setProfileOpen(false), [location]);
 
   // Detect scroll for glass effect
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
   const navLinkClass = ({ isActive }) => `nav-link ${isActive ? 'nav-link-active' : ''}`;
@@ -68,7 +83,7 @@ const Navbar = () => {
               aria-label="Toggle language"
               title={language === 'en' ? 'Switch to Marathi' : 'Switch to English'}
             >
-              🌐 <span className="hide-text-md">{language === 'en' ? 'मराठी' : 'EN'}</span>
+              🌐 <span className="nav-btn-label">{language === 'en' ? 'मराठी' : 'EN'}</span>
             </button>
 
             {/* Dark Mode Toggle */}
@@ -81,29 +96,47 @@ const Navbar = () => {
               {isDark ? '☀️' : '🌙'}
             </button>
 
-            {/* Install App Button (desktop) */}
-            {!isInstalled && (
-              <button
-                className="nav-install-btn nav-install-btn-desktop"
-                onClick={installApp}
-                aria-label="Install Smart Kisan App"
-                title={t('installApp').replace('📲 ', '')}
-              >
-                📲 <span className="hide-text-md">{t('installApp').replace('📲 ', '')}</span>
-              </button>
-            )}
-
-            {/* User info (desktop) */}
+            {/* User Profile Dropdown — combines Install App + Hi name + Logout */}
             {user && (
-              <div className="nav-user nav-user-desktop">
-                <span className="nav-user-name hide-text-lg">{t('hi')}, {user.name?.split(' ')[0]}</span>
+              <div className="nav-profile-wrapper" ref={profileRef}>
                 <button
-                  className="nav-icon-btn nav-logout-btn"
-                  onClick={logout}
-                  title={t('logout')}
+                  className="nav-profile-btn"
+                  onClick={() => setProfileOpen(!profileOpen)}
+                  aria-haspopup="true"
+                  aria-expanded={profileOpen}
+                  title={`${t('hi')}, ${user.name?.split(' ')[0]}`}
                 >
-                  🚪 <span className="hide-text-md">{t('logout')}</span>
+                  <span className="nav-profile-avatar">👨‍🌾</span>
+                  <span className="nav-btn-label">{t('hi')}, {user.name?.split(' ')[0]}</span>
+                  <span className="nav-profile-caret">{profileOpen ? '▲' : '▾'}</span>
                 </button>
+
+                {profileOpen && (
+                  <div className="nav-profile-dropdown">
+                    <div className="nav-profile-dropdown-header">
+                      <div className="nav-profile-dropdown-name">👨‍🌾 {user.name}</div>
+                      <div className="nav-profile-dropdown-email">{user.email}</div>
+                    </div>
+
+                    {!isInstalled && (
+                      <button
+                        className="nav-profile-dropdown-item"
+                        onClick={() => { installApp(); setProfileOpen(false); }}
+                      >
+                        <span>📲</span>
+                        <span>{t('installApp').replace('📲 ', '')}</span>
+                      </button>
+                    )}
+
+                    <button
+                      className="nav-profile-dropdown-item nav-profile-dropdown-logout"
+                      onClick={() => { logout(); setProfileOpen(false); }}
+                    >
+                      <span>🚪</span>
+                      <span>{t('logout')}</span>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
