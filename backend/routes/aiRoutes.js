@@ -1,6 +1,7 @@
 import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
 import Product from "../models/Product.js";
+import { analyzeWithHuggingFace, smartLocalFallback } from "./cropDiseaseRoutes.js";
 
 const router = express.Router();
 
@@ -75,6 +76,131 @@ const normalizeCropName = (cropName) => {
   return name;
 };
 
+const getLocalizedDiseaseMR = (diseaseEn) => {
+  const d = {
+    "Early Blight (Alternaria solani)":             "अर्ली ब्लाईट / लवकर येणारा करपा",
+    "Leaf Curl Virus (TLCV)":                       "लीफ कर्ल विषाणू / पाने आकसणे",
+    "Tomato Yellow Leaf Curl Virus (TYLCV)":        "लीफ कर्ल विषाणू / पाने आकसणे",
+    "Late Blight (Phytophthora infestans)":         "उशिरा येणारा करपा",
+    "Leaf Blast (Magnaporthe oryzae)":              "लीफ ब्लास्ट / पानावरील करपा",
+    "Sheath Blight (Rhizoctonia solani)":           "शीथ ब्लाईट / आवरण करपा",
+    "Brown Spot (Helminthosporium oryzae)":         "तपकिरी ठिपके रोग",
+    "Black Stem Rust (Puccinia graminis)":          "तांबेरा / स्टेम रस्ट",
+    "Yellow Stripe Rust (Puccinia striiformis)":    "पिवळा तांबेरा",
+    "Powdery Mildew (Blumeria graminis)":           "भुरी रोग / भुकटी बुरशी",
+    "Northern Leaf Blight (Exserohilum turcicum)":  "उत्तर पानावरील करपा",
+    "Gray Leaf Spot (Cercospora zeae-maydis)":      "राखाडी पान ठिपके",
+    "Fall Armyworm (Spodoptera frugiperda)":        "फॉल आर्मीवर्म / शेंडा अळी",
+    "Bacterial Blight (Xanthomonas axonopodis)":    "जिवाणू करपा",
+    "Red Rot (Colletotrichum falcatum)":            "लाल कूज रोग",
+    "Healthy (No Disease)":                         "निरोगी (कोणताही रोग नाही)"
+  };
+  return d[diseaseEn] || diseaseEn;
+};
+
+const getLocalizedDiseaseHI = (diseaseEn) => {
+  const d = {
+    "Early Blight (Alternaria solani)":             "अगेती झुलसा रोग (Early Blight)",
+    "Leaf Curl Virus (TLCV)":                       "पर्ण कुंचन विषाणु (Leaf Curl)",
+    "Tomato Yellow Leaf Curl Virus (TYLCV)":        "टमाटर का पीला पर्ण कुंचन रोग",
+    "Late Blight (Phytophthora infestans)":         "पछेती झुलसा रोग (Late Blight)",
+    "Leaf Blast (Magnaporthe oryzae)":              "धान का झोंका रोग (Rice Blast)",
+    "Sheath Blight (Rhizoctonia solani)":           "शीथ ब्लाइट रोग",
+    "Brown Spot (Helminthosporium oryzae)":         "भूरा धब्बा रोग",
+    "Black Stem Rust (Puccinia graminis)":          "काला तना गेरूआ (Black Rust)",
+    "Yellow Stripe Rust (Puccinia striiformis)":    "पीला गेरूआ (Yellow Rust)",
+    "Powdery Mildew (Blumeria graminis)":           "चूर्णी आसिता रोग (Powdery Mildew)",
+    "Northern Leaf Blight (Exserohilum turcicum)":  "उत्तरी पत्ता झुलसा रोग",
+    "Gray Leaf Spot (Cercospora zeae-maydis)":      "ग्रे लीफ स्पॉट",
+    "Fall Armyworm (Spodoptera frugiperda)":        "फॉल आर्मीवर्म (सैनिक कीट)",
+    "Bacterial Blight (Xanthomonas axonopodis)":    "जीवाणु झुलसा रोग (Bacterial Blight)",
+    "Red Rot (Colletotrichum falcatum)":            "लाल सड़न रोग (Red Rot)",
+    "Healthy (No Disease)":                         "स्वस्थ (कोई बीमारी नहीं)"
+  };
+  return d[diseaseEn] || diseaseEn;
+};
+
+const getLocalizedAdviceMR = (adviceEn) => {
+  if (!adviceEn) return "";
+  if (adviceEn.includes("Early Blight")) {
+    return "अर्ली ब्लाईट (लवकर येणारा करपा) पिकाच्या पानांवर गोलाकार काळे ठिपके तयार करतो. त्वरित मॅन्कोझेब ७५ डब्ल्यूपी (२ ग्रॅम/लीटर) किंवा कॉपर ऑक्सिक्लोराईड ५० डब्ल्यूपी (३ ग्रॅम/लीटर) १०-१४ दिवसांच्या अंतराने फवारा.";
+  }
+  if (adviceEn.includes("Leaf Curl") || adviceEn.includes("TLCV")) {
+    return "लीफ कर्ल (पाने आकसणे) हा रोग पांढऱ्या माशीद्वारे पसरतो. असिटामिप्रीड २० एसपी (०.२ ग्रॅम/लीटर) किंवा इमिडाक्लोप्रिड १७.८ एसएल (०.३ मिली/लीटर) फवारा.";
+  }
+  if (adviceEn.includes("Leaf Blast") || adviceEn.includes("Blast")) {
+    return "लीफ ब्लास्ट (भातावरील करपा) पानांवर राखाडी रंगाचे लांबट ठिपके निर्माण करतो. ट्रायसायक्लाझोल ७५ डब्ल्यूपी (०.६ ग्रॅम/लीटर) फवारा. युरियाचा अतिवापर थांबवा.";
+  }
+  if (adviceEn.includes("Sheath Blight")) {
+    return "शीथ ब्लाईट - पानाच्या आवरणावर राखाडी-पांढरे ठिपके. हेक्साकोनाझोल ५ एससी (२ मिली/लीटर) किंवा व्हॅलिडामायसिन ३ एल (२ मिली/लीटर) फवारा.";
+  }
+  if (adviceEn.includes("Stem Rust") || adviceEn.includes("Rust")) {
+    return "तांबेरा रोगामुळे खोडावर आणि पानांवर लांबट तांबूस-तपकिरी ठिपके येतात. प्रोपिकोनाझोल २५% ईसी (०.५ मिली/लीटर) किंवा टेब्युकोनाझोल २५० ईसी (०.७५ मिली/लीटर) फवारा.";
+  }
+  if (adviceEn.includes("Bacterial Blight")) {
+    return "जिवाणू करपा - पानांवर कोनीय पाण्याने भिजलेले ठिपके. कॉपर ऑक्सिक्लोराईड ५० डब्ल्यूपी (३ ग्रॅम/लीटर) + स्ट्रेप्टोसायक्लिन (०.१५ ग्रॅम/लीटर) फवारा.";
+  }
+  if (adviceEn.includes("Late Blight")) {
+    return "बटाटा/टोमॅटोवरील उशिरा येणारा करपा. सायमॉक्सानिल ८% + मॅन्कोझेब ६४% डब्ल्यूपी (३ ग्रॅम/लीटर) फवारा.";
+  }
+  if (adviceEn.includes("Anthracnose")) {
+    return "अँथ्रॅकनोज - फळांवर आणि पानांवर बुडालेले तपकिरी ठिपके. मॅन्कोझेब ७५ डब्ल्यूपी (२ ग्रॅम/लीटर) फवारा.";
+  }
+  return adviceEn;
+};
+
+const getLocalizedAdviceHI = (adviceEn) => {
+  if (!adviceEn) return "";
+  if (adviceEn.includes("Early Blight")) {
+    return "अगेती झुलसा रोग नियंत्रण के लिए मैंकोजेब 75 डब्ल्यूपी (2 ग्राम/लीटर) या कॉपर ऑक्सीक्लोराइड 50 डब्ल्यूपी (3 ग्राम/लीटर) का छिड़काव करें।";
+  }
+  if (adviceEn.includes("Leaf Curl") || adviceEn.includes("TLCV")) {
+    return "लीफ कर्ल रोग के नियंत्रण के लिए एसिटामिप्रिड 20 एसपी (0.2 ग्राम/लीटर) या इमिडाक्लोप्रिड 17.8 एसएल (0.3 मिली/लीटर) का छिड़काव करें।";
+  }
+  if (adviceEn.includes("Leaf Blast") || adviceEn.includes("Blast")) {
+    return "ब्लास्ट रोग के लिए ट्राइसाइक्लाजोल 75% डब्ल्यूपी (0.6 ग्राम/लीटर) या कार्बेन्डाजिम 50% डब्ल्यूपी (1 ग्राम/लीटर) का छिड़काव करें।";
+  }
+  if (adviceEn.includes("Sheath Blight")) {
+    return "शीथ ब्लाइट के लिए हेक्साकोनाज़ोल 5 एससी (2 मिली/लीटर) या वेलिडामाइसिन 3 एल (2 मिली/लीटर) का छिड़काव करें।";
+  }
+  if (adviceEn.includes("Stem Rust") || adviceEn.includes("Rust")) {
+    return "गेरूआ (रस्ट) रोग के लिए प्रोपिकोनाझोल 25 ईसी (0.5 मिली/लीटर) या टेबुकोनाज़ोल 250 ईसी (0.75 मिली/लीटर) का छिड़काव करें।";
+  }
+  if (adviceEn.includes("Bacterial Blight")) {
+    return "जीवाणु झुलसा के लिए कॉपर ऑक्सीक्लोराइड 50 डब्ल्यूपी (3 ग्राम/लीटर) + स्ट्रेप्टोसाइक्लिन (0.15 ग्राम/लीटर) का छिड़काव करें।";
+  }
+  if (adviceEn.includes("Late Blight")) {
+    return "पछेती झुलसा के लिए साइमोक्सानिल 8% + मैंकोजेब 64% डब्ल्यूपी (3 ग्राम/लीटर) का छिड़काव करें।";
+  }
+  if (adviceEn.includes("Anthracnose")) {
+    return "एन्थ्रेक्नोज के लिए मैंकोजेब 75 डब्ल्यूपी (2 ग्राम/लीटर) का छिड़काव करें।";
+  }
+  return adviceEn;
+};
+
+const extractProductQuery = (diseaseEn) => {
+  const d = (diseaseEn || "").toLowerCase();
+  if (d.includes("early blight") || d.includes("late blight") || d.includes("anthracnose") || d.includes("purple blotch") || d.includes("spot")) {
+    return "Mancozeb";
+  }
+  if (d.includes("blast")) {
+    return "Tricyclazole";
+  }
+  if (d.includes("rust") || d.includes("mildew") || d.includes("blight")) {
+    return "Propiconazole";
+  }
+  if (d.includes("sheath blight")) {
+    return "Hexaconazole";
+  }
+  if (d.includes("bacterial")) {
+    return "Copper Oxychloride";
+  }
+  if (d.includes("armyworm")) {
+    return "Pesticides";
+  }
+  return "Pesticides";
+};
+
 // POST /api/ai/chat
 router.post("/chat", protect, async (req, res) => {
   const { message, chatHistory, language, gps, weather, waterAvailability, image, cropHint } = req.body;
@@ -141,11 +267,11 @@ router.post("/chat", protect, async (req, res) => {
     ? headerKey.trim()
     : (process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY);
 
-  if (apiKey && apiKey !== "YOUR_GEMINI_API_KEY" && apiKey.trim().length > 10) {
-    const isGroq = apiKey.startsWith("gsk_");
-    try {
-      const systemInstruction = 
-        `You are "AgriExpert," an elite, highly accurate AI agricultural specialist and digital farming assistant. Your mission is to provide precise, actionable, and personalized agronomic advice, manage a dual-sided marketplace, diagnose crop diseases with absolute safety guardrails, and deliver localized climate-smart recommendations.
+  let responseText = "";
+  let responseSource = "";
+
+  const systemInstruction = 
+    `You are "AgriExpert," an elite, highly accurate AI agricultural specialist and digital farming assistant. Your mission is to provide precise, actionable, and personalized agronomic advice, manage a dual-sided marketplace, diagnose crop diseases with absolute safety guardrails, and deliver localized climate-smart recommendations.
 
 Global System Rules & Language Protocol:
 1. Multilingual Enforcement: You must support English, Hindi (हिंदी), and Marathi (मराठी) fluently. The active language is: "${activeLang}". ALL text, marketplace listings, diagnostic reports, notifications, and advisory summaries must be rendered natively in that chosen language. If a greeting is sent, reply in that language.
@@ -191,6 +317,120 @@ Module 5: Active Notification Module:
   2. Marketplace Updates (e.g. Buyer found for listed stocks)
   3. Pest Breakout Alerts (e.g. Fall Armyworm infestation within 10km)`;
 
+  // Intercept image diagnostics query when vision key is not set or to fall back
+  const isImageRequest = image && image.data;
+
+  if (isImageRequest) {
+    const isGeminiKey = apiKey && apiKey.trim().length > 10 && !apiKey.startsWith("gsk_") && apiKey !== "YOUR_GEMINI_API_KEY";
+    if (isGeminiKey) {
+      try {
+        const contents = [];
+        if (chatHistory && Array.isArray(chatHistory)) {
+          chatHistory.slice(-6).forEach(chat => {
+            contents.push({
+              role: chat.sender === "user" ? "user" : "model",
+              parts: [{ text: chat.text }]
+            });
+          });
+        }
+
+        const userParts = [];
+        if (userContext) {
+          userParts.push({ text: `[User Context Metadata]\n${userContext}` });
+        }
+        userParts.push({ text: message });
+
+        userParts.push({
+          inline_data: {
+            mime_type: image.mimeType,
+            data: image.data
+          }
+        });
+
+        contents.push({ role: "user", parts: userParts });
+
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents,
+              systemInstruction: {
+                parts: [{ text: systemInstruction }]
+              }
+            })
+          }
+        );
+
+        const data = await response.json();
+        if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+          responseText = data.candidates[0].content.parts[0].text;
+          responseSource = "gemini";
+        }
+      } catch (err) {
+        console.error("Gemini Vision failed in chat route, trying fallbacks:", err);
+      }
+    }
+
+    // Local/Hugging Face image analysis fallback
+    if (!responseText) {
+      try {
+        const imageBuffer = Buffer.from(image.data, "base64");
+        let diagResult = null;
+        try {
+          diagResult = await analyzeWithHuggingFace(imageBuffer, cropHint);
+        } catch (hfErr) {
+          console.warn("Hugging Face analysis failed in chat route:", hfErr.message);
+        }
+
+        if (!diagResult) {
+          diagResult = smartLocalFallback(cropHint || "wheat", "image.jpg");
+        }
+
+        if (diagResult) {
+          responseSource = "huggingface-local";
+          const diseaseName = diagResult.disease;
+          const adviceText = diagResult.advice;
+
+          if (activeLang === "mr") {
+            responseText = `🏥 **पीक रोग निदान अहवाल (AgriExpert)**\n\n` +
+              `1. **रोगाचे नाव**: ${getLocalizedDiseaseMR(diseaseName)} (${diseaseName})\n` +
+              `2. **उपाय/उपचार**: ${getLocalizedAdviceMR(adviceText)}\n` +
+              `3. **घ्यावयाची काळजी**: बाधित पाने किंवा भाग शेतातून काढून टाका, पाण्याचा निचरा व्यवस्थित ठेवा आणि पिकांची फेरपालट करा.\n` +
+              `4. **खरेदी दुवा**: [Bazaar वर खरेदी करा](app://marketplace/search?query=${encodeURIComponent(extractProductQuery(diseaseName))})`;
+          } else if (activeLang === "hi") {
+            responseText = `🏥 **फसल रोग निदान रिपोर्ट (AgriExpert)**\n\n` +
+              `1. **बीमारी का नाम**: ${getLocalizedDiseaseHI(diseaseName)} (${diseaseName})\n` +
+              `2. **इलाज/उपचार**: ${getLocalizedAdviceHI(adviceText)}\n` +
+              `3. **सावधानियां**: ग्रसित पौधों के हिस्सों को नष्ट करें, खेत की स्वच्छता बनाए रखें और संतुलित उर्वरक का प्रयोग करें।\n` +
+              `4. **उत्पाद लिंक**: [मार्केटप्लेस पर खरीदें](app://marketplace/search?query=${encodeURIComponent(extractProductQuery(diseaseName))})`;
+          } else {
+            responseText = `🏥 **AI Crop Diagnosis Profile (AgriExpert)**\n\n` +
+              `1. **Disease Name**: ${diseaseName}\n` +
+              `2. **Cure/Treatment**: ${adviceText}\n` +
+              `3. **Precautions to Take**: Prune affected foliage, ensure clean field sanitation, and implement appropriate crop rotation.\n` +
+              `4. **Treatment Product Links**: [Buy Treatment on Marketplace](app://marketplace/search?query=${encodeURIComponent(extractProductQuery(diseaseName))})`;
+          }
+        }
+      } catch (fallbackErr) {
+        console.error("Local/HF diagnostics fallback failed:", fallbackErr);
+      }
+    }
+
+    if (responseText) {
+      return res.json({
+        success: true,
+        response: responseText,
+        source: responseSource
+      });
+    }
+  }
+
+  // Non-image requests or if image fallback failed to generate response
+  if (apiKey && apiKey !== "YOUR_GEMINI_API_KEY" && apiKey.trim().length > 10) {
+    const isGroq = apiKey.startsWith("gsk_");
+    try {
       if (isGroq) {
         // Groq text-only chat integration
         const messages = [
@@ -228,7 +468,7 @@ Module 5: Active Notification Module:
           return res.json({ success: true, response: text, source: "groq" });
         }
       } else {
-        // Gemini vision + text integration
+        // Gemini text/vision fallback for text-only messages
         const contents = [];
         if (chatHistory && Array.isArray(chatHistory)) {
           chatHistory.slice(-6).forEach(chat => {
@@ -244,15 +484,6 @@ Module 5: Active Notification Module:
           userParts.push({ text: `[User Context Metadata]\n${userContext}` });
         }
         userParts.push({ text: message });
-
-        if (image && image.data && image.mimeType) {
-          userParts.push({
-            inline_data: {
-              mime_type: image.mimeType,
-              data: image.data
-            }
-          });
-        }
 
         contents.push({ role: "user", parts: userParts });
 
@@ -283,7 +514,7 @@ Module 5: Active Notification Module:
 
   // ── Multilingual Offline Local Rule-Based Engine ──
   const dict = FALLBACK_RESPONSES[activeLang] || FALLBACK_RESPONSES["en"];
-  let responseText = "";
+  responseText = "";
 
   // 1. GREETING
   if (userMessage.includes("hello") || userMessage.includes("hi") || userMessage.includes("नमस्ते") || userMessage.includes("नमस्कार") || userMessage.includes("शेतकरी") || userMessage.includes("greeting")) {
@@ -291,50 +522,37 @@ Module 5: Active Notification Module:
   }
   // 2. DIAGNOSTICS & symptoms
   else if (userMessage.includes("symptom") || userMessage.includes("disease") || userMessage.includes("blight") || userMessage.includes("rust") || userMessage.includes("spots") || userMessage.includes("झुलसा") || userMessage.includes("करपा") || userMessage.includes("बीमारी")) {
-    let crop = cropHint || "tomato";
-    if (userMessage.includes("rice") || userMessage.includes("paddy") || userMessage.includes("धान") || userMessage.includes("भात")) crop = "rice";
-    else if (userMessage.includes("wheat") || userMessage.includes("गेहूं") || userMessage.includes("गहू")) crop = "wheat";
-    else if (userMessage.includes("maize") || userMessage.includes("मक्का") || userMessage.includes("मका")) crop = "maize";
+    let crop = cropHint ? normalizeCropName(cropHint) : "tomato";
+    const userMsgLower = userMessage.toLowerCase();
+    if (userMsgLower.includes("rice") || userMsgLower.includes("paddy") || userMsgLower.includes("धान") || userMsgLower.includes("भात")) crop = "rice";
+    else if (userMsgLower.includes("wheat") || userMsgLower.includes("गेहूं") || userMsgLower.includes("गहू")) crop = "wheat";
+    else if (userMsgLower.includes("maize") || userMsgLower.includes("मक्का") || userMsgLower.includes("मका")) crop = "maize";
+    else if (userMsgLower.includes("potato") || userMsgLower.includes("आलू") || userMsgLower.includes("बटाटा")) crop = "potato";
+    else if (userMsgLower.includes("cotton") || userMsgLower.includes("कपास") || userMsgLower.includes("कापूस")) crop = "cotton";
+    else if (userMsgLower.includes("chilli") || userMsgLower.includes("मिर्च") || userMsgLower.includes("मिरची")) crop = "chilli";
+
+    const diagResult = smartLocalFallback(crop, "image.jpg");
+    const diseaseName = diagResult.disease;
+    const adviceText = diagResult.advice;
 
     if (activeLang === "mr") {
-      responseText = `🏥 **पीक रोग निदान अहवाल (AgriExpert)**\n\n`;
-      if (crop.toLowerCase().includes("tomato")) {
-        responseText += `1. **रोगाचे नाव**: टोमॅटो अर्ली ब्लाईट (Early Blight - Alternaria solani)\n`;
-        responseText += `2. **उपाय/उपचार**: मँकोझेब ७५ डब्ल्यूपी (२ ग्रॅम/लीटर) किंवा कॉपर ऑक्सिक्लोराईड ५० डब्ल्यूपी (३ ग्रॅम/लीटर) दर ७-१० दिवसांनी फवारा.\n`;
-        responseText += `3. **घ्यावयाची काळजी**: खालील बाधित पाने छाटून टाका, पाण्याचा निचरा व्यवस्थित ठेवा आणि पिकांची फेरपालट करा.\n`;
-        responseText += `4. **खरेदी दुवा**: [Bazaar वर Mancozeb 75 WP खरेदी करा](app://marketplace/search?query=Mancozeb)`;
-      } else {
-        responseText += `1. **रोगाचे नाव**: भातावरील करपा (Rice Blast - Magnaporthe oryzae)\n`;
-        responseText += `2. **उपाय/उपचार**: ट्रायसायक्लाझोल ७५% डब्ल्यूपी (०.६ ग्रॅम/लीटर) किंवा कार्बेन्डाझिम ५०% डब्ल्यूपी (१.० ग्रॅम/लीटर) फवारा.\n`;
-        responseText += `3. **घ्यावयाची काळजी**: नत्राचा (युरिया) अतिवापर टाळा आणि शेतात ५ सेमी पाणी पातळी राखा.\n`;
-        responseText += `4. **खरेदी दुवा**: [Bazaar वर Tricyclazole खरेदी करा](app://marketplace/search?query=Tricyclazole)`;
-      }
+      responseText = `🏥 **पीक रोग निदान अहवाल (AgriExpert)**\n\n` +
+        `1. **रोगाचे नाव**: ${getLocalizedDiseaseMR(diseaseName)} (${diseaseName})\n` +
+        `2. **उपाय/उपचार**: ${getLocalizedAdviceMR(adviceText)}\n` +
+        `3. **घ्यावयाची काळजी**: बाधित पाने किंवा भाग शेतातून काढून टाका, पाण्याचा निचरा व्यवस्थित ठेवा आणि पिकांची फेरपालट करा.\n` +
+        `4. **खरेदी दुवा**: [Bazaar वर खरेदी करा](app://marketplace/search?query=${encodeURIComponent(extractProductQuery(diseaseName))})`;
     } else if (activeLang === "hi") {
-      responseText = `🏥 **फसल रोग निदान रिपोर्ट (AgriExpert)**\n\n`;
-      if (crop.toLowerCase().includes("tomato")) {
-        responseText += `1. **बीमारी का नाम**: टमाटर अगेती झुलसा (Early Blight - Alternaria solani)\n`;
-        responseText += `2. **इलाज/उपचार**: मैंकोजेब 75 डब्ल्यूपी (2 ग्राम/लीटर) या कॉपर ऑक्सीक्लोराइड 50 डब्ल्यूपी (3 ग्राम/लीटर) का छिड़काव हर 7-10 दिनों में करें।\n`;
-        responseText += `3. **सावधानियां**: ग्रसित निचली पत्तियों को काटें, मल्चिंग करें, और फसल चक्र अपनाएं।\n`;
-        responseText += `4. **उत्पाद लिंक**: [मार्केटप्लेस पर Mancozeb खरीदें](app://marketplace/search?query=Mancozeb)`;
-      } else {
-        responseText += `1. **बीमारी का नाम**: धान का झोंका रोग (Rice Blast - Magnaporthe oryzae)\n`;
-        responseText += `2. **इलाज/उपचार**: ट्राइसाइक्लाजोल 75% डब्ल्यूपी (0.6 ग्राम/लीटर) या कार्बेन्डाजिम 50% डब्ल्यूपी (1 ग्राम/लीटर) का छिड़काव करें।\n`;
-        responseText += `3. **सावधानियां**: यूरिया का अत्यधिक उपयोग बंद करें और खेत में 5 सेमी पानी का स्तर बनाए रखें।\n`;
-        responseText += `4. **उत्पाद लिंक**: [मार्केटप्लेस पर Tricyclazole खरीदें](app://marketplace/search?query=Tricyclazole)`;
-      }
+      responseText = `🏥 **फसल रोग निदान रिपोर्ट (AgriExpert)**\n\n` +
+        `1. **बीमारी का नाम**: ${getLocalizedDiseaseHI(diseaseName)} (${diseaseName})\n` +
+        `2. **इलाज/उपचार**: ${getLocalizedAdviceHI(adviceText)}\n` +
+        `3. **सावधानियां**: ग्रसित पौधों के हिस्सों को नष्ट करें, खेत की स्वच्छता बनाए रखें और संतुलित उर्वरक का प्रयोग करें।\n` +
+        `4. **उत्पाद लिंक**: [मार्केटप्लेस पर खरीदें](app://marketplace/search?query=${encodeURIComponent(extractProductQuery(diseaseName))})`;
     } else {
-      responseText = `🏥 **AI Crop Diagnosis Profile (AgriExpert)**\n\n`;
-      if (crop.toLowerCase().includes("tomato")) {
-        responseText += `1. **Disease Name**: Tomato Early Blight (Alternaria solani)\n`;
-        responseText += `2. **Cure/Treatment**: Spray Mancozeb 75 WP (2 g/L) or Copper Oxychloride 50 WP (3 g/L) every 7-10 days.\n`;
-        responseText += `3. **Precautions to Take**: Prune lower infected leaves, apply straw mulching, and practice crop rotation.\n`;
-        responseText += `4. **Treatment Product Links**: [Buy Mancozeb 75 WP on Marketplace](app://marketplace/search?query=Mancozeb)`;
-      } else {
-        responseText += `1. **Disease Name**: Rice Leaf Blast (Magnaporthe oryzae)\n`;
-        responseText += `2. **Cure/Treatment**: Apply Tricyclazole 75% WP (0.6 g/L) or Carbendazim 50% WP (1.0 g/L).\n`;
-        responseText += `3. **Precautions to Take**: Stop excess Nitrogen (Urea) applications during active spots and drain fields periodically.\n`;
-        responseText += `4. **Treatment Product Links**: [Buy Tricyclazole on Marketplace](app://marketplace/search?query=Tricyclazole)`;
-      }
+      responseText = `🏥 **AI Crop Diagnosis Profile (AgriExpert)**\n\n` +
+        `1. **Disease Name**: ${diseaseName}\n` +
+        `2. **Cure/Treatment**: ${adviceText}\n` +
+        `3. **Precautions to Take**: Prune affected foliage, ensure clean field sanitation, and implement appropriate crop rotation.\n` +
+        `4. **Treatment Product Links**: [Buy Treatment on Marketplace](app://marketplace/search?query=${encodeURIComponent(extractProductQuery(diseaseName))})`;
     }
   }
   // 3. MARKETPLACE (Sell Produce / Buy Inputs)

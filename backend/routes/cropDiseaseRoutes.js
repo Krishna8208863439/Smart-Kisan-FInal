@@ -698,3 +698,4 @@ router.post("/analyze", protect, upload.single("image"), async (req, res) => {
 });
 
 export default router;
+export { analyzeWithHuggingFace, smartLocalFallback };
