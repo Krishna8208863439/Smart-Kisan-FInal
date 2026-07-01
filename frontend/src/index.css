@@ -160,9 +160,10 @@ a {
 }
 
 .nav-container {
-  max-width: 1540px;
-  margin: 0 auto;
-  padding: 0 16px;
+  max-width: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0 24px;
   height: 100%;
   display: flex;
   justify-content: space-between;
