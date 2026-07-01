@@ -122,6 +122,15 @@ const PashuMitra = () => {
   const [chatHistory, setChatHistory] = useState([]);
   const [chatLoading, setChatLoading] = useState(false);
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [viewMode, setViewMode] = useState("list"); // "list" or "details"
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   useEffect(() => {
     fetchAnimals();
   }, []);
@@ -146,6 +155,9 @@ const PashuMitra = () => {
       setSelectedAnimal(res.data);
       setNewAnimal({ tagNumber: "", name: "", type: "Cow", breed: "", ageYears: "", healthStatus: "Healthy" });
       setShowAddForm(false);
+      if (window.innerWidth <= 768) {
+        setViewMode("details");
+      }
     } catch (err) {
       console.error(err);
       alert("Failed to register animal.");
@@ -289,10 +301,21 @@ const PashuMitra = () => {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.2fr 2fr", gap: 24, alignItems: "start" }}>
+      {isMobile && viewMode === "details" && selectedAnimal && (
+        <button
+          className="button button-secondary"
+          style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontWeight: 700 }}
+          onClick={() => setViewMode("list")}
+        >
+          ⬅️ {lang === "mr" ? "जनावरांची यादी" : "Back to Herd List"}
+        </button>
+      )}
+
+      <div style={isMobile ? { display: "block" } : { display: "grid", gridTemplateColumns: "1.2fr 2fr", gap: 24, alignItems: "start" }}>
         
         {/* Left Side: Cattle Directory & Add Form */}
-        <div>
+        {(!isMobile || (isMobile && viewMode === "list")) && (
+          <div>
           {/* Action Row */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <div style={{ display: "flex", gap: 6 }}>
@@ -414,7 +437,12 @@ const PashuMitra = () => {
               <div 
                 key={a._id}
                 className="card"
-                onClick={() => setSelectedAnimal(a)}
+                onClick={() => {
+                  setSelectedAnimal(a);
+                  if (isMobile) {
+                    setViewMode("details");
+                  }
+                }}
                 style={{ 
                   cursor: "pointer", 
                   background: selectedAnimal?._id === a._id ? "var(--bg-main)" : "",
@@ -462,9 +490,11 @@ const PashuMitra = () => {
             ))}
           </div>
         </div>
+        )}
 
         {/* Right Side: Selected Animal Details & Action Logs */}
-        <div>
+        {(!isMobile || (isMobile && viewMode === "details")) && (
+          <div>
           {selectedAnimal ? (
             <div>
               {/* Profile Card Header */}
@@ -770,6 +800,7 @@ const PashuMitra = () => {
           </div>
 
         </div>
+        )}
 
       </div>
     </div>
