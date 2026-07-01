@@ -16,6 +16,8 @@ import cropDiseaseRoutes from "./routes/cropDiseaseRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import cropCalendarRoutes from "./routes/cropCalendarRoutes.js";
 import marketplaceRoutes from "./routes/marketplaceRoutes.js";
+import yieldRoutes from "./routes/yieldRoutes.js";
+import livestockRoutes from "./routes/livestockRoutes.js";
 
 dotenv.config();
 
@@ -52,6 +54,8 @@ app.use("/api/crop-disease", cropDiseaseRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/crop-calendar", cropCalendarRoutes);
 app.use("/api/marketplace", marketplaceRoutes);
+app.use("/api/yield", yieldRoutes);
+app.use("/api/livestock", livestockRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -919,6 +919,44 @@ const Dashboard = () => {
           </Link>
         </div>
 
+        <div className="card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: 28, marginBottom: 8 }}>📊</div>
+            <h3>
+              {language === "mr" ? "उत्पादन अंदाज इंजिन" : "Predictive Yield Engine"}
+            </h3>
+            <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>
+              {language === "mr"
+                ? "हवामान आणि जमिनीनुसार पिकाचे उत्पादन, एकूण नफा आणि सिंचन वेळापत्रक निश्चित करा."
+                : "Forecast crop yields, estimate net profits, and generate smart resource application plans."}
+            </p>
+          </div>
+          <Link to="/predictive-yield" style={{ marginTop: 16 }}>
+            <button className="button" style={{ width: "100%", background: "#166534" }}>
+              {language === "mr" ? "अंदाज मिळवा 📊" : "Forecast Yield 📊"}
+            </button>
+          </Link>
+        </div>
+
+        <div className="card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: 28, marginBottom: 8 }}>🐄</div>
+            <h3>
+              {language === "mr" ? "पशु मित्र (Livestock)" : "Pashu Mitra (Livestock)"}
+            </h3>
+            <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>
+              {language === "mr"
+                ? "गाई-म्हशींच्या आरोग्याची काळजी घ्या, दुग्ध उत्पादनाचा आलेख आणि लसीकरण ट्रॅक करा."
+                : "Track dairy cattle health, log daily milking yields, vaccination due dates, and consult AI."}
+            </p>
+          </div>
+          <Link to="/pashu-mitra" style={{ marginTop: 16 }}>
+            <button className="button" style={{ width: "100%", background: "#1e3a8a" }}>
+              {language === "mr" ? "पशु मित्र उघडा 🐄" : "Open Pashu Mitra 🐄"}
+            </button>
+          </Link>
+        </div>
+
       </div>
 
       {/* Disease Detection Panel */}

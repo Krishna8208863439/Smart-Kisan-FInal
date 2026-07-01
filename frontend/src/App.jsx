@@ -13,6 +13,8 @@ import AITools from "./pages/AITools";
 import Marketplace from "./pages/Marketplace";
 import KisanChat from "./pages/KisanChat";
 import AgriHealthPortal from "./pages/AgriHealthPortal";
+import PredictiveYield from "./pages/PredictiveYield";
+import PashuMitra from "./pages/PashuMitra";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { ThemeProvider } from "./context/ThemeContext";
 import { LanguageProvider } from "./context/LanguageContext";
@@ -62,6 +64,8 @@ const App = () => {
             <Route path="/ai-tools" element={<ProtectedRoute><AITools /></ProtectedRoute>} />
             <Route path="/agri-health" element={<ProtectedRoute><AgriHealthPortal /></ProtectedRoute>} />
             <Route path="/marketplace" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />
+            <Route path="/predictive-yield" element={<ProtectedRoute><PredictiveYield /></ProtectedRoute>} />
+            <Route path="/pashu-mitra" element={<ProtectedRoute><PashuMitra /></ProtectedRoute>} />
             <Route path="/chat" element={<ProtectedRoute><KisanChat /></ProtectedRoute>} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />

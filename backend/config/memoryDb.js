@@ -11,7 +11,7 @@ const initializeDbFile = () => {
   if (!fs.existsSync(DB_FILE)) {
     fs.writeFileSync(
       DB_FILE,
-      JSON.stringify({ users: [], posts: [], calendars: [], products: [], buyRequests: [], contracts: [], orders: [] }, null, 2)
+      JSON.stringify({ users: [], posts: [], calendars: [], products: [], buyRequests: [], contracts: [], orders: [], yieldPredictions: [], livestock: [] }, null, 2)
     );
   }
 };
@@ -24,10 +24,12 @@ const readDb = () => {
     if (!parsed.buyRequests) parsed.buyRequests = [];
     if (!parsed.contracts) parsed.contracts = [];
     if (!parsed.orders) parsed.orders = [];
+    if (!parsed.yieldPredictions) parsed.yieldPredictions = [];
+    if (!parsed.livestock) parsed.livestock = [];
     return parsed;
   } catch (err) {
     console.error("Error reading memory DB file:", err);
-    return { users: [], posts: [], calendars: [], products: [], buyRequests: [], contracts: [], orders: [] };
+    return { users: [], posts: [], calendars: [], products: [], buyRequests: [], contracts: [], orders: [], yieldPredictions: [], livestock: [] };
   }
 };
 
@@ -474,5 +476,122 @@ export const OrderMock = {
     db.orders.push(newOrder);
     writeDb(db);
     return newOrder;
+  }
+};
+
+// YieldPrediction Mock Model
+export const YieldPredictionMock = {
+  find: (filter) => {
+    const db = readDb();
+    if (!db.yieldPredictions) db.yieldPredictions = [];
+    let result = db.yieldPredictions;
+    if (filter && filter.user) {
+      result = result.filter((y) => String(y.user) === String(filter.user));
+    }
+    return new MemoryQuery(Promise.resolve(result));
+  },
+  create: async (predictionData) => {
+    const db = readDb();
+    if (!db.yieldPredictions) db.yieldPredictions = [];
+    const newPrediction = {
+      _id: generateId(),
+      ...predictionData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    db.yieldPredictions.push(newPrediction);
+    writeDb(db);
+    return newPrediction;
+  },
+  findOneAndDelete: async (filter) => {
+    const db = readDb();
+    if (!db.yieldPredictions) db.yieldPredictions = [];
+    const index = db.yieldPredictions.findIndex(
+      (y) => String(y._id) === String(filter._id) && String(y.user) === String(filter.user)
+    );
+    if (index === -1) return null;
+    const removed = db.yieldPredictions.splice(index, 1)[0];
+    writeDb(db);
+    return removed;
+  }
+};
+
+// Livestock Mock Model
+export const LivestockMock = {
+  find: (filter) => {
+    const db = readDb();
+    if (!db.livestock) db.livestock = [];
+    let result = db.livestock;
+    if (filter && filter.user) {
+      result = result.filter((l) => String(l.user) === String(filter.user));
+    }
+    return new MemoryQuery(Promise.resolve(result));
+  },
+  findOne: async (filter) => {
+    const db = readDb();
+    if (!db.livestock) db.livestock = [];
+    const animal = db.livestock.find(
+      (l) => String(l._id) === String(filter._id) && String(l.user) === String(filter.user)
+    );
+    if (!animal) return null;
+
+    const animalObj = {
+      ...animal,
+      save: async function () {
+        const currentDb = readDb();
+        const index = currentDb.livestock.findIndex((l) => String(l._id) === String(this._id));
+        if (index !== -1) {
+          const { save, ...cleanData } = this;
+          currentDb.livestock[index] = cleanData;
+          writeDb(currentDb);
+        }
+        return this;
+      }
+    };
+
+    if (animalObj.milkRecords) {
+      animalObj.milkRecords.id = function (subId) {
+        return this.find((r) => String(r._id) === String(subId));
+      };
+    }
+    if (animalObj.vaccinations) {
+      animalObj.vaccinations.id = function (subId) {
+        return this.find((v) => String(v._id) === String(subId));
+      };
+    }
+    if (animalObj.feedingSchedules) {
+      animalObj.feedingSchedules.id = function (subId) {
+        return this.find((f) => String(f._id) === String(subId));
+      };
+    }
+
+    return animalObj;
+  },
+  create: async (livestockData) => {
+    const db = readDb();
+    if (!db.livestock) db.livestock = [];
+    const newAnimal = {
+      _id: generateId(),
+      milkRecords: [],
+      vaccinations: [],
+      feedingSchedules: [],
+      ...livestockData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    db.livestock.push(newAnimal);
+    writeDb(db);
+    return newAnimal;
+  },
+  findOneAndDelete: async (filter) => {
+    const db = readDb();
+    if (!db.livestock) db.livestock = [];
+    const index = db.livestock.findIndex(
+      (l) => String(l._id) === String(filter._id) && String(l.user) === String(filter.user)
+    );
+    if (index === -1) return null;
+    const removed = db.livestock.splice(index, 1)[0];
+    writeDb(db);
+    return removed;
   }
 };
