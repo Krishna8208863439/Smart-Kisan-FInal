@@ -231,9 +231,9 @@ a {
 }
 
 .nav-install-btn {
-  background: rgba(20, 83, 45, 0.6);
+  background: rgba(255, 255, 255, 0.12);
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   padding: 7px 14px;
   font-size: 13px;
@@ -247,15 +247,11 @@ a {
 }
 
 .nav-install-btn:hover {
-  background: rgba(20, 83, 45, 0.85);
+  background: rgba(255, 255, 255, 0.25);
   transform: translateY(-1px);
 }
 
 .nav-user {
-  background: rgba(20, 83, 45, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  padding: 5px 12px;
-  border-radius: 8px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -269,21 +265,21 @@ a {
 }
 
 .nav-logout-btn {
-  background: rgba(255, 255, 255, 0.18) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
   color: white !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
-  padding: 5px 10px !important;
-  font-size: 12.5px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  padding: 7px 12px !important;
+  font-size: 13px !important;
   font-weight: 600 !important;
   display: flex !important;
   align-items: center !important;
-  gap: 5px !important;
+  gap: 6px !important;
   cursor: pointer !important;
-  border-radius: 6px !important;
+  border-radius: 8px !important;
 }
 
 .nav-logout-btn:hover {
-  background: rgba(255, 255, 255, 0.3) !important;
+  background: rgba(255, 255, 255, 0.25) !important;
 }
 
 /* ── Responsive text hide helpers for navbar ── */
