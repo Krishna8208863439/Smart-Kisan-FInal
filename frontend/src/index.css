@@ -74,6 +74,8 @@
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 body {
@@ -84,6 +86,8 @@ body {
   transition: background 0.3s ease, color 0.3s ease;
   /* Safe area for notched phones */
   padding-bottom: env(safe-area-inset-bottom);
+  overflow-x: hidden;
+  width: 100%;
 }
 
 a {
@@ -135,19 +139,19 @@ a {
 
 /* ── Navbar ── */
 .nav-bar {
-  background: rgba(21, 128, 61, 0.97);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: #15803d; /* Solid green background */
   position: sticky;
   top: 0;
   z-index: 100;
   box-shadow: var(--shadow-md);
   transition: var(--transition);
   height: var(--nav-height);
+  width: 100%;
+  min-width: 100%;
 }
 
 [data-theme="dark"] .nav-bar {
-  background: rgba(15, 23, 42, 0.97);
+  background: #0f172a; /* Solid dark background */
   border-bottom: 1px solid var(--border-color);
 }
 
