@@ -228,9 +228,9 @@ a {
 }
 
 .nav-install-btn {
-  background: rgba(255, 255, 255, 0.12);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: 8px;
   padding: 7px 14px;
   font-size: 13px;
@@ -244,7 +244,7 @@ a {
 }
 
 .nav-install-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.28);
   transform: translateY(-1px);
 }
 
@@ -257,14 +257,14 @@ a {
 .nav-user-name {
   font-size: 13px;
   font-weight: 600;
-  color: #dcfce7;
+  color: #ffffff;
   white-space: nowrap;
 }
 
 .nav-logout-btn {
-  background: rgba(255, 255, 255, 0.12) !important;
-  color: white !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.16) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
   padding: 7px 12px !important;
   font-size: 13px !important;
   font-weight: 600 !important;
@@ -276,7 +276,7 @@ a {
 }
 
 .nav-logout-btn:hover {
-  background: rgba(255, 255, 255, 0.25) !important;
+  background: rgba(255, 255, 255, 0.28) !important;
 }
 
 /* ── Responsive text hide helpers for navbar ── */
