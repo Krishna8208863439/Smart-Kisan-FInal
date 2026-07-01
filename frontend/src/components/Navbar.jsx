@@ -98,10 +98,11 @@ const Navbar = () => {
               <div className="nav-user nav-user-desktop">
                 <span className="nav-user-name">{t('hi')}, {user.name?.split(' ')[0]}</span>
                 <button
-                  className="button nav-logout-btn"
+                  className="nav-icon-btn nav-logout-btn"
                   onClick={logout}
+                  title={t('logout')}
                 >
-                  {t('logout')}
+                  🚪 {t('logout')}
                 </button>
               </div>
             )}

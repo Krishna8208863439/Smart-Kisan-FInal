@@ -227,9 +227,9 @@ a {
 }
 
 .nav-install-btn {
-  background: var(--accent);
+  background: rgba(255, 255, 255, 0.12);
   color: white;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   padding: 7px 14px;
   font-size: 13px;
@@ -243,7 +243,7 @@ a {
 }
 
 .nav-install-btn:hover {
-  background: #d97706;
+  background: rgba(255, 255, 255, 0.25);
   transform: translateY(-1px);
 }
 
@@ -261,11 +261,20 @@ a {
 }
 
 .nav-logout-btn {
-  background: rgba(255, 255, 255, 0.18) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
   color: white !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
-  padding: 6px 12px !important;
-  font-size: 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  padding: 7px 12px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  cursor: pointer !important;
+}
+
+.nav-logout-btn:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
 }
 
 /* ── Hamburger Menu (mobile only) ── */
