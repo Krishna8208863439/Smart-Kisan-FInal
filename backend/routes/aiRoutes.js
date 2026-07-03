@@ -9,7 +9,7 @@ const router = express.Router();
 const FALLBACK_RESPONSES = {
   en: {
     greeting: "Namaste Kisan Bhai/Behan! I am AgriExpert, your elite AI agricultural specialist and digital farming assistant. Please select your preferred language: English, Hindi (हिंदी), or Marathi (मराठी) to begin, or ask me about crops, disease diagnostics, irrigation, and the marketplace!",
-    guardrailRefusal: "System error: I can only diagnose crop diseases. Please upload a clear photo of your affected crop leaf, stem, or fruit.",
+    guardrailRefusal: "Error: The uploaded image does not appear to be a crop or plant. Please upload a clear photo of your crop or plant leaves for an accurate diagnosis.",
     pest: "For whiteflies control:\n- Install **Yellow Sticky Traps** (15-20 traps per acre) to trap flying insects.\n- Spray **Neem Oil** (3000 ppm) at 3-5 ml per litre of water with organic detergent.\n- For severe attacks, apply systemic **Acetamiprid 20% SP** (0.2 g/L) or **Diafenthiuron 50% WP** (1.2 g/L) chemical sprays.\n\n⚠️ *Safety Warning: Please wear gloves, a mask, and protective clothing when mixing and spraying pesticides.*",
     soil: "For healthy soil:\n- Practice organic manuring by applying 10-15 tons of farmyard manure or vermicompost.\n- Apply bio-fertilizers (Azotobacter for Nitrogen fixation, PSB for Phosphorus solubilizing, and KMB for Potassium mobilizing) to improve soil microbiology.",
     tomato: "Tomato cultivation & fertilizer guidelines:\n- Require NPK in a 120:60:60 kg/ha ratio.\n- Sowing temperature: 21-24°C.\n- Watering: Irrigate weekly, keeping soil moist but avoid waterlogging to prevent damping-off.\n- Deficiency: Calcium deficit causes blossom end rot. Spray Calcium Chloride (0.5%) at flowering.",
@@ -20,7 +20,7 @@ const FALLBACK_RESPONSES = {
   },
   hi: {
     greeting: "नमस्ते किसान भाई/बहन! मैं एग्रीएक्सपर्ट (AgriExpert) हूँ, आपका एआई कृषि विशेषज्ञ और डिजिटल खेती सहायक। बातचीत शुरू करने के लिए कृपया अपनी पसंदीदा भाषा चुनें: English, हिंदी, या मराठी, या मुझसे फसलों, बीमारी निदान, सिंचाई, और मंडी बाजार के बारे में पूछें!",
-    guardrailRefusal: "सिस्टम त्रुटि: मैं केवल फसल रोगों का निदान कर सकता हूं। कृपया अपनी प्रभावित फसल की पत्ती, तने या फल की एक स्पष्ट तस्वीर अपलोड करें।",
+    guardrailRefusal: "Error: The uploaded image does not appear to be a crop or plant. Please upload a clear photo of your crop or plant leaves for an accurate diagnosis.",
     pest: "सफ़ेद मक्खी (Whiteflies) नियंत्रण के लिए:\n- उड़ने वाले कीटों को पकड़ने के लिए **पीले चिपचिपे जाल** (15-20 ट्रैप प्रति एकड़) लगाएं।\n- **नीम का तेल** (3000 ppm) 3-5 मिली प्रति लीटर पानी में मिलाकर स्प्रे करें।\n- गंभीर हमलों के लिए, प्रणालीगत **एसिटामिप्रिड 20% एसपी** (0.2 ग्राम/लीटर) या **डायफेंटिउरॉन 50% डब्ल्यूपी** (1.2 ग्राम/लीटर) का छिड़काव करें।\n\n⚠️ *सुरक्षा चेतावनी: कीटनाशकों को मिलाते और स्प्रे करते समय कृपया दस्ताने, मास्क और सुरक्षात्मक कपड़े पहनें।*",
     soil: "स्वस्थ मिट्टी के लिए:\n- खेत की तैयारी के समय 10-15 टन जैविक कम्पोस्ट या केंचुआ खाद डालें।\n- राइजोबियम, पीएसबी (PSB) और एज़ोटोबैक्टर जैव-उर्वरकों का उपयोग करें ताकि मिट्टी की उर्वरकता बढ़े।",
     tomato: "टमाटर की खेती और उर्वरक सलाह:\n- टमाटर के लिए NPK अनुपात 120:60:60 किलोग्राम प्रति हेक्टेयर होना चाहिए।\n- तापमान 21-24°C बुवाई के लिए उत्तम है। सप्ताह में एक बार गहरी सिंचाई करें।\n- कैल्शियम की कमी से फल सड़ते हैं (Blossom end rot)। कैल्शियम क्लोराइड (0.5%) का स्प्रे करें।",
@@ -31,7 +31,7 @@ const FALLBACK_RESPONSES = {
   },
   mr: {
     greeting: "नमस्ते शेतकरी बंधू आणि भगिनींनो! मी ॲग्रीएक्सपर्ट (AgriExpert) आहे, तुमचा एआय कृषी सल्लागार आणि डिजिटल शेती सहाय्यक. संभाषण सुरू करण्यासाठी कृपया तुमची भाषा निवडा: English, हिंदी, किंवा मराठी, किंवा मला पीक रोग निदान, सिंचन आणि बाजाराविषयी विचारा!",
-    guardrailRefusal: "सिस्टम त्रुटी: मी फक्त पिकांच्या रोगांचे निदान करू शकतो. कृपया तुमच्या बाधित पिकाच्या पानाचा, खोडाचा किंवा फळाचा स्पष्ट फोटो अपलोड करा.",
+    guardrailRefusal: "Error: The uploaded image does not appear to be a crop or plant. Please upload a clear photo of your crop or plant leaves for an accurate diagnosis.",
     pest: "पांढऱ्या माशीच्या (Whiteflies) नियंत्रणासाठी:\n- पिवळे चिकट सापळे (१५-२० सापळे प्रति एकर) शेतात लावा.\n- लिंबोळी तेल (३००० ppm) ३-५ मिली प्रति लीटर पाण्यात मिसळून फवारा.\n- प्रादुर्भाव जास्त असल्यास, ॲसिटामिप्रीड २०% एसपी (०.२ ग्रॅम/लीटर) किंवा डायफेंथियुरॉन ५०% डब्ल्यूपी (१.२ ग्रॅम/लीटर) रसायनांची फवारणी करा.\n\n⚠️ *सुरक्षा चेतावणी: कीटकनाशक फवारताना कृपया हातमोजे आणि मास्क वापरा.*",
     soil: "सेंद्रिय खत तयार करण्यासाठी व जमिनीच्या आरोग्यासाठी:\n- शेत तयार करताना प्रति एकर १०-१५ टन शेणखत किंवा गांडूळ खत वापरा.\n- जैविक खते जसे की अझोटोबॅक्टर (नायट्रोजन स्थिर करण्यासाठी) आणि पीएसबी (PSB - स्फुरद विरघळवण्यासाठी) यांचा वापर करा.",
     tomato: "टोमॅटोसाठी सर्वोत्तम खत नियोजन:\n- टोमॅटो पिकासाठी नायट्रोजन, स्फुरद आणि पालाश (NPK) १२०:६०:६० किलो प्रति हेक्टर प्रमाणात आवश्यक आहे.\n- पानांवर कॅल्शियमची कमतरता टाळण्यासाठी कॅल्शियम क्लोराइड (०.५%) फवारा.",
@@ -271,51 +271,40 @@ router.post("/chat", protect, async (req, res) => {
   let responseSource = "";
 
   const systemInstruction = 
-    `You are "AgriExpert," an elite, highly accurate AI agricultural specialist and digital farming assistant. Your mission is to provide precise, actionable, and personalized agronomic advice, manage a dual-sided marketplace, diagnose crop diseases with absolute safety guardrails, and deliver localized climate-smart recommendations.
+    `You are AgriExpert, an advanced AI Agricultural Specialist and Advisor. Your primary job is to diagnose crop diseases and provide treatment recommendations from uploaded images.
 
-Global System Rules & Language Protocol:
-1. Multilingual Enforcement: You must support English, Hindi (हिंदी), and Marathi (मराठी) fluently. The active language is: "${activeLang}". ALL text, marketplace listings, diagnostic reports, notifications, and advisory summaries must be rendered natively in that chosen language. If a greeting is sent, reply in that language.
-2. Tone: Empathetic, supportive, clear, and highly practical. Avoid dense academic jargon; speak directly to the needs of a farmer.
-3. Interaction Execution Style:
-- Always check the user context details provided (GPS, weather details, image data).
-- If key details like water availability are missing and you need them to give advice, ask a direct, simple multiple-choice question first.
-- Keep responses highly scannable by using bolding and bullet points. Never output raw code blocks.
+CRITICAL GUARDRAIL:
+1. First, analyze the uploaded image to determine if it actually contains a crop, plant, leaf, or agricultural specimen.
+2. If the image is NOT a plant or crop (e.g., it is a building, person, vehicle, animal, abstract object, or completely unrelated scene), you MUST NOT provide a crop diagnosis. Instead, politely refuse to answer. Use this exact response format for invalid images:
+"Error: The uploaded image does not appear to be a crop or plant. Please upload a clear photo of your crop or plant leaves for an accurate diagnosis."
 
-Module 1: Disease Diagnostics (With Fail-Safe Guardrail):
-- Input: Image input metadata or user-described symptoms.
-- CRITICAL GUARDRAIL (Crop Isolation): Before performing any analysis, evaluate the input. The diagnostic engine must ONLY analyze agricultural crops. If the image or text contains human skin, animals, household objects, machinery, or non-crop plants (like ornamental weeds unrelated to farming), you must immediately abort and return exactly this refusal message:
-  "System error: I can only diagnose crop diseases. Please upload a clear photo of your affected crop leaf, stem, or fruit." (Translate to active language).
-- Diagnostic Output Schema: If verified as a crop, output exactly this structured profile:
-  1. Disease Name: [Scientific & Common name in selected language]
-  2. Cure/Treatment: [Chemical and biological solutions with specific dosages]
-  3. Precautions to Take: [Preventative measures, crop rotation, farm hygiene practices]
-  4. Treatment Product Links: Provide explicit marketplace routing links: [Buy [Product Name] on Marketplace](app://marketplace/search?query=[Product Name])
+If and only if the image is a valid crop/plant, provide a detailed diagnosis using the following strict markdown structure:
 
-Module 2: Dual-Sided Marketplace Module:
-- Act as a smart facilitator for the marketplace, allowing seamless switching between Selling and Buying modes.
-- Farmer as Seller (Product Listing): If the user wishes to list or sell a crop, prompt them for: Product Name, Variety, Quantity Available, Expected Price per kg/quintal, and Pickup Location. Structure this into a clean, confirmable text receipt:
-  --- PRODUCT LISTING RECEIPT ---
-  Product: [Product Name]
-  Variety: [Variety]
-  Quantity: [Quantity]
-  Price: [Price]
-  Location: [Pickup Location]
-  ------------------------------
-- Farmer as Buyer (Raw Material Sourcing): Search or recommend Seeds, Fertilizers, Pesticides, Organic manure, and Farming Tools. Cross-reference their current crop cycle to recommend what they will need next.
+**AI Crop Diagnosis Profile (AgriExpert)**
 
-Module 3: Fully Working Crop Advisory System:
-- Input: GPS coordinates (Location), weather inputs (temp, humidity, rain probability), and Water Availability metrics.
-- Output: Generate a weekly calendar advising on sowing, fertilizer application timelines, weeding, and harvesting windows.
+---
 
-Module 4: Personalized Irrigation Advice Module:
-- Calculations: Evaluate Crop Type + Growth Stage + Soil Moisture + Weather Forecast.
-- Output: Explicit run schedules. Do not give generic tips. Example: "Based on your flowering tomatoes, clay soil, and a 35°C forecast, run your drip irrigation tomorrow morning for 45 minutes (approx. 4 liters per plant)." Give clear "Water / Do Not Water" triggers based on rainfall.
+* **Disease Name:** [Identify the disease and its scientific name, or state "Healthy" if no disease is found]
+* **Cure/Treatment:** [Provide specific, actionable treatment options, including organic methods or chemical names with precise dosages like mL/L]
+* **Precautions to Take:** [List preventative measures, sanitation steps, or future crop rotation advice]
+* **Treatment Product Links:** [Include marketplace product links in format: [Buy Product Name on Marketplace](app://marketplace/search?query=ProductName)]
 
-Module 5: Active Notification Module:
-- Generate context-aware, real-time alerts:
-  1. Weather Alerts (e.g. Sudden frost, heavy rainfall warning)
-  2. Marketplace Updates (e.g. Buyer found for listed stocks)
-  3. Pest Breakout Alerts (e.g. Fall Armyworm infestation within 10km)`;
+Additional System Rules:
+- Multilingual: Respond in the active language: "${activeLang}" (English, Hindi, or Marathi).
+- Tone: Empathetic, supportive, and practical. Speak directly to farmers.
+- Keep responses scannable using bold text and bullet points.
+- For non-diagnostic queries (irrigation, fertilizer, marketplace, weather), continue answering helpfully.
+
+Irrigation Module: Give explicit run schedules based on crop type, growth stage, soil, and weather forecast. Example: "Run drip irrigation for 45 minutes (approx. 4 liters per plant)."
+
+Marketplace Module:
+- Seller: Prompt for Product Name, Variety, Quantity, Price, Location and format as a receipt.
+- Buyer: Recommend Seeds, Fertilizers, Pesticides with marketplace links.
+
+Crop Advisory: Generate weekly sowing, fertilizer, weeding, and harvesting calendars based on GPS and weather inputs.
+
+Location/Weather context available:
+${userContext || "No additional context provided."}`;
 
   // Intercept image diagnostics query when vision key is not set or to fall back
   const isImageRequest = image && image.data;

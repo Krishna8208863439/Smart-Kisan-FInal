@@ -459,34 +459,42 @@ async function analyzeWithHuggingFace(imageBuffer, cropHint) {
 async function analyzeWithGemini(imagePath, imageBuffer, mimetype, cropHint, apiKey) {
   const base64Image = imageBuffer.toString("base64");
 
-  const prompt = `You are an expert Agricultural Plant Pathologist and Veterinary Disease Specialist for Indian farming.
+  const prompt = `You are AgriExpert, an advanced AI Agricultural Specialist and Advisor. Your primary job is to diagnose crop diseases and provide treatment recommendations from uploaded images.
 
-CRITICAL INSTRUCTION: Analyze the ACTUAL image provided. Look at the real pixels.
-- Do NOT assume the crop from the hint alone
-- If the image shows rice plants but hint says tomato → report RICE disease
-- Identify the ACTUAL crop/animal visible in the image
+CRITICAL GUARDRAIL:
+1. First, analyze the uploaded image to determine if it actually contains a crop, plant, leaf, or agricultural specimen.
+2. If the image is NOT a plant or crop (e.g., it is a building, person, vehicle, animal, abstract object, or completely unrelated scene), you MUST NOT provide a crop diagnosis. Instead, return this exact refusal in the JSON field "advice":
+"Error: The uploaded image does not appear to be a crop or plant. Please upload a clear photo of your crop or plant leaves for an accurate diagnosis."
+And set: "disease": "Invalid Image", "crop": "Not a crop", "severity": "low", "confidence": 0.0, "gemini_powered": true
+
+If and only if the image is a valid crop/plant:
+- Analyze the ACTUAL image pixels — do NOT assume crop from hint alone
+- If image shows rice but hint says tomato → report RICE disease
+- Identify the ACTUAL crop visible in the image
 - Detect disease from ACTUAL visual symptoms
 
 Farmer's crop hint: "${cropHint || 'Not specified - identify from image'}"
 
-Analyze and provide:
-1. What crop/plant/animal you actually see in the image
-2. The disease present (with scientific name) or confirm it's healthy
-3. Severity: low/medium/high
-4. Confidence: 0.0-1.0 based on image clarity
-5. Precise treatment advice with exact chemical names and dosages for Indian farmers
-6. Organic/biological alternatives
-7. Resistant variety recommendations
+Provide your diagnosis using this strict structure in the "advice" field (markdown format):
+
+**AI Crop Diagnosis Profile (AgriExpert)**
+
+---
+
+* **Disease Name:** [Identify the disease and its scientific name, or state "Healthy" if no disease is found]
+* **Cure/Treatment:** [Specific actionable treatment options including organic methods AND chemical names with precise dosages like mL/L or g/L]
+* **Precautions to Take:** [Preventative measures, sanitation steps, crop rotation advice]
+* **Treatment Product Links:** [Format as: Buy [ProductName] on Marketplace](app://marketplace/search?query=ProductName)]
 
 Cover ALL crops: Tomato, Rice, Wheat, Maize, Cotton, Sugarcane, Potato, Groundnut, Soybean, Chilli, Banana, Onion, Mango, and all livestock.
 
-Respond ONLY with valid JSON (no markdown, no text outside JSON):
+Respond ONLY with valid JSON (no markdown outside JSON):
 {
-  "crop": "Exact crop/animal name seen in image",
-  "disease": "Disease name (Scientific name) or Healthy",
+  "crop": "Exact crop/plant name seen in image",
+  "disease": "Disease name (Scientific name) or Healthy or Invalid Image",
   "severity": "low|medium|high",
   "confidence": 0.90,
-  "advice": "Detailed treatment with chemical names, exact dosages (e.g., Mancozeb 75 WP at 2 g/L), timing, organic alternatives, and preventive measures.",
+  "advice": "Full markdown diagnosis profile as specified above",
   "image_analysis": "Brief: what you actually see in this image",
   "gemini_powered": true
 }`;
@@ -595,9 +603,9 @@ const WHITELISTED_CROPS = [
 ];
 
 const REFUSAL_MESSAGES = {
-  en: "System error: I can only diagnose crop diseases. Please upload a clear photo of your affected crop leaf, stem, or fruit.",
-  hi: "सिस्टम त्रुटि: मैं केवल फसल रोगों का निदान कर सकता हूं। कृपया अपनी प्रभावित फसल की पत्ती, तने या फल की एक स्पष्ट तस्वीर अपलोड करें।",
-  mr: "सिस्टम त्रुटी: मी फक्त पिकांच्या रोगांचे निदान करू शकतो. कृपया तुमच्या बाधित पिकाच्या पानाचा, खोडाचा किंवा फळाचा स्पष्ट फोटो अपलोड करा."
+  en: "Error: The uploaded image does not appear to be a crop or plant. Please upload a clear photo of your crop or plant leaves for an accurate diagnosis.",
+  hi: "Error: The uploaded image does not appear to be a crop or plant. Please upload a clear photo of your crop or plant leaves for an accurate diagnosis.",
+  mr: "Error: The uploaded image does not appear to be a crop or plant. Please upload a clear photo of your crop or plant leaves for an accurate diagnosis."
 };
 
 // ── POST /api/crop-disease/analyze ──────────────────────────────────────────
