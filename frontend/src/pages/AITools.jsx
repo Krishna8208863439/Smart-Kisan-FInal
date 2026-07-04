@@ -107,20 +107,70 @@ const AITools = () => {
   const [diseaseCropHint, setDiseaseCropHint] = useState("Tomato");
   const [diseaseCustomCrop, setDiseaseCustomCrop] = useState("");
   const [diseaseGeminiKey, setDiseaseGeminiKey] = useState(localStorage.getItem("sk_gemini_key") || "");
-  const [showKeyInput, setShowKeyInput] = useState(false);
+  const [showKeyInput, setShowKeyInput] = useState(!localStorage.getItem("sk_gemini_key"));
   const [keySavedStatus, setKeySavedStatus] = useState("");
   const [diseaseLoading, setDiseaseLoading] = useState(false);
   const [diseaseResult, setDiseaseResult] = useState(null);
-  const [diseaseStatus, setDiseaseStatus] = useState("Upload a leaf photo and click analyze.");
+  const [diseaseIsInvalid, setDiseaseIsInvalid] = useState(false);
+  const [diseaseStatus, setDiseaseStatus] = useState("Upload a crop leaf photo and click analyze.");
   const [scanStep, setScanStep] = useState(0);
   const [scanStepsList] = useState([
-    "Scanning leaf margins and textures...",
-    "Segmenting spot lesions and discolored vectors...",
-    "Correlating patterns against Agri-Model DB...",
-    "Formulating treatment schedule..."
+    "🤖 Connecting to Google Gemini Vision AI...",
+    "🔬 Analyzing leaf morphology, lesion patterns & color signatures...",
+    "🌿 Cross-referencing with 200+ crop disease database...",
+    "💊 Synthesizing precision agronomic treatment recommendations..."
   ]);
   const [treatmentTab, setTreatmentTab] = useState("organic"); // organic or chemical
   const fileInputRef = useRef(null);
+
+  // Gemini API key save handler
+  const saveGeminiKey = () => {
+    const trimmed = diseaseGeminiKey.trim();
+    if (trimmed) {
+      localStorage.setItem("sk_gemini_key", trimmed);
+      setKeySavedStatus(language === 'mr' ? '✅ API Key जतन केली!' : '✅ API Key saved!');
+      setShowKeyInput(false);
+      setTimeout(() => setKeySavedStatus(""), 3000);
+    }
+  };
+
+  // Python API base URL (same as AgriHealthPortal)
+  const PY_API_BASE = typeof window !== "undefined" && window.location.hostname === "localhost"
+    ? (import.meta.env.VITE_PY_API_URL || "http://localhost:8000/api")
+    : "/api";
+
+  // Parse structured Gemini AgriExpert advice
+  const parseGeminiAdvice = (adviceText) => {
+    if (!adviceText) return null;
+    const sections = { diseaseName: null, treatment: null, precautions: null, productLinks: null, isStructured: false, raw: adviceText };
+    if (adviceText.includes("**Disease Name:**") || adviceText.includes("Disease Name:")) {
+      sections.isStructured = true;
+      const extract = (key, nextKey) => {
+        const patterns = [`* **${key}:**`, `- **${key}:**`, `**${key}:**`, `${key}:`];
+        let bestIdx = -1, bestLen = 0;
+        for (const pat of patterns) {
+          const idx = adviceText.indexOf(pat);
+          if (idx !== -1) { bestIdx = idx; bestLen = pat.length; break; }
+        }
+        if (bestIdx === -1) return null;
+        const contentStart = bestIdx + bestLen;
+        let contentEnd = adviceText.length;
+        if (nextKey) {
+          const nextPatterns = [`* **${nextKey}:**`, `- **${nextKey}:**`, `**${nextKey}:**`];
+          for (const np of nextPatterns) {
+            const ni = adviceText.indexOf(np, contentStart);
+            if (ni !== -1 && ni < contentEnd) contentEnd = ni;
+          }
+        }
+        return adviceText.slice(contentStart, contentEnd).trim().replace(/^\[|\]$/g, "").trim();
+      };
+      sections.diseaseName  = extract("Disease Name", "Cure/Treatment");
+      sections.treatment    = extract("Cure/Treatment", "Precautions to Take");
+      sections.precautions  = extract("Precautions to Take", "Treatment Product Links");
+      sections.productLinks = extract("Treatment Product Links", null);
+    }
+    return sections;
+  };
 
   // State: Irrigation
   const [irrCrop, setIrrCrop] = useState("Tomato");
@@ -193,11 +243,13 @@ const AITools = () => {
 
   const handleAnalyzeDisease = async () => {
     if (!diseaseFile) {
-      setDiseaseStatus("Please select or drop an image file.");
+      setDiseaseStatus(language === 'mr' ? "⚠️ कृपया पिकाचा फोटो अपलोड करा." : "⚠️ Please upload a crop image first.");
       return;
     }
     setDiseaseLoading(true);
+    setDiseaseIsInvalid(false);
     setScanStep(0);
+    setDiseaseResult(null);
     setDiseaseStatus(scanStepsList[0]);
 
     // Interval to cycle through scanning steps
@@ -211,57 +263,88 @@ const AITools = () => {
           return prev;
         }
       });
-    }, 900);
+    }, 850);
 
     try {
       const formData = new FormData();
       const finalCrop = diseaseCropHint === "Other" ? diseaseCustomCrop : diseaseCropHint;
-      if (finalCrop) {
-        formData.append("crop", finalCrop);
-      }
+      if (finalCrop) formData.append("crop", finalCrop);
+      formData.append("region", "India");
       formData.append("image", diseaseFile);
-      
-      const response = await api.post("/crop-disease/analyze", formData, {
-        headers: { "Content-Type": "multipart/form-data" }
+
+      // Get Gemini key from state or localStorage
+      const geminiKey = diseaseGeminiKey.trim() || localStorage.getItem("sk_gemini_key") || "";
+      const extraHeaders = {};
+      if (geminiKey) extraHeaders["x-gemini-key"] = geminiKey;
+
+      // Use Python FastAPI /api/diagnose — same Gemini-powered endpoint as AgriHealthPortal
+      const { default: axios } = await import("axios");
+      const response = await axios.post(`${PY_API_BASE}/diagnose`, formData, {
+        headers: extraHeaders,
+        timeout: 55000
       });
 
-      // Clear interval and complete animation
       clearInterval(stepInterval);
-      
+
       if (response.data.success) {
-        setDiseaseResult(response.data);
-        setDiseaseStatus("Diagnostic report complete.");
-        // Record in Activity History
-        addHistoryEntry({
-          type: "disease_scan",
-          title: language === "mr" ? "पीक रोग निदान" : "Disease Scan",
-          icon: "🔬",
-          summary: `${response.data.crop} — ${response.data.disease} (${Math.round((response.data.confidence || 0) * 100)}% confidence, ${response.data.severity} severity)`,
-          data: {
-            crop: response.data.crop,
-            disease: response.data.disease,
-            severity: response.data.severity,
-            confidence: `${Math.round((response.data.confidence || 0) * 100)}%`,
-            aiModel: response.data.ai_model || "Local DB",
-          },
-        });
+        const result = response.data;
+        // Detect invalid / non-crop image refusal
+        const isInvalid = result.disease === "Invalid Image" || result.disease === "System Error"
+          || (result.advice || "").startsWith("Error:");
+        setDiseaseIsInvalid(isInvalid);
+        setDiseaseResult(result);
+
+        if (isInvalid) {
+          setDiseaseStatus(language === 'mr' ? "🚫 अवैध प्रतिमा — कृपया पिकाचा फोटो अपलोड करा." : "🚫 Non-crop image rejected. Please upload a crop or plant photo.");
+        } else {
+          const modelUsed = result.ai_model || "AI Analysis";
+          setDiseaseStatus(result.gemini_powered
+            ? `✅ ${language === 'mr' ? 'Google Gemini Vision AI द्वारे निदान पूर्ण.' : 'Diagnosis completed via Google Gemini Vision AI.'}`
+            : `📊 ${modelUsed}`);
+          addHistoryEntry({
+            type: "disease_scan",
+            title: language === "mr" ? `पीक रोग निदान — ${result.crop || finalCrop}` : `Disease Scan — ${result.crop || finalCrop}`,
+            icon: "🔬",
+            summary: `${result.crop || finalCrop} — ${result.disease} (${Math.round((result.confidence || 0) * 100)}% confidence, ${result.severity} severity)`,
+            data: {
+              crop: result.crop || finalCrop,
+              disease: result.disease,
+              severity: result.severity,
+              confidence: `${Math.round((result.confidence || 0) * 100)}%`,
+              aiModel: result.ai_model || (result.gemini_powered ? "Google Gemini 1.5 Flash" : "Local DB"),
+            },
+          });
+        }
       } else {
-        setDiseaseStatus(response.data.message || "Model analysis failed.");
+        setDiseaseStatus(response.data.message || language === 'mr' ? "विश्लेषण अयशस्वी." : "Analysis failed.");
       }
     } catch (err) {
       clearInterval(stepInterval);
-      console.error(err);
-      setDiseaseStatus("Network error analyzing leaf. Using diagnostics fallback.");
-      // Fallback response for offline demonstration
-      const finalCrop = diseaseCropHint === "Other" ? diseaseCustomCrop : diseaseCropHint;
-      setDiseaseResult({
-        success: true,
-        crop: finalCrop || "Tomato",
-        disease: "Blight Spotting (Simulated)",
-        severity: "medium",
-        confidence: 0.84,
-        advice: "Remove spotted leaves from the lower stems. Spray neem-oil mixture or copper fungicide to prevent spore spread."
-      });
+      console.error("[DiseaseDetection] Error:", err);
+      // Try Node backend as secondary fallback
+      try {
+        const formData2 = new FormData();
+        const finalCrop = diseaseCropHint === "Other" ? diseaseCustomCrop : diseaseCropHint;
+        if (finalCrop) formData2.append("crop", finalCrop);
+        formData2.append("image", diseaseFile);
+        const response2 = await api.post("/crop-disease/analyze", formData2, {
+          headers: { "Content-Type": "multipart/form-data" },
+          timeout: 30000
+        });
+        if (response2.data.success) {
+          const isInvalid2 = response2.data.disease === "Invalid Image" || response2.data.disease === "System Error"
+            || (response2.data.advice || "").startsWith("Error:");
+          setDiseaseIsInvalid(isInvalid2);
+          setDiseaseResult(response2.data);
+          setDiseaseStatus(isInvalid2
+            ? "🚫 Non-crop image rejected."
+            : `📊 ${response2.data.ai_model || "Local Database"}`);
+          return;
+        }
+      } catch (fallbackErr) {
+        console.error("[DiseaseDetection] Fallback also failed:", fallbackErr);
+      }
+      setDiseaseStatus(language === 'mr' ? "⚠️ सर्व्हरशी संपर्क नाही. Gemini API Key सेट करा." : "⚠️ Server unreachable. Configure Gemini API key for AI diagnosis.");
     } finally {
       setDiseaseLoading(false);
     }
@@ -728,10 +811,90 @@ const AITools = () => {
           <div className="grid-2">
             {/* Upload Card */}
             <div className="card">
-              <h3>{t("leafDiagnostics")}</h3>
-              <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
-                {t("leafDiagnosticsDesc")}
+              <h3>🔬 {language === 'mr' ? 'पीक रोग निदान — Google Gemini AI' : 'Crop Disease Detection — Google Gemini AI'}</h3>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>
+                {language === 'mr'
+                  ? 'पिकाच्या पानाचा किंवा रोगग्रस्त भागाचा फोटो अपलोड करा. Google Gemini Vision AI वापरून अचूक रोग निदान व उपचार मिळवा.'
+                  : 'Upload a crop leaf or diseased area photo. Google Gemini Vision AI analyzes the actual image for accurate disease diagnosis & treatment.'}
               </p>
+
+              {/* ── Gemini API Key Panel ── */}
+              <div style={{
+                background: localStorage.getItem("sk_gemini_key")
+                  ? "linear-gradient(135deg, #d1fae5, #ecfdf5)"
+                  : "linear-gradient(135deg, #fff7ed, #fef3c7)",
+                border: `1px solid ${localStorage.getItem("sk_gemini_key") ? "#6ee7b7" : "#fde68a"}`,
+                borderRadius: 10,
+                padding: "10px 12px",
+                marginBottom: 14
+              }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 18 }}>{localStorage.getItem("sk_gemini_key") ? "✅" : "🔑"}</span>
+                    <div>
+                      <strong style={{ fontSize: 12.5, color: localStorage.getItem("sk_gemini_key") ? "#065f46" : "#92400e", display: "block" }}>
+                        {localStorage.getItem("sk_gemini_key")
+                          ? (language === 'mr' ? 'Gemini API Key सेट आहे — AI निदान चालू आहे!' : 'Gemini API Key configured — AI diagnosis active!')
+                          : (language === 'mr' ? 'Gemini API Key आवश्यक आहे' : 'Gemini API Key required for AI diagnosis')}
+                      </strong>
+                      <span style={{ fontSize: 11, color: "#6b7280" }}>
+                        {localStorage.getItem("sk_gemini_key")
+                          ? `Key: ${"•".repeat(8)}${localStorage.getItem("sk_gemini_key").slice(-4)}`
+                          : (language === 'mr' ? 'विनामूल्य मिळवा: aistudio.google.com' : 'Free at: aistudio.google.com/app/apikey')}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowKeyInput(v => !v)}
+                    style={{
+                      background: "transparent",
+                      border: `1px solid ${localStorage.getItem("sk_gemini_key") ? "#059669" : "#d97706"}`,
+                      color: localStorage.getItem("sk_gemini_key") ? "#065f46" : "#92400e",
+                      borderRadius: 6,
+                      padding: "3px 10px",
+                      fontSize: 11,
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    {showKeyInput ? (language === 'mr' ? 'लपवा' : 'Hide') : (localStorage.getItem("sk_gemini_key") ? (language === 'mr' ? 'बदला' : 'Change') : (language === 'mr' ? 'सेट करा' : 'Set Key'))}
+                  </button>
+                </div>
+                {showKeyInput && (
+                  <div style={{ marginTop: 10, display: "flex", gap: 6 }}>
+                    <input
+                      type="password"
+                      className="input"
+                      style={{ flex: 1, fontSize: 12, padding: "6px 10px", margin: 0 }}
+                      placeholder={language === 'mr' ? 'AIza... येथे पेस्ट करा' : 'Paste AIza... Gemini key here'}
+                      value={diseaseGeminiKey}
+                      onChange={e => setDiseaseGeminiKey(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && saveGeminiKey()}
+                    />
+                    <button
+                      type="button"
+                      onClick={saveGeminiKey}
+                      style={{
+                        background: "linear-gradient(135deg, #15803d, #059669)",
+                        color: "white",
+                        border: "none",
+                        borderRadius: 6,
+                        padding: "6px 12px",
+                        fontSize: 12,
+                        cursor: "pointer",
+                        fontWeight: 700
+                      }}
+                    >
+                      {language === 'mr' ? 'जतन करा' : 'Save'}
+                    </button>
+                  </div>
+                )}
+                {keySavedStatus && (
+                  <p style={{ fontSize: 12, color: "#065f46", margin: "6px 0 0 0", fontWeight: 600 }}>{keySavedStatus}</p>
+                )}
+              </div>
 
               <label style={{ fontWeight: 600, fontSize: 13 }}>{t("cropTypeHint")}</label>
               <select 
@@ -899,8 +1062,10 @@ const AITools = () => {
             {/* Diagnostics Report */}
             <div className="card" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h3 style={{ margin: 0 }}>{t("diagnosticsReport")}</h3>
-                {diseaseResult && (
+                <h3 style={{ margin: 0 }}>
+                  {language === 'mr' ? '🩺 निदान अहवाल' : '🩺 Diagnostics Report'}
+                </h3>
+                {diseaseResult && !diseaseIsInvalid && (
                   <button className="button" style={{ background: "#0284c7", padding: "6px 12px", fontSize: 12, margin: 0 }} onClick={printPrescription}>
                     {t("printPrescription")}
                   </button>
@@ -909,12 +1074,95 @@ const AITools = () => {
 
               {!diseaseResult ? (
                 <div style={{ padding: "60px 0", textAlign: "center", color: "var(--text-muted)", flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-                  <span style={{ fontSize: 48 }}>📊</span>
-                  <p style={{ marginTop: 12, fontSize: 14 }}>{t("uploadPrompt")}</p>
+                  <span style={{ fontSize: 48 }}>🌿</span>
+                  <p style={{ marginTop: 12, fontSize: 14 }}>
+                    {language === 'mr'
+                      ? 'पिकाच्या पानाचा फोटो अपलोड करून Gemini AI निदान मिळवा'
+                      : 'Upload a crop leaf photo to get Gemini AI-powered disease diagnosis'}
+                  </p>
+                  <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
+                    {language === 'mr'
+                      ? '⚠️ फक्त पिकाचे/झाडाचे फोटो स्वीकारले जातात'
+                      : '⚠️ Only crop & plant photos are accepted'}
+                  </p>
+                </div>
+              ) : diseaseIsInvalid ? (
+                /* Invalid / Non-Crop Image Alert */
+                <div style={{
+                  background: "linear-gradient(135deg, #fef2f2, #fee2e2)",
+                  border: "2px solid #ef4444",
+                  borderRadius: 12,
+                  padding: 20,
+                  textAlign: "center",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 10
+                }}>
+                  <span style={{ fontSize: 48 }}>🚫</span>
+                  <strong style={{ fontSize: 16, color: "#b91c1c" }}>
+                    {language === 'mr' ? 'अवैध प्रतिमा — पीक आढळले नाही' : 'Invalid Image — No Crop Detected'}
+                  </strong>
+                  <p style={{ fontSize: 13, color: "#7f1d1d", margin: 0, lineHeight: 1.6 }}>
+                    {language === 'mr'
+                      ? 'अपलोड केलेल्या फोटोमध्ये पीक किंवा झाड आढळले नाही. कृपया पिकाच्या पान, फळ किंवा रोगग्रस्त भागाचा स्पष्ट फोटो अपलोड करा.'
+                      : 'The uploaded image does not appear to be a crop or plant. Please upload a clear photo of crop leaves, fruits, or any diseased plant part.'}
+                  </p>
+                  <div style={{ background: "#fff", borderRadius: 8, padding: 10, marginTop: 4, fontSize: 12, color: "#6b7280" }}>
+                    <strong style={{ display: "block", marginBottom: 4, color: "#374151" }}>
+                      {language === 'mr' ? '✅ स्वीकार्य फोटो प्रकार:' : '✅ Accepted photo types:'}
+                    </strong>
+                    {language === 'mr'
+                      ? 'टोमॅटो, भात, गहू, कापूस, बटाटा, मिरची, कांदा, सोयाबीन, मका, आंबा, केळी, ऊस, व इतर पिकांच्या पानांचे/रोगग्रस्त भागाचे फोटो'
+                      : 'Tomato, Rice, Wheat, Cotton, Potato, Chilli, Onion, Soybean, Maize, Mango, Banana, Sugarcane, and any other crop leaves or diseased plant parts'}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={clearDiseaseImage}
+                    style={{
+                      marginTop: 8,
+                      background: "linear-gradient(135deg, #dc2626, #b91c1c)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: 8,
+                      padding: "8px 20px",
+                      fontSize: 13,
+                      cursor: "pointer",
+                      fontWeight: 700
+                    }}
+                  >
+                    {language === 'mr' ? '🔄 नवीन फोटो अपलोड करा' : '🔄 Upload New Crop Photo'}
+                  </button>
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  
+
+                  {/* AI Model Badge */}
+                  {diseaseResult.gemini_powered && (
+                    <div style={{
+                      background: "linear-gradient(135deg, #dbeafe, #eff6ff)",
+                      border: "1px solid #93c5fd",
+                      borderRadius: 8,
+                      padding: "6px 12px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      fontSize: 12
+                    }}>
+                      <span>✨</span>
+                      <span style={{ color: "#1d4ed8", fontWeight: 600 }}>
+                        {language === 'mr' ? 'Google Gemini Vision AI द्वारे विश्लेषित' : 'Analyzed by Google Gemini Vision AI'}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* image_analysis preview if available */}
+                  {diseaseResult.image_analysis && (
+                    <div style={{ background: "var(--bg-main)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
+                      🔍 <strong>{language === 'mr' ? 'प्रतिमा विश्लेषण:' : 'Image analysis:'}</strong> {diseaseResult.image_analysis}
+                    </div>
+                  )}
+
                   {/* Confidence Gauge */}
                   <div style={{ display: "flex", gap: 16, alignItems: "center", background: "var(--bg-main)", padding: 12, borderRadius: 8 }}>
                     <div style={{ position: "relative", width: 60, height: 60 }}>
@@ -928,7 +1176,7 @@ const AITools = () => {
                         <path
                           d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                           fill="none"
-                          stroke="var(--primary)"
+                          stroke={diseaseResult.gemini_powered ? "#2563eb" : "var(--primary)"}
                           strokeWidth="3"
                           strokeDasharray={`${diseaseResult.confidence * 100}, 100`}
                         />
@@ -939,7 +1187,9 @@ const AITools = () => {
                     </div>
                     <div>
                       <strong style={{ display: "block", fontSize: 14, color: "var(--text-dark)" }}>{t("modelConfidence")}</strong>
-                      <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{t("basedOnFoliage")}</span>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                        {diseaseResult.ai_model || (diseaseResult.gemini_powered ? "Google Gemini 1.5 Flash" : "Local Database")}
+                      </span>
                     </div>
                   </div>
 
@@ -957,95 +1207,82 @@ const AITools = () => {
                   <div>
                     <span style={{ color: "var(--text-muted)", fontSize: 12, display: "block", marginBottom: 4 }}>{t("severityLevel")}</span>
                     <div style={{ height: 8, background: "#e2e8f0", borderRadius: 4, overflow: "hidden", position: "relative", marginBottom: 6 }}>
-                      <div 
+                      <div
                         style={{
                           height: "100%",
                           width: diseaseResult.severity === "high" ? "100%" : diseaseResult.severity === "medium" ? "60%" : "30%",
-                          background: diseaseResult.severity === "high" ? "#ef4444" : diseaseResult.severity === "medium" ? "#f59e0b" : "#16a34a"
+                          background: diseaseResult.severity === "high" ? "#ef4444" : diseaseResult.severity === "medium" ? "#f59e0b" : "#16a34a",
+                          transition: "width 0.8s ease"
                         }}
                       />
                     </div>
-                    <span 
-                      style={{ 
-                        fontSize: 11, 
-                        fontWeight: 700, 
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
                         color: diseaseResult.severity === "high" ? "#ef4444" : diseaseResult.severity === "medium" ? "#d97706" : "#16a34a",
                         textTransform: "uppercase"
                       }}
                     >
-                      {diseaseResult.severity === "high" ? (language === 'mr' ? 'उच्च' : 'high') : diseaseResult.severity === "medium" ? (language === 'mr' ? 'मध्यम' : 'medium') : (language === 'mr' ? 'कमी' : 'low')} {t("severityThreat")}
+                      {diseaseResult.severity === "high" ? (language === 'mr' ? 'उच्च' : 'HIGH') : diseaseResult.severity === "medium" ? (language === 'mr' ? 'मध्यम' : 'MEDIUM') : (language === 'mr' ? 'कमी' : 'LOW')} {t("severityThreat")}
                     </span>
                   </div>
 
-
-
                   <hr style={{ borderColor: "var(--border-color)", margin: "4px 0" }} />
 
-                  {/* Treatment prescription tabs */}
-                  <div>
-                    <div style={{ display: "flex", gap: 10, borderBottom: "1px solid var(--border-color)", paddingBottom: 6, marginBottom: 10 }}>
-                      <button 
-                        type="button"
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          fontWeight: 700,
-                          fontSize: 12,
-                          color: treatmentTab === "organic" ? "var(--primary)" : "var(--text-muted)",
-                          borderBottom: treatmentTab === "organic" ? "2px solid var(--primary)" : "none",
-                          cursor: "pointer",
-                          paddingBottom: 4
-                        }}
-                        onClick={() => setTreatmentTab("organic")}
-                      >
-                        {t("organicRemedy")}
-                      </button>
-                      <button 
-                        type="button"
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          fontWeight: 700,
-                          fontSize: 12,
-                          color: treatmentTab === "chemical" ? "var(--primary)" : "var(--text-muted)",
-                          borderBottom: treatmentTab === "chemical" ? "2px solid var(--primary)" : "none",
-                          cursor: "pointer",
-                          paddingBottom: 4
-                        }}
-                        onClick={() => setTreatmentTab("chemical")}
-                      >
-                        {t("chemicalControl")}
-                      </button>
-                    </div>
-
-                    {treatmentTab === "organic" ? (
-                      <div style={{ background: "#ecfdf5", borderLeft: "4px solid #16a34a", padding: 12, borderRadius: 8, fontSize: 13, color: "#14532d", lineHeight: 1.5 }}>
-                        <strong>{t("organicPrescription")}</strong>
-                        <p style={{ margin: "4px 0 0 0" }}>{diseaseResult.advice}</p>
-                        <p style={{ margin: "6px 0 0 0", fontSize: 11, opacity: 0.8 }}>
-                          💡 {language === 'mr' ? 'कम्पोस्ट चहा आणि ट्रायकोडर्मा विरिडी सेंद्रिय नियंत्रणासाठी अतिशय प्रभावी पर्याय आहेत.' : 'Natural compost teas and Trichoderma viride application are highly effective biological alternatives.'}
+                  {/* Gemini Structured Advice OR Plain Text */}
+                  {(() => {
+                    const parsed = parseGeminiAdvice(diseaseResult.advice);
+                    if (parsed && parsed.isStructured) {
+                      return (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                          {parsed.diseaseName && (
+                            <div style={{ background: "linear-gradient(135deg, #fef3c7, #fde68a)", border: "1px solid #f59e0b", borderRadius: 8, padding: 12 }}>
+                              <strong style={{ fontSize: 12, color: "#92400e", display: "block", marginBottom: 4 }}>
+                                🦠 {language === 'mr' ? 'आढळलेला रोग:' : 'Identified Disease:'}
+                              </strong>
+                              <span style={{ fontSize: 13, color: "#78350f" }}>{parsed.diseaseName}</span>
+                            </div>
+                          )}
+                          {parsed.treatment && (
+                            <div style={{ background: "#ecfdf5", borderLeft: "4px solid #16a34a", padding: 12, borderRadius: 8 }}>
+                              <strong style={{ fontSize: 12, color: "#065f46", display: "block", marginBottom: 6 }}>
+                                💊 {language === 'mr' ? 'उपचार / उपाय:' : 'Cure / Treatment:'}
+                              </strong>
+                              <p style={{ fontSize: 13, color: "#14532d", margin: 0, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{parsed.treatment}</p>
+                            </div>
+                          )}
+                          {parsed.precautions && (
+                            <div style={{ background: "#eff6ff", borderLeft: "4px solid #2563eb", padding: 12, borderRadius: 8 }}>
+                              <strong style={{ fontSize: 12, color: "#1e40af", display: "block", marginBottom: 6 }}>
+                                🛡️ {language === 'mr' ? 'खबरदारी:' : 'Precautions:'}
+                              </strong>
+                              <p style={{ fontSize: 13, color: "#1e3a8a", margin: 0, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{parsed.precautions}</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+                    // Plain text fallback
+                    return (
+                      <div style={{ background: "#ecfdf5", borderLeft: "4px solid #16a34a", padding: 12, borderRadius: 8, fontSize: 13, color: "#14532d", lineHeight: 1.6 }}>
+                        <strong style={{ display: "block", marginBottom: 6 }}>
+                          💊 {language === 'mr' ? 'उपचार सल्ला:' : 'Treatment Advice:'}
+                        </strong>
+                        <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{diseaseResult.advice}</p>
+                        <p style={{ margin: "8px 0 0 0", fontSize: 11, opacity: 0.8 }}>
+                          💡 {language === 'mr' ? 'कम्पोस्ट चहा आणि ट्रायकोडर्मा विरिडी सेंद्रिय नियंत्रणासाठी अतिशय प्रभावी पर्याय आहेत.' : 'Natural compost teas and Trichoderma viride are highly effective biological control options.'}
                         </p>
                       </div>
-                    ) : (
-                      <div style={{ background: "#eff6ff", borderLeft: "4px solid #2563eb", padding: 12, borderRadius: 8, fontSize: 13, color: "#1e3a8a", lineHeight: 1.5 }}>
-                        <strong>{t("chemicalGuidelines")}</strong>
-                        <p style={{ margin: "4px 0 0 0" }}>
-                          {language === 'mr' 
-                            ? 'गंभीर प्रादुर्भाव असल्यास: मँकोझेब किंवा कार्बेंडाझिम (१.५ ग्रॅम प्रति लीटर पाणी) घटक असलेले बुरशीनाशक फवारा. फवारणी करताना सुरक्षित मास्क व हातमोजे वापरा.'
-                            : 'In case of severe outbreak: Apply systemic fungicides containing Mancozeb or Carbendazim (1.5g per litre of water). Wear gloves and protect respiratory airways during spray.'}
-                        </p>
-                        <p style={{ margin: "6px 0 0 0", fontSize: 11, opacity: 0.8 }}>
-                          ⚠️ {language === 'mr' ? 'रासायनिक फवारणीनंतर काढणीपूर्वी किमान १४ दिवसांचे अंतर ठेवा.' : 'Keep a 14-day pre-harvest interval after chemical sprays.'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                    );
+                  })()}
 
                 </div>
               )}
             </div>
           </div>
         )}
+
 
         {/* --- IRRIGATION TAB --- */}
         {activeTab === "Irrigation" && (

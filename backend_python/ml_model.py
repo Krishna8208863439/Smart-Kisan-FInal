@@ -1052,7 +1052,33 @@ def predict_image(image_bytes: bytes, crop_hint: str = None, filename: str = Non
     refusal message is returned instead of fabricated crop disease data.
     """
     crop_hint = normalize_crop_name(crop_hint)
-    print(f"\n[ML] Starting diagnosis | crop_hint={crop_hint!r} | image_size={len(image_bytes)} bytes")
+    print(f"\n[ML] Starting diagnosis | crop_hint={crop_hint!r} | filename={filename!r} | image_size={len(image_bytes)} bytes")
+
+    # ── Text-based Guardrail Check (Filename or Crop Hint keywords) ──
+    non_crop_keywords = [
+        "human", "skin", "finger", "hand", "face", "leg", "person", "man", "woman", "child",
+        "cat", "dog", "tiger", "lion", "elephant", "bird", "snake", "monkey",
+        "tractor", "tiller", "machinery", "plow", "harvester", "engine", "car", "bike", "truck",
+        "table", "chair", "keyboard", "mobile", "phone", "bottle", "house", "room", "building", "furniture",
+        "ornamental weed", "dandelion", "grass lawn"
+    ]
+    
+    file_lower = (filename or "").lower().strip()
+    hint_lower = (crop_hint or "").lower().strip()
+    combined_text = f"{file_lower} {hint_lower}"
+    
+    if any(kw in combined_text for kw in non_crop_keywords):
+        print(f"[ML] ⚠️  Blocking inference — Text guardrail triggered by keyword in: {combined_text}")
+        return {
+            "disease": "Invalid Image",
+            "crop": "Not a crop",
+            "severity": "low",
+            "confidence": 0.0,
+            "advice": "Error: The uploaded image does not appear to be a crop or plant. Please upload a clear photo of your crop or plant leaves for an accurate diagnosis.",
+            "image_analysis": "Refused: Text-based Crop Isolation Guardrail triggered.",
+            "gemini_powered": False,
+            "model": "AgriExpert Guardrail (Text check)"
+        }
 
     # ── TIER 0: Local PyTorch Inference (Crop or Disease Classification) ──
     torch_result = None
