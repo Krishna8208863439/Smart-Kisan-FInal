@@ -247,6 +247,70 @@ const AgriHealthPortal = () => {
   };
 
 
+  // ── AgriExpert Advice Parser ─────────────────────────────────────────────
+  /**
+   * Parses the structured Gemini AgriExpert advice markdown into named sections.
+   * Handles both the structured 4-section format and plain text fallbacks.
+   */
+  const parseAgriExpertAdvice = (adviceText) => {
+    if (!adviceText) return null;
+    const sections = {
+      diseaseName: null,
+      treatment: null,
+      precautions: null,
+      productLinks: null,
+      isStructured: false,
+      raw: adviceText
+    };
+
+    // Detect if it's the structured AgriExpert format
+    if (adviceText.includes("**Disease Name:**") || adviceText.includes("Disease Name:")) {
+      sections.isStructured = true;
+
+      const extract = (key, nextKey) => {
+        // Try patterns from most-specific to least-specific to avoid partial matches
+        const patterns = [
+          `* **${key}:**`,
+          `- **${key}:**`,
+          `**${key}:**`,
+          `${key}:`
+        ];
+        let bestIdx = -1;
+        let bestLen = 0;
+        for (const pat of patterns) {
+          const idx = adviceText.indexOf(pat);
+          if (idx !== -1) {
+            // Take the first occurrence of the most specific pattern found
+            bestIdx = idx;
+            bestLen = pat.length;
+            break; // patterns are ordered most-specific first
+          }
+        }
+        if (bestIdx === -1) return null;
+        const contentStart = bestIdx + bestLen;
+        let contentEnd = adviceText.length;
+        if (nextKey) {
+          const nextPatterns = [
+            `* **${nextKey}:**`,
+            `- **${nextKey}:**`,
+            `**${nextKey}:**`
+          ];
+          for (const np of nextPatterns) {
+            const ni = adviceText.indexOf(np, contentStart);
+            if (ni !== -1 && ni < contentEnd) contentEnd = ni;
+          }
+        }
+        return adviceText.slice(contentStart, contentEnd).trim().replace(/^\[|\]$/g, "").trim();
+      };
+
+      sections.diseaseName = extract("Disease Name", "Cure/Treatment");
+      sections.treatment   = extract("Cure/Treatment", "Precautions to Take");
+      sections.precautions = extract("Precautions to Take", "Treatment Product Links");
+      sections.productLinks = extract("Treatment Product Links", null);
+    }
+    return sections;
+  };
+
   // Language mapping helpers
   const labels = {
     en: {
@@ -814,7 +878,7 @@ const AgriHealthPortal = () => {
             )}
           </div>
 
-          {/* Result Card */}
+          {/* Result Card — AgriExpert Diagnosis Profile */}
           <div className="card" style={{ display: "flex", flexDirection: "column" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <h3>📄 {currLabel.reportTitle}</h3>
@@ -830,139 +894,324 @@ const AgriHealthPortal = () => {
             </div>
 
             {!diagResult ? (
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", minHeight: 200, color: "var(--text-muted)" }}>
-                <span style={{ fontSize: 48 }}>📋</span>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", minHeight: 220, color: "var(--text-muted)", gap: 10 }}>
+                <span style={{ fontSize: 56 }}>📋</span>
+                <p style={{ fontSize: 13, textAlign: "center", maxWidth: 220, lineHeight: 1.5 }}>
+                  {language === "mr" ? "निदान परिणाम येथे दिसेल" : "Upload a crop/leaf photo and click Analyze to see the AI diagnosis report"}
+                </p>
               </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            ) : (() => {
+              // Detect invalid image / guardrail refusal
+              const isInvalid =
+                diagResult.disease === "Invalid Image" ||
+                diagResult.disease === "System Error" ||
+                (diagResult.advice || "").startsWith("Error:");
 
-                {/* AI Model Source Badge */}
-                <div style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  background: diagResult.gemini_powered
-                    ? "linear-gradient(135deg, #e0f2fe, #dcfce7)"
-                    : diagResult.ai_model === "HuggingFace ViT PlantVillage"
-                    ? "linear-gradient(135deg, #fef3c7, #fff7ed)"
-                    : "var(--bg-main)",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: diagResult.gemini_powered ? "1px solid #0ea5e9" : "1px solid var(--border-color)"
-                }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>
-                    {diagResult.gemini_powered ? "🤖 Google Gemini 1.5 Flash"
-                      : diagResult.ai_model === "HuggingFace ViT PlantVillage" ? "🌿 HuggingFace Plant Disease ViT"
-                      : diagResult.ai_model === "Offline Reference" ? "📴 Offline Reference"
-                      : "📊 " + (diagResult.ai_model || "AI Analysis")}
-                  </span>
-                  {diagResult.gemini_powered && (
-                    <span style={{
-                      fontSize: 10, background: "linear-gradient(135deg, #1a73e8, #0d9488)",
-                      color: "white", padding: "2px 8px", borderRadius: 10, fontWeight: 700
-                    }}>✨ Gemini AI</span>
-                  )}
-                </div>
-
-                {/* Image Analysis Description */}
-                {diagResult.image_analysis && (
-                  <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", padding: "8px 12px", borderRadius: 8, fontSize: 12, color: "#64748b", fontStyle: "italic" }}>
-                    👁️ <strong>AI Saw:</strong> {diagResult.image_analysis}
-                  </div>
-                )}
-
-                {/* Confidence */}
-                <div style={{ display: "flex", gap: 12, alignItems: "center", background: "var(--bg-main)", padding: 12, borderRadius: 8 }}>
-                  <div style={{ fontWeight: 800, fontSize: 20, color: "var(--primary)" }}>
-                    {Math.round(diagResult.confidence * 100)}%
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <strong style={{ display: "block", fontSize: 13 }}>{currLabel.confidence}</strong>
-                    <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                      {diagResult.gemini_powered
-                        ? "🤖 Google Gemini 1.5 Flash Vision AI"
-                        : diagResult.ai_model || "MobileNetV3 Classification"}
-                    </span>
-                  </div>
-                  {diagResult.gemini_powered && (
-                    <span style={{
-                      fontSize: 10,
-                      background: "linear-gradient(135deg, #1a73e8, #0d9488)",
-                      color: "white",
-                      padding: "3px 8px",
-                      borderRadius: 12,
-                      fontWeight: 700,
-                      letterSpacing: 0.3,
-                      whiteSpace: "nowrap"
-                    }}>✨ Gemini AI</span>
-                  )}
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <div>
-                    <span style={{ color: "var(--text-muted)", fontSize: 12 }}>Crop/Subject</span>
-                    <strong style={{ display: "block" }}>{diagResult.crop}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: "var(--text-muted)", fontSize: 12 }}>Identified Disease</span>
-                    <strong style={{ display: "block", color: "#dc2626" }}>{diagResult.disease}</strong>
-                  </div>
-                </div>
-
-                {/* Severity bar */}
-                <div>
-                  <span style={{ color: "var(--text-muted)", fontSize: 12 }}>{currLabel.severity}</span>
-                  <div style={{ height: 8, background: "#cbd5e1", borderRadius: 4, overflow: "hidden", marginTop: 4 }}>
-                    <div
-                      style={{
-                        height: "100%",
-                        width: diagResult.severity === "high" ? "100%" : diagResult.severity === "medium" ? "60%" : "30%",
-                        background: diagResult.severity === "high" ? "#ef4444" : diagResult.severity === "medium" ? "#f59e0b" : "#16a34a"
+              if (isInvalid) {
+                return (
+                  <div style={{
+                    background: "linear-gradient(135deg, #fef2f2, #fff7ed)",
+                    border: "2px solid #fca5a5",
+                    borderRadius: 12,
+                    padding: 20,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                    animation: "fadeIn 0.3s"
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 36 }}>🚫</span>
+                      <div>
+                        <strong style={{ fontSize: 15, color: "#b91c1c", display: "block" }}>Invalid Image Detected</strong>
+                        <span style={{ fontSize: 12, color: "#6b7280" }}>AgriExpert Guardrail Active</span>
+                      </div>
+                    </div>
+                    <div style={{
+                      background: "rgba(220,38,38,0.07)",
+                      border: "1px solid #fca5a5",
+                      borderRadius: 8,
+                      padding: "12px 14px",
+                      fontSize: 13,
+                      color: "#7f1d1d",
+                      lineHeight: 1.6
+                    }}>
+                      {diagResult.advice || "Error: The uploaded image does not appear to be a crop or plant. Please upload a clear photo of your crop or plant leaves for an accurate diagnosis."}
+                    </div>
+                    <button
+                      className="button"
+                      style={{ background: "#ef4444", margin: 0, fontSize: 13, padding: "8px 16px" }}
+                      onClick={() => {
+                        setSelectedFile(null);
+                        setPreviewUrl("");
+                        setDiagResult(null);
+                        setDiagStatus("");
+                        if (fileInputRef.current) fileInputRef.current.value = "";
                       }}
-                    />
-                  </div>
-                  <strong style={{ fontSize: 11.5, textTransform: "uppercase", color: diagResult.severity === "high" ? "#ef4444" : diagResult.severity === "medium" ? "#d97706" : "#16a34a", display: "block", marginTop: 4 }}>
-                    {diagResult.severity}
-                  </strong>
-                </div>
-
-                <hr style={{ borderColor: "var(--border-color)" }} />
-
-                {/* Remedies tabs */}
-                <div>
-                  <div style={{ display: "flex", gap: 8, borderBottom: "1px solid var(--border-color)", paddingBottom: 6 }}>
-                    <button
-                      className={`ai-tab ${remedyTab === "organic" ? "ai-tab-active" : ""}`}
-                      style={{ background: "transparent", padding: "4px 8px", fontSize: 12 }}
-                      onClick={() => setRemedyTab("organic")}
                     >
-                      🌿 {currLabel.organic}
-                    </button>
-                    <button
-                      className={`ai-tab ${remedyTab === "chemical" ? "ai-tab-active" : ""}`}
-                      style={{ background: "transparent", padding: "4px 8px", fontSize: 12 }}
-                      onClick={() => setRemedyTab("chemical")}
-                    >
-                      🧪 {currLabel.chemical}
+                      🔄 Try Another Image
                     </button>
                   </div>
+                );
+              }
 
-                  <div style={{ marginTop: 12, padding: 12, borderRadius: 8, background: remedyTab === "organic" ? "#ecfdf5" : "#eff6ff", borderLeft: remedyTab === "organic" ? "4px solid #16a34a" : "4px solid #2563eb", color: remedyTab === "organic" ? "#14532d" : "#1e3a8a", fontSize: 13 }}>
-                    {remedyTab === "organic" ? (
-                      <div>
-                        <strong>Biological Advice:</strong>
-                        <p style={{ marginTop: 4 }}>{diagResult.advice}</p>
-                      </div>
-                    ) : (
-                      <div>
-                        <strong>Chemical Treatment Guidelines:</strong>
-                        <p style={{ marginTop: 4 }}>
-                          For critical outbreak levels, apply standard chemical sprays as per packaging instructions. Always wear protective masks, gloves, and clothing during spraying. Keep a 14-day pre-harvest wait time.
-                        </p>
-                      </div>
+              // Parse the structured AgriExpert advice
+              const parsed = parseAgriExpertAdvice(diagResult.advice);
+
+              return (
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+                  {/* ── AI Engine Badge ── */}
+                  <div style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    background: diagResult.gemini_powered
+                      ? "linear-gradient(135deg, #dbeafe, #d1fae5)"
+                      : "var(--bg-main)",
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    border: diagResult.gemini_powered ? "1px solid #60a5fa" : "1px solid var(--border-color)"
+                  }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>
+                      {diagResult.gemini_powered
+                        ? "🤖 Powered by Google Gemini 1.5 Flash Vision AI"
+                        : diagResult.ai_model === "HuggingFace ViT PlantVillage"
+                        ? "🌿 HuggingFace PlantVillage ViT Model"
+                        : "📊 " + (diagResult.ai_model || "AI Analysis")}
+                    </span>
+                    {diagResult.gemini_powered && (
+                      <span style={{
+                        fontSize: 10, background: "linear-gradient(135deg, #1a73e8, #0d9488)",
+                        color: "white", padding: "2px 8px", borderRadius: 10, fontWeight: 700
+                      }}>✨ AgriExpert</span>
                     )}
                   </div>
+
+                  {/* ── Image Analysis Note ── */}
+                  {diagResult.image_analysis && (
+                    <div style={{
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      color: "#475569",
+                      fontStyle: "italic"
+                    }}>
+                      👁️ <strong style={{ fontStyle: "normal" }}>AI Observed:</strong> {diagResult.image_analysis}
+                    </div>
+                  )}
+
+                  {/* ── Confidence + Crop/Disease Meta ── */}
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: "auto 1fr 1fr",
+                    gap: 12,
+                    alignItems: "center",
+                    background: "var(--bg-main)",
+                    padding: 12,
+                    borderRadius: 10
+                  }}>
+                    <div style={{ textAlign: "center", minWidth: 64 }}>
+                      <div style={{
+                        fontWeight: 900,
+                        fontSize: 22,
+                        color: diagResult.confidence >= 0.8 ? "#16a34a" : diagResult.confidence >= 0.6 ? "#d97706" : "#dc2626"
+                      }}>
+                        {Math.round(diagResult.confidence * 100)}%
+                      </div>
+                      <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600 }}>CONFIDENCE</span>
+                    </div>
+                    <div style={{ borderLeft: "1px solid var(--border-color)", paddingLeft: 12 }}>
+                      <span style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase" }}>Crop / Subject</span>
+                      <strong style={{ display: "block", fontSize: 13, marginTop: 2 }}>{diagResult.crop}</strong>
+                    </div>
+                    <div style={{ borderLeft: "1px solid var(--border-color)", paddingLeft: 12 }}>
+                      <span style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase" }}>Identified Condition</span>
+                      <strong style={{ display: "block", fontSize: 12, color: "#dc2626", marginTop: 2 }}>{diagResult.disease}</strong>
+                    </div>
+                  </div>
+
+                  {/* ── Severity Bar ── */}
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <span style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 600 }}>{currLabel.severity}</span>
+                      <strong style={{
+                        fontSize: 11,
+                        textTransform: "uppercase",
+                        letterSpacing: 1,
+                        color: diagResult.severity === "high" ? "#ef4444" : diagResult.severity === "medium" ? "#d97706" : "#16a34a"
+                      }}>
+                        {diagResult.severity === "high" ? "🔴 HIGH" : diagResult.severity === "medium" ? "🟡 MEDIUM" : "🟢 LOW"}
+                      </strong>
+                    </div>
+                    <div style={{ height: 6, background: "#e2e8f0", borderRadius: 4, overflow: "hidden" }}>
+                      <div style={{
+                        height: "100%",
+                        width: diagResult.severity === "high" ? "100%" : diagResult.severity === "medium" ? "62%" : "28%",
+                        background: diagResult.severity === "high"
+                          ? "linear-gradient(90deg, #fbbf24, #ef4444)"
+                          : diagResult.severity === "medium"
+                          ? "linear-gradient(90deg, #22c55e, #f59e0b)"
+                          : "linear-gradient(90deg, #4ade80, #22c55e)",
+                        borderRadius: 4,
+                        transition: "width 0.8s ease"
+                      }} />
+                    </div>
+                  </div>
+
+                  <hr style={{ borderColor: "var(--border-color)", margin: "2px 0" }} />
+
+                  {/* ── AgriExpert Structured Diagnosis Profile ── */}
+                  {parsed && parsed.isStructured ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+                      {/* Header Banner */}
+                      <div style={{
+                        background: "linear-gradient(135deg, #1e3a8a 0%, #15803d 100%)",
+                        borderRadius: 10,
+                        padding: "12px 16px",
+                        color: "white"
+                      }}>
+                        <div style={{ fontWeight: 800, fontSize: 13, letterSpacing: 0.3 }}>🤖 AI Crop Diagnosis Profile</div>
+                        <div style={{ fontSize: 11, opacity: 0.85, marginTop: 2 }}>AgriExpert · Powered by Gemini Vision AI</div>
+                      </div>
+
+                      {/* Disease Name */}
+                      {parsed.diseaseName && (
+                        <div style={{
+                          background: "linear-gradient(135deg, #fef2f2, #fff7ed)",
+                          border: "1px solid #fca5a5",
+                          borderLeft: "4px solid #dc2626",
+                          borderRadius: 8,
+                          padding: "10px 14px"
+                        }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: "#9f1239", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>🦠 Disease Name</div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: "#7f1d1d", lineHeight: 1.5 }}>{parsed.diseaseName}</div>
+                        </div>
+                      )}
+
+                      {/* Cure / Treatment */}
+                      {parsed.treatment && (
+                        <div style={{
+                          background: "linear-gradient(135deg, #ecfdf5, #f0fdf4)",
+                          border: "1px solid #86efac",
+                          borderLeft: "4px solid #16a34a",
+                          borderRadius: 8,
+                          padding: "10px 14px"
+                        }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: "#14532d", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>💊 Cure / Treatment</div>
+                          <div style={{ fontSize: 12.5, color: "#166534", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{parsed.treatment}</div>
+                        </div>
+                      )}
+
+                      {/* Precautions */}
+                      {parsed.precautions && (
+                        <div style={{
+                          background: "linear-gradient(135deg, #fffbeb, #fefce8)",
+                          border: "1px solid #fde68a",
+                          borderLeft: "4px solid #d97706",
+                          borderRadius: 8,
+                          padding: "10px 14px"
+                        }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>⚠️ Precautions to Take</div>
+                          <div style={{ fontSize: 12.5, color: "#78350f", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{parsed.precautions}</div>
+                        </div>
+                      )}
+
+                      {/* Treatment Product Links */}
+                      {parsed.productLinks && (
+                        <div style={{
+                          background: "linear-gradient(135deg, #eff6ff, #eef2ff)",
+                          border: "1px solid #a5b4fc",
+                          borderLeft: "4px solid #4f46e5",
+                          borderRadius: 8,
+                          padding: "10px 14px"
+                        }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: "#3730a3", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>🛒 Treatment Product Links</div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                            {/* Parse and render product links from the text */}
+                            {parsed.productLinks.split(/\n|,/).map((line, i) => {
+                              const linkMatch = line.match(/\[([^\]]+)\]\(app:\/\/marketplace\/search\?query=([^)]+)\)/);
+                              if (linkMatch) {
+                                return (
+                                  <button
+                                    key={i}
+                                    onClick={() => window.location.href = `/marketplace?search=${encodeURIComponent(linkMatch[2])}`}
+                                    style={{
+                                      background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
+                                      color: "white",
+                                      border: "none",
+                                      borderRadius: 20,
+                                      padding: "5px 14px",
+                                      fontSize: 12,
+                                      fontWeight: 600,
+                                      cursor: "pointer",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 4
+                                    }}
+                                  >
+                                    🛒 {linkMatch[1]}
+                                  </button>
+                                );
+                              }
+                              const trimmed = line.replace(/[*_\[\]]/g, "").trim();
+                              if (!trimmed) return null;
+                              return (
+                                <span key={i} style={{
+                                  background: "#e0e7ff",
+                                  color: "#3730a3",
+                                  borderRadius: 16,
+                                  padding: "4px 12px",
+                                  fontSize: 12,
+                                  fontWeight: 500
+                                }}>{trimmed}</span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+                  ) : (
+                    /* Fallback: plain advice with tab switcher */
+                    <div>
+                      <div style={{ display: "flex", gap: 8, borderBottom: "1px solid var(--border-color)", paddingBottom: 6 }}>
+                        <button
+                          className={`ai-tab ${remedyTab === "organic" ? "ai-tab-active" : ""}`}
+                          style={{ background: "transparent", padding: "4px 8px", fontSize: 12 }}
+                          onClick={() => setRemedyTab("organic")}
+                        >
+                          🌿 {currLabel.organic}
+                        </button>
+                        <button
+                          className={`ai-tab ${remedyTab === "chemical" ? "ai-tab-active" : ""}`}
+                          style={{ background: "transparent", padding: "4px 8px", fontSize: 12 }}
+                          onClick={() => setRemedyTab("chemical")}
+                        >
+                          🧪 {currLabel.chemical}
+                        </button>
+                      </div>
+                      <div style={{ marginTop: 12, padding: 12, borderRadius: 8, background: remedyTab === "organic" ? "#ecfdf5" : "#eff6ff", borderLeft: remedyTab === "organic" ? "4px solid #16a34a" : "4px solid #2563eb", color: remedyTab === "organic" ? "#14532d" : "#1e3a8a", fontSize: 13 }}>
+                        {remedyTab === "organic" ? (
+                          <div>
+                            <strong>Biological Advice:</strong>
+                            <p style={{ marginTop: 4, whiteSpace: "pre-wrap", lineHeight: 1.65 }}>{diagResult.advice}</p>
+                          </div>
+                        ) : (
+                          <div>
+                            <strong>Chemical Treatment Guidelines:</strong>
+                            <p style={{ marginTop: 4, lineHeight: 1.65 }}>
+                              For critical outbreak levels, apply standard chemical sprays as per packaging instructions. Always wear protective masks, gloves, and clothing during spraying. Observe a 14-day pre-harvest wait time.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </div>
       )}
