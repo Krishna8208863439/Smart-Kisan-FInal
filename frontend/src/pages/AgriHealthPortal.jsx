@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
+import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
 import { subscribeToTopic, getSubscribedTopics, unsubscribeFromTopic } from "../utils/fcmClient";
 import CommunityDirectory from "../components/CommunityDirectory";
@@ -23,6 +24,7 @@ const AgriHealthPortal = () => {
   const [diagLoading, setDiagLoading] = useState(false);
   const [diagResult, setDiagResult] = useState(null);
   const [diagStatus, setDiagStatus] = useState("");
+  const [diagIsStaticFallback, setDiagIsStaticFallback] = useState(false);
   const [scanStep, setScanStep] = useState(0);
   const [remedyTab, setRemedyTab] = useState("organic");
   const fileInputRef = useRef(null);
@@ -400,11 +402,18 @@ const AgriHealthPortal = () => {
   };
 
   const runDiagnosis = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile) {
+      // Safety guard — should not reach here since button is disabled
+      setDiagStatus(language === "mr"
+        ? "⚠️ कृपया प्रथम पिकाचा फोटो अपलोड करा."
+        : "⚠️ Please upload a crop or plant image first before running diagnosis.");
+      return;
+    }
     setDiagLoading(true);
     setScanStep(0);
     setDiagResult(null);
     setDiagStatus("");
+    setDiagIsStaticFallback(false);
 
     // Scan steps animation
     const interval = setInterval(() => {
@@ -421,41 +430,53 @@ const AgriHealthPortal = () => {
       formData.append("region", regionHint);
       formData.append("image", selectedFile);
 
-      const headers = { "Content-Type": "multipart/form-data" };
-      const token = localStorage.getItem("sk_token");
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
+      // Use the Python FastAPI /api/diagnose endpoint (via PythonAnywhere WSGI proxy)
+      // api.js interceptor auto-injects Authorization + x-gemini-key headers
       const geminiKey = localStorage.getItem("sk_gemini_key");
-      if (geminiKey) {
-        headers["x-gemini-key"] = geminiKey.trim();
-      }
+      const extraHeaders = {};
+      if (geminiKey) extraHeaders["x-gemini-key"] = geminiKey.trim();
 
-      const res = await axios.post(`${PY_API_URL}/diagnose`, formData, {
-        headers,
-        timeout: 45000   // 45s — Gemini + HuggingFace may take time
+      const res = await api.post("/diagnose".replace("/api", "") ? `${PY_API_URL}/diagnose` : `${PY_API_URL}/diagnose`, formData, {
+        headers: { ...extraHeaders },
+        timeout: 50000   // 50s — Gemini + HuggingFace may take time
       });
 
       clearInterval(interval);
       if (res.data.success) {
-        setDiagResult(res.data);
-        const modelUsed = res.data.ai_model || "AI Analysis";
-        setDiagStatus(`Diagnosis completed via ${modelUsed}.`);
-        // Record in Activity History
-        addHistoryEntry({
-          type: "agri_health",
-          title: language === "mr" ? `कृषी रोग निदान — ${res.data.crop || cropHint}` : `Agri Health Diagnosis — ${res.data.crop || cropHint}`,
-          icon: "🏥",
-          summary: `${res.data.crop || cropHint} — ${res.data.disease} · ${res.data.severity} severity · ${Math.round((res.data.confidence || 0) * 100)}% confidence`,
-          data: {
-            crop: res.data.crop || cropHint,
-            disease: res.data.disease,
-            severity: res.data.severity,
-            confidence: `${Math.round((res.data.confidence || 0) * 100)}%`,
-            region: regionHint,
-            aiModel: modelUsed,
-          },
-        });
+        const resultData = res.data;
+        // Detect if static fallback was used (NOT real image analysis)
+        const isStatic =
+          (resultData.ai_model || "").toLowerCase().includes("static") ||
+          (resultData.ai_model || "").toLowerCase().includes("fallback") ||
+          (resultData.advice || "").includes("not based on image analysis") ||
+          (resultData.advice || "").includes("crop type, not image") ||
+          (resultData.confidence === 0.55) ||
+          (resultData.confidence === 0.75 && (resultData.ai_model || "").includes("Fallback"));
+
+        setDiagIsStaticFallback(isStatic);
+        setDiagResult(resultData);
+        const modelUsed = resultData.ai_model || "AI Analysis";
+        setDiagStatus(isStatic
+          ? `⚠️ Showing reference data for '${cropHint}' — NOT based on your uploaded image. Configure Gemini API key for real image diagnosis.`
+          : `Diagnosis completed via ${modelUsed}.`);
+
+        // Record in Activity History (only real AI results, not static fallbacks)
+        if (!isStatic) {
+          addHistoryEntry({
+            type: "agri_health",
+            title: language === "mr" ? `कृषी रोग निदान — ${resultData.crop || cropHint}` : `Agri Health Diagnosis — ${resultData.crop || cropHint}`,
+            icon: "🏥",
+            summary: `${resultData.crop || cropHint} — ${resultData.disease} · ${resultData.severity} severity · ${Math.round((resultData.confidence || 0) * 100)}% confidence`,
+            data: {
+              crop: resultData.crop || cropHint,
+              disease: resultData.disease,
+              severity: resultData.severity,
+              confidence: `${Math.round((resultData.confidence || 0) * 100)}%`,
+              region: regionHint,
+              aiModel: modelUsed,
+            },
+          });
+        }
       }
     } catch (err) {
       clearInterval(interval);
@@ -463,14 +484,16 @@ const AgriHealthPortal = () => {
 
       // Use our dynamic 140 crops offline reference database fallback
       const fallbackResult = getCropDiseaseFallback(cropHint, currentLang);
-      setDiagStatus(language === "mr" 
-        ? "⚠️ सर्व्हरशी संपर्क नाही. आमच्या डेटाबेसमधून स्थानिक संदर्भ डेटा दाखवत आहे." 
-        : "⚠️ Backend server unreachable. Showing crop-specific offline reference database advice.");
+      setDiagIsStaticFallback(true);
+      setDiagStatus(language === "mr"
+        ? "⚠️ सर्व्हरशी संपर्क नाही. पिकाच्या प्रकारावर आधारित संदर्भ माहिती दाखवत आहे. Gemini API Key सेट करा अचूक निदानासाठी."
+        : "⚠️ Server unreachable. Showing crop-type reference data — NOT based on your actual image. Configure Gemini API key for accurate image-based diagnosis.");
       setDiagResult(fallbackResult);
     } finally {
       setDiagLoading(false);
     }
   };
+
 
 
   const printPrescription = () => {
@@ -858,12 +881,38 @@ const AgriHealthPortal = () => {
 
             <button
               className="button"
-              style={{ width: "100%" }}
+              style={{
+                width: "100%",
+                opacity: !selectedFile ? 0.55 : 1,
+                cursor: !selectedFile ? "not-allowed" : "pointer"
+              }}
               onClick={runDiagnosis}
               disabled={diagLoading || !selectedFile}
             >
               {diagLoading ? currLabel.diagnosing : currLabel.analyze}
             </button>
+
+            {/* No image selected warning */}
+            {!selectedFile && !diagLoading && (
+              <div style={{
+                marginTop: 10,
+                background: "linear-gradient(135deg, #fef3c7, #fff7ed)",
+                border: "1px solid #fde68a",
+                borderLeft: "3px solid #f59e0b",
+                borderRadius: 8,
+                padding: "10px 12px",
+                display: "flex",
+                alignItems: "center",
+                gap: 8
+              }}>
+                <span style={{ fontSize: 18 }}>📷</span>
+                <span style={{ fontSize: 12.5, color: "#92400e", fontWeight: 500, lineHeight: 1.4 }}>
+                  {language === "mr"
+                    ? "আपल्या पिकाच्या पानाचा किंवा रोगग्रस्त भागाचा स्पष्ट फोटो अपलोड करा. फोटोशिवाय फक्त संदर्भ माहिती दाखवली जाईल."
+                    : "Upload a clear photo of your crop leaf or diseased area. Without an image, only generic reference data will be shown — not an actual diagnosis."}
+                </span>
+              </div>
+            )}
 
             {diagLoading && (
               <div style={{ marginTop: 12, background: "var(--bg-main)", padding: 10, borderRadius: 8 }}>
@@ -874,7 +923,17 @@ const AgriHealthPortal = () => {
               </div>
             )}
             {diagStatus && (
-              <p style={{ fontSize: 12, color: "#92400e", marginTop: 8 }}>💡 {diagStatus}</p>
+              <p style={{
+                fontSize: 12,
+                color: diagIsStaticFallback ? "#92400e" : "#166534",
+                marginTop: 8,
+                background: diagIsStaticFallback ? "#fef3c7" : "#dcfce7",
+                padding: "6px 10px",
+                borderRadius: 6,
+                borderLeft: `3px solid ${diagIsStaticFallback ? "#f59e0b" : "#16a34a"}`
+              }}>
+                {diagStatus}
+              </p>
             )}
           </div>
 
@@ -895,9 +954,15 @@ const AgriHealthPortal = () => {
 
             {!diagResult ? (
               <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", minHeight: 220, color: "var(--text-muted)", gap: 10 }}>
-                <span style={{ fontSize: 56 }}>📋</span>
-                <p style={{ fontSize: 13, textAlign: "center", maxWidth: 220, lineHeight: 1.5 }}>
-                  {language === "mr" ? "निदान परिणाम येथे दिसेल" : "Upload a crop/leaf photo and click Analyze to see the AI diagnosis report"}
+                <span style={{ fontSize: 56 }}>
+                  {!selectedFile ? "📷" : "📋"}
+                </span>
+                <p style={{ fontSize: 13, textAlign: "center", maxWidth: 240, lineHeight: 1.55, fontWeight: 500 }}>
+                  {!selectedFile
+                    ? (language === "mr"
+                        ? "पिकाचा फोटो अपलोड करा आणि नंतर 'रोग निदान करा' दाबा."
+                        : "👆 Upload a crop / plant leaf photo first, then click Analyze")
+                    : (language === "mr" ? "निदान परिणाम येथे दिसेल" : "Analyzing your image\u2026 results will appear here")}
                 </p>
               </div>
             ) : (() => {
@@ -959,6 +1024,33 @@ const AgriHealthPortal = () => {
 
               return (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+                  {/* ── Static Fallback Warning Banner ── */}
+                  {diagIsStaticFallback && (
+                    <div style={{
+                      background: "linear-gradient(135deg, #fff7ed, #fef3c7)",
+                      border: "2px solid #f59e0b",
+                      borderRadius: 10,
+                      padding: "12px 14px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 6
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 22 }}>⚠️</span>
+                        <strong style={{ fontSize: 13, color: "#92400e" }}>
+                          Reference Data Only — NOT Based on Your Image
+                        </strong>
+                      </div>
+                      <p style={{ fontSize: 12, color: "#78350f", lineHeight: 1.55, margin: 0 }}>
+                        This result is based on your selected crop type (<strong>{diagResult.crop}</strong>), 
+                        not your uploaded photo. To get a real AI image diagnosis, configure your{" "}
+                        <strong>Gemini API key</strong> in Settings (⚙️) — it's free at{" "}
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer"
+                          style={{ color: "#1a73e8", fontWeight: 600 }}>aistudio.google.com</a>.
+                      </p>
+                    </div>
+                  )}
 
                   {/* ── AI Engine Badge ── */}
                   <div style={{

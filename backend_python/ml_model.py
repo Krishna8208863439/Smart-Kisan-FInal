@@ -1047,6 +1047,9 @@ def predict_image(image_bytes: bytes, crop_hint: str = None, filename: str = Non
     """
     4-tier image analysis pipeline.
     Includes local PyTorch model, Gemini vision, HF vision, and static fallbacks.
+    When no Gemini key is configured and HF gives very low confidence,
+    the image is likely NOT a crop — the static fallback is BLOCKED and a
+    refusal message is returned instead of fabricated crop disease data.
     """
     crop_hint = normalize_crop_name(crop_hint)
     print(f"\n[ML] Starting diagnosis | crop_hint={crop_hint!r} | image_size={len(image_bytes)} bytes")
@@ -1077,11 +1080,48 @@ def predict_image(image_bytes: bytes, crop_hint: str = None, filename: str = Non
         return result
 
     # ── TIER 2: Hugging Face Plant Disease ViT ────────────────────────────
+    hf_low_confidence = False  # Track if HF ran but gave very low score (non-plant signal)
     result = predict_via_huggingface(image_bytes, crop_hint)
     if result:
         return result
+    else:
+        # HuggingFace ran but returned None — could be non-plant image with very low score
+        # Try to get raw score by doing a quick lightweight check
+        try:
+            HF_MODEL = "linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification"
+            HF_URL = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
+            hf_key = os.getenv("HF_API_KEY", "").strip()
+            headers = {"Content-Type": "application/octet-stream"}
+            if hf_key:
+                headers["Authorization"] = f"Bearer {hf_key}"
+            import requests as _req
+            resp = _req.post(HF_URL, headers=headers, data=image_bytes, timeout=20)
+            if resp.status_code == 200:
+                preds = resp.json()
+                if isinstance(preds, list) and preds:
+                    top_score = float(preds[0].get("score", 0.0))
+                    if top_score < 0.15:
+                        hf_low_confidence = True
+                        print(f"[ML] HF top score={top_score:.3f} — very low, image likely NOT a crop.")
+        except Exception as hf_check_e:
+            print(f"[ML] HF quick-check failed: {hf_check_e}")
 
     # ── TIER 3: Static fallback with correct crop ─────────────────────────
+    # GUARD: If HF signalled non-plant AND no Gemini key, do NOT give a fabricated diagnosis.
+    # Return a proper refusal message instead — this is the AgriExpert guardrail.
+    if hf_low_confidence:
+        print("[ML] ⚠️  Blocking static fallback — HF low-confidence indicates non-crop image.")
+        return {
+            "disease": "Invalid Image",
+            "crop": "Not a crop",
+            "severity": "low",
+            "confidence": 0.0,
+            "advice": "Error: The uploaded image does not appear to be a crop or plant. Please upload a clear photo of your crop or plant leaves for an accurate diagnosis.",
+            "image_analysis": "HuggingFace plant classifier returned very low confidence — image is likely not a plant.",
+            "gemini_powered": False,
+            "model": "AgriExpert Guardrail (HF Low-Confidence)"
+        }
+
     print("[ML] All APIs failed. Using crop-aware static fallback.")
     fallback_crop = detected_crop or crop_hint
     fallback_result = predict_via_static_fallback(fallback_crop, filename)
