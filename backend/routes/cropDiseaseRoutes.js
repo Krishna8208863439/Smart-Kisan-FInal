@@ -27,10 +27,12 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  fileFilter: (req, file, cb) =>
-    file.mimetype.startsWith("image/")
-      ? cb(null, true)
-      : cb(new Error("Only image files are allowed"), false),
+  fileFilter: (req, file, cb) => {
+    const allowed = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    if (allowed.includes(file.mimetype) || file.mimetype.startsWith("image/"))
+      return cb(null, true);
+    return cb(new Error("Only image files (JPG, PNG, WEBP) are allowed"), false);
+  },
   limits: { fileSize: 5 * 1024 * 1024 } // 5 MB
 });
 
@@ -603,9 +605,9 @@ const WHITELISTED_CROPS = [
 ];
 
 const REFUSAL_MESSAGES = {
-  en: "Error: The uploaded image does not appear to be a crop or plant. Please upload a clear photo of your crop or plant leaves for an accurate diagnosis.",
-  hi: "Error: The uploaded image does not appear to be a crop or plant. Please upload a clear photo of your crop or plant leaves for an accurate diagnosis.",
-  mr: "Error: The uploaded image does not appear to be a crop or plant. Please upload a clear photo of your crop or plant leaves for an accurate diagnosis."
+  en: "Invalid image. Please upload a clear image of a crop or plant.",
+  hi: "अमान्य छवि। कृपया फसल या पौधे की स्पष्ट फोटो अपलोड करें।",
+  mr: "अवैध प्रतिमा. कृपया पिकाचा किंवा झाडाचा स्पष्ट फोटो अपलोड करा."
 };
 
 // ── POST /api/crop-disease/analyze ──────────────────────────────────────────
@@ -635,22 +637,27 @@ router.post("/analyze", protect, upload.single("image"), async (req, res) => {
     ];
 
     const containsNonCrop = nonCropKeywords.some(kw => combined.includes(kw));
-    // Only block if clearly non-crop and not whitelisted — be permissive for legitimate crops
-    const isWhitelisted = WHITELISTED_CROPS.some(keyword => combined.includes(keyword));
 
     if (containsNonCrop) {
       const refusal = REFUSAL_MESSAGES[activeLang] || REFUSAL_MESSAGES["en"];
       return res.json({
         success: true,
         imageUrl,
-        crop: crop || "Non-Crop",
-        disease: "System Error",
-        severity: "high",
-        confidence: 1.0,
+        crop: "Not a crop",
+        plant_name: "Not a crop",
+        disease: "Invalid Image",
+        health_status: "invalid",
+        severity: "low",
+        confidence: 0.0,
         advice: refusal,
+        symptoms: "N/A",
+        causes: "N/A",
+        organic_treatment: "N/A",
+        chemical_treatment: "N/A",
+        prevention: "N/A",
         image_analysis: "Refused: Crop Isolation Guardrail triggered.",
         gemini_powered: false,
-        ai_model: "Crop Isolation Guardrail"
+        ai_model: "AgriExpert Guardrail (Text Check)"
       });
     }
 

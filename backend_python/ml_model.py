@@ -656,40 +656,39 @@ def predict_via_gemini(image_bytes: bytes, crop_hint: str = None, custom_key: st
         dataset_classes = get_dataset_classes()
         dataset_classes_str = ", ".join(dataset_classes)
 
-        prompt = f"""You are AgriExpert, an advanced AI Agricultural Specialist and Advisor. Your primary job is to diagnose crop diseases and provide treatment recommendations from uploaded images.
+        prompt = f"""You are AgriExpert, an expert AI Agricultural Disease Specialist trained on PlantVillage, PlantDoc, and CropDoc datasets.
 
-CRITICAL GUARDRAIL:
-1. First, analyze the uploaded image to determine if it actually contains a crop, plant, leaf, or agricultural specimen.
-2. If the image is NOT a plant or crop (e.g., it is a building, person, vehicle, animal, abstract object, or completely unrelated scene), you MUST NOT provide a crop diagnosis. Instead use this exact refusal in the "advice" field:
-"Error: The uploaded image does not appear to be a crop or plant. Please upload a clear photo of your crop or plant leaves for an accurate diagnosis."
-And set: "disease": "Invalid Image", "crop": "Not a crop", "severity": "low", "confidence": 0.0
+=== MANDATORY STEP 1: IMAGE VALIDATION ===
+Look at the uploaded image carefully.
+- If the image shows a PERSON, ANIMAL, VEHICLE, BUILDING, FOOD (cooked), OBJECT, LANDSCAPE (without plants), or ANY NON-PLANT content → you MUST return Invalid Image response.
+- ONLY proceed if the image clearly shows a CROP, PLANT, LEAF, STEM, FRUIT (on plant), or AGRICULTURAL FIELD.
 
-If and only if the image is a valid crop/plant:
-- Analyze the ACTUAL image pixels — do NOT assume crop from hint alone
-- Cross-reference with our dataset of 140 crops: {dataset_classes_str}
-- Farmer's crop hint: "{crop_hint or 'Not specified - auto-detect from image'}"
-- If image shows rice but hint says tomato → report RICE disease
-- If plant is healthy → report "Healthy"
+For NON-CROP images, return EXACTLY this JSON and nothing else:
+{{"disease": "Invalid Image", "crop": "Not a crop", "severity": "low", "confidence": 0.0, "health_status": "invalid", "plant_name": "N/A", "symptoms": "N/A", "causes": "N/A", "organic_treatment": "N/A", "chemical_treatment": "N/A", "prevention": "N/A", "fertilizer_advice": "N/A", "irrigation_advice": "N/A", "growth_stage": "N/A", "advice": "Invalid image. Please upload a clear image of a crop or plant.", "image_analysis": "Image rejected — no plant or crop visible.", "gemini_powered": true}}
 
-Provide your diagnosis using this EXACT structure inside the "advice" field (markdown format):
+=== MANDATORY STEP 2: CROP DIAGNOSIS (only if valid plant image) ===
+Available crops reference: {dataset_classes_str}
+Farmer crop hint: "{crop_hint or 'auto-detect from image'}"
+IMPORTANT: Analyze actual image pixels. If image shows rice but hint says tomato → report RICE.
 
-**AI Crop Diagnosis Profile (AgriExpert)**
-
----
-
-* **Disease Name:** [Identify the disease and its scientific name, or state "Healthy" if no disease is found]
-* **Cure/Treatment:** [Specific actionable treatment options including organic methods AND chemical names with precise dosages like mL/L or g/L — Indian market brands]
-* **Precautions to Take:** [Preventative measures, sanitation steps, crop rotation advice]
-* **Treatment Product Links:** [Format: Buy [ProductName] on Marketplace with link app://marketplace/search?query=ProductName]
-
-Respond ONLY with valid JSON (no markdown outside JSON):
+Return ONLY this JSON (no text outside):
 {{
-  "crop": "Actual crop name from dataset list",
-  "disease": "Disease name (Scientific name) or Healthy or Invalid Image",
+  "crop": "Exact crop name (e.g. Tomato, Rice, Wheat)",
+  "plant_name": "Full botanical or common plant name",
+  "disease": "Disease name with scientific name (e.g. Early Blight (Alternaria solani)) or Healthy",
+  "health_status": "Healthy|Infected|Suspect",
   "severity": "low|medium|high",
   "confidence": 0.90,
-  "advice": "Full markdown diagnosis profile as specified above",
-  "image_analysis": "Brief: what you actually see in this image",
+  "growth_stage": "Seedling|Vegetative|Flowering|Fruiting|Harvest|Unknown",
+  "symptoms": "Visible symptoms described from actual image (2-3 sentences)",
+  "causes": "Disease cause: fungal/bacterial/viral/pest + pathogen name",
+  "organic_treatment": "Organic/biological treatment options with exact doses",
+  "chemical_treatment": "Chemical treatment with product names, active ingredients, doses (g/L or mL/L)",
+  "prevention": "Prevention and sanitation measures",
+  "fertilizer_advice": "Recommended fertilizers for recovery (NPK, micronutrients)",
+  "irrigation_advice": "Irrigation recommendation based on disease and crop type",
+  "advice": "Comprehensive markdown treatment advice summary",
+  "image_analysis": "What you actually see in the image (plant type, symptoms, affected areas)",
   "gemini_powered": true
 }}"""
 
@@ -746,14 +745,24 @@ Respond ONLY with valid JSON (no markdown outside JSON):
         parsed = json.loads(raw)
 
         result = {
-            "disease":       str(parsed.get("disease", "Unknown Disease")),
-            "crop":          str(parsed.get("crop", crop_hint or "Unknown Crop")),
-            "severity":      str(parsed.get("severity", "medium")).lower().strip(),
-            "confidence":    min(1.0, max(0.0, float(parsed.get("confidence", 0.88)))),
-            "advice":        str(parsed.get("advice", "Consult your nearest Krishi Vigyan Kendra (KVK).")),
-            "image_analysis": str(parsed.get("image_analysis", "")),
-            "gemini_powered": True,
-            "model":         "Google Gemini 1.5 Flash"
+            "disease":            str(parsed.get("disease", "Unknown Disease")),
+            "crop":               str(parsed.get("crop", crop_hint or "Unknown Crop")),
+            "plant_name":         str(parsed.get("plant_name", parsed.get("crop", crop_hint or "Unknown Plant"))),
+            "health_status":      str(parsed.get("health_status", "Unknown")),
+            "severity":           str(parsed.get("severity", "medium")).lower().strip(),
+            "confidence":         min(1.0, max(0.0, float(parsed.get("confidence", 0.88)))),
+            "growth_stage":       str(parsed.get("growth_stage", "Unknown")),
+            "symptoms":           str(parsed.get("symptoms", "")),
+            "causes":             str(parsed.get("causes", "")),
+            "organic_treatment":  str(parsed.get("organic_treatment", "")),
+            "chemical_treatment": str(parsed.get("chemical_treatment", "")),
+            "prevention":         str(parsed.get("prevention", "")),
+            "fertilizer_advice":  str(parsed.get("fertilizer_advice", "")),
+            "irrigation_advice":  str(parsed.get("irrigation_advice", "")),
+            "advice":             str(parsed.get("advice", "Consult your nearest Krishi Vigyan Kendra (KVK).")),
+            "image_analysis":     str(parsed.get("image_analysis", "")),
+            "gemini_powered":     True,
+            "model":              "Google Gemini 1.5 Flash"
         }
 
         # Validate severity
@@ -1112,7 +1121,7 @@ def predict_image(image_bytes: bytes, crop_hint: str = None, filename: str = Non
         return result
     else:
         # HuggingFace ran but returned None — could be non-plant image with very low score
-        # Try to get raw score by doing a quick lightweight check
+        # Stricter threshold: if HF top score < 0.30, treat as likely non-plant
         try:
             HF_MODEL = "linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification"
             HF_URL = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
@@ -1121,14 +1130,26 @@ def predict_image(image_bytes: bytes, crop_hint: str = None, filename: str = Non
             if hf_key:
                 headers["Authorization"] = f"Bearer {hf_key}"
             import requests as _req
-            resp = _req.post(HF_URL, headers=headers, data=image_bytes, timeout=20)
+            # Preprocess image to 224x224 for better HF accuracy
+            try:
+                from PIL import Image as PILImage
+                import io as _io
+                pil_img = PILImage.open(_io.BytesIO(image_bytes)).convert("RGB")
+                pil_img = pil_img.resize((224, 224), PILImage.LANCZOS)
+                buf = _io.BytesIO()
+                pil_img.save(buf, format="JPEG", quality=90)
+                check_bytes = buf.getvalue()
+            except Exception:
+                check_bytes = image_bytes
+            resp = _req.post(HF_URL, headers=headers, data=check_bytes, timeout=20)
             if resp.status_code == 200:
                 preds = resp.json()
                 if isinstance(preds, list) and preds:
                     top_score = float(preds[0].get("score", 0.0))
-                    if top_score < 0.15:
+                    # Raised threshold from 0.15 to 0.30 for stricter non-crop detection
+                    if top_score < 0.30:
                         hf_low_confidence = True
-                        print(f"[ML] HF top score={top_score:.3f} — very low, image likely NOT a crop.")
+                        print(f"[ML] HF top score={top_score:.3f} — below 0.30 threshold, image likely NOT a crop.")
         except Exception as hf_check_e:
             print(f"[ML] HF quick-check failed: {hf_check_e}")
 
@@ -1136,16 +1157,26 @@ def predict_image(image_bytes: bytes, crop_hint: str = None, filename: str = Non
     # GUARD: If HF signalled non-plant AND no Gemini key, do NOT give a fabricated diagnosis.
     # Return a proper refusal message instead — this is the AgriExpert guardrail.
     if hf_low_confidence:
-        print("[ML] ⚠️  Blocking static fallback — HF low-confidence indicates non-crop image.")
+        print("[ML] ⚠️  Blocking static fallback — HF confidence below 0.30 — not a crop image.")
         return {
             "disease": "Invalid Image",
             "crop": "Not a crop",
             "severity": "low",
             "confidence": 0.0,
-            "advice": "Error: The uploaded image does not appear to be a crop or plant. Please upload a clear photo of your crop or plant leaves for an accurate diagnosis.",
-            "image_analysis": "HuggingFace plant classifier returned very low confidence — image is likely not a plant.",
+            "health_status": "invalid",
+            "plant_name": "N/A",
+            "symptoms": "N/A",
+            "causes": "N/A",
+            "organic_treatment": "N/A",
+            "chemical_treatment": "N/A",
+            "prevention": "N/A",
+            "fertilizer_advice": "N/A",
+            "irrigation_advice": "N/A",
+            "growth_stage": "N/A",
+            "advice": "Invalid image. Please upload a clear image of a crop or plant.",
+            "image_analysis": "HuggingFace plant classifier returned confidence below 30% — image is likely not a plant.",
             "gemini_powered": False,
-            "model": "AgriExpert Guardrail (HF Low-Confidence)"
+            "model": "AgriExpert Guardrail (HF Low-Confidence < 0.30)"
         }
 
     print("[ML] All APIs failed. Using crop-aware static fallback.")

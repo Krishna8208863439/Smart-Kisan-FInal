@@ -444,6 +444,22 @@ const AgriHealthPortal = () => {
       clearInterval(interval);
       if (res.data.success) {
         const resultData = res.data;
+        
+        // Detect non-crop image rejection
+        const isInvalidCrop = resultData.disease === "Invalid Image"
+          || resultData.health_status === "invalid"
+          || (resultData.advice || "").toLowerCase().includes("invalid image")
+          || (resultData.advice || "").toLowerCase().includes("not a crop");
+        
+        if (isInvalidCrop) {
+          setDiagIsStaticFallback(false);
+          setDiagResult({ ...resultData, _isInvalid: true });
+          setDiagStatus(language === "mr"
+            ? "🚫 अवैध प्रतिमा — कृपया पिकाचा स्पष्ट फोटो अपलोड करा."
+            : "🚫 Invalid image. Please upload a clear image of a crop or plant.");
+          return;
+        }
+
         // Detect if static fallback was used (NOT real image analysis)
         const isStatic =
           (resultData.ai_model || "").toLowerCase().includes("static") ||
@@ -968,8 +984,11 @@ const AgriHealthPortal = () => {
             ) : (() => {
               // Detect invalid image / guardrail refusal
               const isInvalid =
+                diagResult._isInvalid ||
                 diagResult.disease === "Invalid Image" ||
                 diagResult.disease === "System Error" ||
+                diagResult.health_status === "invalid" ||
+                (diagResult.advice || "").toLowerCase().includes("invalid image") ||
                 (diagResult.advice || "").startsWith("Error:");
 
               if (isInvalid) {
@@ -987,7 +1006,7 @@ const AgriHealthPortal = () => {
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <span style={{ fontSize: 36 }}>🚫</span>
                       <div>
-                        <strong style={{ fontSize: 15, color: "#b91c1c", display: "block" }}>Invalid Image Detected</strong>
+                        <strong style={{ fontSize: 15, color: "#b91c1c", display: "block" }}>Invalid Image — No Crop Detected</strong>
                         <span style={{ fontSize: 12, color: "#6b7280" }}>AgriExpert Guardrail Active</span>
                       </div>
                     </div>
@@ -1000,7 +1019,10 @@ const AgriHealthPortal = () => {
                       color: "#7f1d1d",
                       lineHeight: 1.6
                     }}>
-                      {diagResult.advice || "Error: The uploaded image does not appear to be a crop or plant. Please upload a clear photo of your crop or plant leaves for an accurate diagnosis."}
+                      Invalid image. Please upload a clear image of a crop or plant.
+                    </div>
+                    <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.5 }}>
+                      ✅ <strong>Accepted:</strong> Tomato, Rice, Wheat, Cotton, Potato, Chilli, Mango, Banana leaves and other crop/plant photos (JPG, PNG, WEBP)
                     </div>
                     <button
                       className="button"
@@ -1013,7 +1035,7 @@ const AgriHealthPortal = () => {
                         if (fileInputRef.current) fileInputRef.current.value = "";
                       }}
                     >
-                      🔄 Try Another Image
+                      🔄 Upload a Crop Photo
                     </button>
                   </div>
                 );
@@ -1114,11 +1136,24 @@ const AgriHealthPortal = () => {
                     </div>
                     <div style={{ borderLeft: "1px solid var(--border-color)", paddingLeft: 12 }}>
                       <span style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase" }}>Crop / Subject</span>
-                      <strong style={{ display: "block", fontSize: 13, marginTop: 2 }}>{diagResult.crop}</strong>
+                      <strong style={{ display: "block", fontSize: 13, marginTop: 2 }}>{diagResult.plant_name || diagResult.crop}</strong>
+                      {diagResult.health_status && (
+                        <span style={{
+                          display: "inline-block", marginTop: 3, fontSize: 10, fontWeight: 700,
+                          padding: "1px 6px", borderRadius: 10,
+                          background: diagResult.health_status === "Healthy" ? "#dcfce7" : diagResult.health_status === "Infected" ? "#fee2e2" : "#fef3c7",
+                          color: diagResult.health_status === "Healthy" ? "#166534" : diagResult.health_status === "Infected" ? "#991b1b" : "#92400e"
+                        }}>
+                          {diagResult.health_status === "Healthy" ? "🟢 Healthy" : diagResult.health_status === "Infected" ? "🔴 Infected" : "🟡 Suspect"}
+                        </span>
+                      )}
                     </div>
                     <div style={{ borderLeft: "1px solid var(--border-color)", paddingLeft: 12 }}>
                       <span style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 600, textTransform: "uppercase" }}>Identified Condition</span>
                       <strong style={{ display: "block", fontSize: 12, color: "#dc2626", marginTop: 2 }}>{diagResult.disease}</strong>
+                      {diagResult.growth_stage && diagResult.growth_stage !== "Unknown" && (
+                        <span style={{ fontSize: 10, color: "var(--text-muted)", display: "block", marginTop: 2 }}>🌱 {diagResult.growth_stage} stage</span>
+                      )}
                     </div>
                   </div>
 
@@ -1153,7 +1188,90 @@ const AgriHealthPortal = () => {
                   <hr style={{ borderColor: "var(--border-color)", margin: "2px 0" }} />
 
                   {/* ── AgriExpert Structured Diagnosis Profile ── */}
-                  {parsed && parsed.isStructured ? (
+                  {/* Check for new-style structured API fields first */}
+                  {diagResult.causes || diagResult.symptoms || diagResult.organic_treatment ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+                      {/* Header */}
+                      <div style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #15803d 100%)", borderRadius: 10, padding: "12px 16px", color: "white" }}>
+                        <div style={{ fontWeight: 800, fontSize: 13 }}>🤖 AI AgriExpert Diagnosis Report</div>
+                        <div style={{ fontSize: 11, opacity: 0.85, marginTop: 2 }}>Powered by Gemini Vision AI • PlantVillage Dataset</div>
+                      </div>
+
+                      {/* Symptoms */}
+                      {diagResult.symptoms && diagResult.symptoms !== "N/A" && (
+                        <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderLeft: "4px solid #f97316", borderRadius: 8, padding: 12 }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: "#9a3412", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>🔍 Visible Symptoms</div>
+                          <div style={{ fontSize: 12.5, color: "#7c2d12", lineHeight: 1.6 }}>{diagResult.symptoms}</div>
+                        </div>
+                      )}
+
+                      {/* Causes */}
+                      {diagResult.causes && diagResult.causes !== "N/A" && (
+                        <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderLeft: "4px solid #dc2626", borderRadius: 8, padding: 12 }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: "#9f1239", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>🧫 Disease Causes</div>
+                          <div style={{ fontSize: 12.5, color: "#7f1d1d", lineHeight: 1.6 }}>{diagResult.causes}</div>
+                        </div>
+                      )}
+
+                      {/* Treatment Tabs */}
+                      <div>
+                        <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+                          {["organic", "chemical", "prevention"].map(tab => (
+                            <button key={tab} type="button"
+                              onClick={() => setRemedyTab(tab)}
+                              style={{
+                                flex: 1, padding: "5px 4px", fontSize: 11, fontWeight: 700,
+                                border: remedyTab === tab ? "none" : "1px solid var(--border-color)",
+                                borderRadius: 6, cursor: "pointer",
+                                background: remedyTab === tab
+                                  ? (tab === "organic" ? "#16a34a" : tab === "chemical" ? "#2563eb" : "#7c3aed")
+                                  : "var(--bg-main)",
+                                color: remedyTab === tab ? "white" : "var(--text-muted)"
+                              }}
+                            >
+                              {tab === "organic" ? "🌿 Organic" : tab === "chemical" ? "⚡ Chemical" : "🛡️ Prevention"}
+                            </button>
+                          ))}
+                        </div>
+                        {remedyTab === "organic" && (
+                          <div style={{ background: "#ecfdf5", borderLeft: "4px solid #16a34a", padding: 12, borderRadius: 8, fontSize: 12.5, color: "#14532d", lineHeight: 1.7 }}>
+                            <strong style={{ display: "block", marginBottom: 6 }}>🌿 Organic / Biological Treatment</strong>
+                            <div style={{ whiteSpace: "pre-wrap" }}>{diagResult.organic_treatment || diagResult.advice || "No organic treatment data available."}</div>
+                          </div>
+                        )}
+                        {remedyTab === "chemical" && (
+                          <div style={{ background: "#eff6ff", borderLeft: "4px solid #2563eb", padding: 12, borderRadius: 8, fontSize: 12.5, color: "#1e3a8a", lineHeight: 1.7 }}>
+                            <strong style={{ display: "block", marginBottom: 6 }}>⚡ Chemical Treatment</strong>
+                            <div style={{ whiteSpace: "pre-wrap" }}>{diagResult.chemical_treatment || "No chemical treatment data available."}</div>
+                          </div>
+                        )}
+                        {remedyTab === "prevention" && (
+                          <div style={{ background: "#f5f3ff", borderLeft: "4px solid #7c3aed", padding: 12, borderRadius: 8, fontSize: 12.5, color: "#3b0764", lineHeight: 1.7 }}>
+                            <strong style={{ display: "block", marginBottom: 6 }}>🛡️ Prevention Methods</strong>
+                            <div style={{ whiteSpace: "pre-wrap" }}>{diagResult.prevention || "No prevention data available."}</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Fertilizer */}
+                      {diagResult.fertilizer_advice && diagResult.fertilizer_advice !== "N/A" && (
+                        <div style={{ background: "linear-gradient(135deg, #fefce8, #fef9c3)", border: "1px solid #fde047", borderRadius: 8, padding: 10 }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: "#713f12", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>🌾 Fertilizer Advice</div>
+                          <div style={{ fontSize: 12.5, color: "#854d0e", lineHeight: 1.6 }}>{diagResult.fertilizer_advice}</div>
+                        </div>
+                      )}
+
+                      {/* Irrigation */}
+                      {diagResult.irrigation_advice && diagResult.irrigation_advice !== "N/A" && (
+                        <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 8, padding: 10 }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: "#1e40af", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>💧 Irrigation Advice</div>
+                          <div style={{ fontSize: 12.5, color: "#1e3a8a", lineHeight: 1.6 }}>{diagResult.irrigation_advice}</div>
+                        </div>
+                      )}
+
+                    </div>
+                  ) : parsed && parsed.isStructured ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
                       {/* Header Banner */}
