@@ -543,7 +543,7 @@ Formatting requirement: Always format your response using clean, simple Markdown
 
   // ── Multilingual Offline Local Rule-Based Engine ──
   const dict = FALLBACK_RESPONSES[activeLang] || FALLBACK_RESPONSES["en"];
-  responseText = "";
+  let responseText = "";
 
   // 1. GREETING
   if (userMessage.includes("hello") || userMessage.includes("hi") || userMessage.includes("नमस्ते") || userMessage.includes("नमस्कार") || userMessage.includes("शेतकरी") || userMessage.includes("greeting")) {
