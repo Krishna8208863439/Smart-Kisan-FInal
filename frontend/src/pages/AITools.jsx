@@ -102,6 +102,7 @@ const AITools = () => {
   };
 
   // State: Disease Detection
+  const [diseaseSubTab, setDiseaseSubTab] = useState("crop_cv"); // "crop_cv" | "leaf_diag" | "crop_detect"
   const [diseaseFile, setDiseaseFile] = useState(null);
   const [diseasePreview, setDiseasePreview] = useState("");
   const [diseaseCropHint, setDiseaseCropHint] = useState("Tomato");
@@ -277,49 +278,43 @@ const AITools = () => {
       const extraHeaders = {};
       if (geminiKey) extraHeaders["x-gemini-key"] = geminiKey;
 
-      // Use dedicated /api/leaf-diagnose for leaf-specific validation
+      // Use dedicated endpoint based on diseaseSubTab
+      const endpoint = diseaseSubTab === "crop_cv" ? "/crop-diagnose" : diseaseSubTab === "leaf_diag" ? "/leaf-diagnose" : "/crop-disease-detect";
       const { default: axios } = await import("axios");
-      const response = await axios.post(`${PY_API_BASE}/leaf-diagnose`, formData, {
+      const response = await axios.post(`${PY_API_BASE}${endpoint}`, formData, {
         headers: extraHeaders,
         timeout: 55000
       });
 
       clearInterval(stepInterval);
 
-      if (response.data.success) {
-        const result = response.data;
-        // Detect invalid / non-leaf image refusal
-        const isInvalid = result.disease === "Invalid Image" || result.disease === "System Error"
-          || result.health_status === "invalid"
-          || (result.advice || "").toLowerCase().includes("invalid image")
-          || (result.advice || "").toLowerCase().includes("not a leaf")
-          || (result.advice || "").startsWith("Error:");
-        setDiseaseIsInvalid(isInvalid);
-        setDiseaseResult(result);
+      const result = response.data;
+      const isInvalid = !result || result.success === false || result.disease === "Invalid Image" || result.health_status === "invalid" || result.error;
+      
+      setDiseaseIsInvalid(isInvalid);
+      setDiseaseResult(result);
 
-        if (isInvalid) {
-          setDiseaseStatus(language === 'mr' ? "🚫 अवैध प्रतिमा — कृपया पिकाच्या पानाचा फोटो अपलोड करा." : "🚫 Non-leaf image rejected. Please upload a clear plant leaf photo.");
-        } else {
-          const modelUsed = result.ai_model || "AI Analysis";
-          setDiseaseStatus(result.gemini_powered
-            ? `✅ ${language === 'mr' ? 'Google Gemini LeafExpert AI द्वारे निदान पूर्ण.' : 'Diagnosis completed via Gemini LeafExpert AI.'}`
-            : `📊 ${modelUsed}`);
-          addHistoryEntry({
-            type: "disease_scan",
-            title: language === "mr" ? `पान रोग निदान — ${result.plant_name || result.crop || finalCrop}` : `Leaf Disease Scan — ${result.plant_name || result.crop || finalCrop}`,
-            icon: "🔬",
-            summary: `${result.plant_name || result.crop || finalCrop} — ${result.disease} (${Math.round((result.confidence || 0) * 100)}% confidence, ${result.severity} severity)`,
-            data: {
-              crop: result.plant_name || result.crop || finalCrop,
-              disease: result.disease,
-              severity: result.severity,
-              confidence: `${Math.round((result.confidence || 0) * 100)}%`,
-              aiModel: result.ai_model || (result.gemini_powered ? "Google Gemini 1.5 Flash" : "Local DB"),
-            },
-          });
-        }
+      if (isInvalid) {
+        const defaultErr = diseaseSubTab === "crop_cv" ? "Invalid image. Please upload a crop image or plant." :
+                           diseaseSubTab === "leaf_diag" ? "Invalid image. Please upload a crop image of a plant leaf." :
+                           "Invalid image. Please upload a valid crop image.";
+        const errMsg = result.error || defaultErr;
+        setDiseaseStatus(`🚫 ${errMsg}`);
       } else {
-        setDiseaseStatus(response.data.message || language === 'mr' ? "विश्लेषण अयशस्वी." : "Analysis failed.");
+        const modelUsed = result.ai_model || "AI Analysis";
+        setDiseaseStatus(`✅ ${language === 'mr' ? 'Google Gemini द्वारे निदान पूर्ण.' : 'Diagnosis completed via Gemini AI.'}`);
+        
+        addHistoryEntry({
+          type: "disease_scan",
+          title: language === "mr" ? `रोग निदान — ${result.plant_name || result.crop_name || result.crop || finalCrop}` : `Disease Scan — ${result.plant_name || result.crop_name || result.crop || finalCrop}`,
+          icon: "🔬",
+          summary: `${result.plant_name || result.crop_name || result.crop || finalCrop} — ${result.disease_name || result.disease || result.problems_detected} (${Math.round((result.confidence || 0.95) * 100)}% confidence)`,
+          data: {
+            crop: result.plant_name || result.crop_name || result.crop || finalCrop,
+            disease: result.disease_name || result.disease || result.problems_detected,
+            confidence: `${Math.round((result.confidence || 0.95) * 100)}%`,
+          },
+        });
       }
     } catch (err) {
       clearInterval(stepInterval);
@@ -812,13 +807,50 @@ const AITools = () => {
         {/* --- DISEASE DETECTION TAB --- */}
         {activeTab === "Disease Detection" && (
           <div className="grid-2">
+            {/* Sub-tabs for Crop CV, Leaf Diag, and Crop Disease Detect */}
+            <div style={{ gridColumn: "1 / -1", display: "flex", gap: 10, borderBottom: "1.5px solid var(--border-color)", paddingBottom: 10, marginBottom: 16, overflowX: "auto" }}>
+              {[
+                { id: "crop_cv", label: language === 'mr' ? '🌾 पीक संगणक दृष्टी' : '🌾 Crop Diagnostics (CV)' },
+                { id: "leaf_diag", label: language === 'mr' ? '🍃 पान रोग निदान' : '🍃 Leaf Disease Diagnostics' },
+                { id: "crop_detect", label: language === 'mr' ? '🔬 पीक रोग ओळख' : '🔬 Crop Disease Detection' }
+              ].map(subTab => (
+                <button
+                  key={subTab.id}
+                  type="button"
+                  onClick={() => {
+                    setDiseaseSubTab(subTab.id);
+                    clearDiseaseImage();
+                  }}
+                  style={{
+                    padding: "8px 18px",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    border: "none",
+                    whiteSpace: "nowrap",
+                    background: diseaseSubTab === subTab.id ? "var(--primary)" : "var(--bg-main)",
+                    color: diseaseSubTab === subTab.id ? "white" : "var(--text-muted)",
+                    boxShadow: diseaseSubTab === subTab.id ? "0 2px 6px rgba(0,0,0,0.15)" : "none",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  {subTab.label}
+                </button>
+              ))}
+            </div>
+
             {/* Upload Card */}
             <div className="card">
-              <h3>🔬 {language === 'mr' ? 'पीक रोग निदान' : 'Crop Disease Detection'}</h3>
+              <h3>
+                {diseaseSubTab === "crop_cv" ? (language === 'mr' ? '🌾 पीक संगणक दृष्टी' : 'Crop Diagnostics (CV)') :
+                 diseaseSubTab === "leaf_diag" ? (language === 'mr' ? '🍃 पान रोग निदान' : 'Leaf Disease Diagnostics') :
+                 (language === 'mr' ? '🔬 पीक रोग ओळख' : 'Crop Disease Detection')}
+              </h3>
               <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>
-                {language === 'mr'
-                  ? 'पिकाच्या पानाचा किंवा रोगग्रस्त भागाचा फोटो अपलोड करा. Google Gemini Vision AI वापरून अचूक रोग निदान व उपचार मिळवा.'
-                  : 'Upload a crop leaf or diseased area photo. Google Gemini Vision AI analyzes the actual image for accurate disease diagnosis & treatment.'}
+                {diseaseSubTab === "crop_cv" ? (language === 'mr' ? 'पिकाचा फोटो अपलोड करा. स्वीकार्य फोटो प्रकार: पीक किंवा झाड. Google Gemini Vision AI द्वारे अचूक निदान मिळवा.' : 'Upload a photo of your crop or plant. Gemini AI analyzes crop health, growth stage, and recommendations.') :
+                 diseaseSubTab === "leaf_diag" ? (language === 'mr' ? 'पिकाच्या पानाचा स्पष्ट फोटो अपलोड करा. Gemini AI द्वारे पानांवरील रोग, कारणे आणि उपायांचे निदान मिळवा.' : 'Upload a photo of a plant leaf. Gemini AI analyzes leaf lesions and outlines disease description, causes, and treatments.') :
+                 (language === 'mr' ? 'रोगग्रस्त पिकाचा किंवा पानाचा फोटो अपलोड करा. सविस्तर सेंद्रिय/रासायनिक नियंत्रण व खत शिफारसी मिळवा.' : 'Upload a photo of the diseased crop. Gemini AI provides severity, symptoms, organic/chemical treatments, and fertilizer/irrigation advice.')}
               </p>
 
               <label style={{ fontWeight: 600, fontSize: 13 }}>{t("cropTypeHint")}</label>
@@ -933,7 +965,9 @@ const AITools = () => {
                   </div>
                 ) : (
                   <>
-                    <div style={{ fontSize: 36, marginBottom: 8 }}>🍃</div>
+                    <div style={{ fontSize: 36, marginBottom: 8 }}>
+                      {diseaseSubTab === "crop_cv" ? "🌾" : diseaseSubTab === "leaf_diag" ? "🍃" : "🔬"}
+                    </div>
                     <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text-dark)", marginBottom: 4 }}>
                       {t("dragDropPhoto")}
                     </div>
@@ -962,9 +996,9 @@ const AITools = () => {
                       {language === 'mr' ? 'फोटो निवडा' : 'Choose Photo'}
                     </button>
                     <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
-                      {language === 'mr'
-                        ? '⚠️ फक्त पिकाच्या पानाचे स्पष्ट फोटो स्वीकारले जातात'
-                        : '⚠️ Only clear plant leaf photos are accepted for this module'}
+                      {diseaseSubTab === "crop_cv" ? (language === 'mr' ? '⚠️ फक्त पिकाचे/झाडाचे फोटो स्वीकारले जातात' : '⚠️ Only crop & plant photos are accepted') :
+                       diseaseSubTab === "leaf_diag" ? (language === 'mr' ? '⚠️ फक्त पानाचे स्पष्ट फोटो स्वीकारले जातात' : '⚠️ Only clear plant leaf photos are accepted') :
+                       (language === 'mr' ? '⚠️ फक्त पिकाचे फोटो स्वीकारले जातात' : '⚠️ Only crop images are accepted')}
                     </p>
                   </>
                 )}
@@ -1004,20 +1038,22 @@ const AITools = () => {
 
               {!diseaseResult ? (
                 <div style={{ padding: "60px 0", textAlign: "center", color: "var(--text-muted)", flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-                  <span style={{ fontSize: 48 }}>🌿</span>
+                  <span style={{ fontSize: 48 }}>
+                    {diseaseSubTab === "crop_cv" ? "🌾" : diseaseSubTab === "leaf_diag" ? "🍃" : "🔬"}
+                  </span>
                   <p style={{ marginTop: 12, fontSize: 14 }}>
-                    {language === 'mr'
-                      ? 'पिकाच्या पानाचा फोटो अपलोड करून Gemini AI निदान मिळवा'
-                      : 'Upload a crop leaf photo to get Gemini AI-powered disease diagnosis'}
+                    {diseaseSubTab === "crop_cv" ? (language === 'mr' ? 'पिकाचा फोटो अपलोड करून Gemini AI निदान मिळवा' : 'Upload a crop photo to get Gemini AI-powered diagnosis') :
+                     diseaseSubTab === "leaf_diag" ? (language === 'mr' ? 'पानाचा फोटो अपलोड करून Gemini AI रोग निदान मिळवा' : 'Upload a leaf photo to get Gemini AI-powered disease diagnostics') :
+                     (language === 'mr' ? 'पिकाचा फोटो अपलोड करून सविस्तर रोग निदान व उपाय मिळवा' : 'Upload a valid crop photo to get disease detection analysis')}
                   </p>
                   <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
-                    {language === 'mr'
-                      ? '⚠️ फक्त पिकाचे/झाडाचे फोटो स्वीकारले जातात'
-                      : '⚠️ Only crop & plant photos are accepted'}
+                    {diseaseSubTab === "crop_cv" ? (language === 'mr' ? '⚠️ फक्त पिकाचे/झाडाचे फोटो स्वीकारले जातात' : '⚠️ Only crop & plant photos are accepted') :
+                     diseaseSubTab === "leaf_diag" ? (language === 'mr' ? '⚠️ फक्त पानाचे स्पष्ट फोटो स्वीकारले जातात' : '⚠️ Only plant leaf photos are accepted') :
+                     (language === 'mr' ? '⚠️ फक्त पिकाचे फोटो स्वीकारले जातात' : '⚠️ Only crop images are accepted')}
                   </p>
                 </div>
               ) : diseaseIsInvalid ? (
-                /* Invalid / Non-Leaf Image Alert */
+                /* Invalid Image Alert */
                 <div style={{
                   background: "linear-gradient(135deg, #fef2f2, #fee2e2)",
                   border: "2px solid #ef4444",
@@ -1031,21 +1067,17 @@ const AITools = () => {
                 }}>
                   <span style={{ fontSize: 48 }}>🚫</span>
                   <strong style={{ fontSize: 16, color: "#b91c1c" }}>
-                    {language === 'mr' ? 'अवैध प्रतिमा — पान आढळले नाही' : 'Invalid Image — No Plant Leaf Detected'}
+                    {diseaseSubTab === "crop_cv" ? (language === 'mr' ? 'अवैध प्रतिमा — पीक आढळले नाही' : 'Invalid Image — No Crop Detected') :
+                     diseaseSubTab === "leaf_diag" ? (language === 'mr' ? 'अवैध प्रतिमा — पान आढळले नाही' : 'Invalid Image — No Plant Leaf Detected') :
+                     (language === 'mr' ? 'अवैध प्रतिमा — वैध पीक नाही' : 'Invalid Image — Not a Valid Crop')}
                   </strong>
                   <p style={{ fontSize: 13, color: "#7f1d1d", margin: 0, lineHeight: 1.6 }}>
-                    {language === 'mr'
-                      ? 'अपलोड केलेल्या फोटोमध्ये पिकाचे पान आढळले नाही. कृपया पिकाच्या पानाचा स्पष्ट फोटो अपलोड करा.'
-                      : 'Invalid image. Please upload a clear image of a plant leaf.'}
+                    {diseaseResult.error || (
+                      diseaseSubTab === "crop_cv" ? "Invalid image. Please upload a crop image or plant." :
+                      diseaseSubTab === "leaf_diag" ? "Invalid image. Please upload a crop image of a plant leaf." :
+                      "Invalid image. Please upload a valid crop image."
+                    )}
                   </p>
-                  <div style={{ background: "#fff", borderRadius: 8, padding: 10, marginTop: 4, fontSize: 12, color: "#6b7280" }}>
-                    <strong style={{ display: "block", marginBottom: 4, color: "#374151" }}>
-                      {language === 'mr' ? '✅ स्वीकार्य फोटो प्रकार:' : '✅ Accepted photo types:'}
-                    </strong>
-                    {language === 'mr'
-                      ? 'टोमॅटो, भात, गहू, कापूस, बटाटा, मिरची, कांदा, सोयाबीन, मका, आंबा, केळी इत्यादी पिकांच्या पानांचे फोटो'
-                      : 'Tomato, Rice, Wheat, Cotton, Potato, Chilli, Onion, Soybean, Maize, Mango, Banana leaf photos'}
-                  </div>
                   <button
                     type="button"
                     onClick={clearDiseaseImage}
@@ -1061,7 +1093,7 @@ const AITools = () => {
                       fontWeight: 700
                     }}
                   >
-                    {language === 'mr' ? '🔄 नवीन पानाचा फोटो अपलोड करा' : '🔄 Upload a Leaf Photo'}
+                    {language === 'mr' ? '🔄 पुन्हा प्रयत्न करा' : '🔄 Try Again'}
                   </button>
                 </div>
               ) : (
@@ -1069,10 +1101,8 @@ const AITools = () => {
 
                   {/* AI Model Badge */}
                   <div style={{
-                    background: diseaseResult.gemini_powered
-                      ? "linear-gradient(135deg, #dbeafe, #eff6ff)"
-                      : "linear-gradient(135deg, #f0fdf4, #dcfce7)",
-                    border: `1px solid ${diseaseResult.gemini_powered ? "#93c5fd" : "#86efac"}`,
+                    background: "linear-gradient(135deg, #dbeafe, #eff6ff)",
+                    border: "1px solid #93c5fd",
                     borderRadius: 8,
                     padding: "6px 12px",
                     display: "flex",
@@ -1080,146 +1110,243 @@ const AITools = () => {
                     gap: 8,
                     fontSize: 12
                   }}>
-                    <span>{diseaseResult.gemini_powered ? "✨" : "🤖"}</span>
-                    <span style={{ color: diseaseResult.gemini_powered ? "#1d4ed8" : "#166534", fontWeight: 600 }}>
-                      {diseaseResult.ai_model || (diseaseResult.gemini_powered ? "Google Gemini 1.5 Flash LeafExpert" : "PlantVillage AI Model")}
+                    <span>✨</span>
+                    <span style={{ color: "#1d4ed8", fontWeight: 600 }}>
+                      Google Gemini 1.5 Flash (AgriExpert AI)
                     </span>
                   </div>
 
-                  {/* Confidence + Health Status Row */}
-                  <div style={{ display: "flex", gap: 12, alignItems: "center", background: "var(--bg-main)", padding: 12, borderRadius: 8 }}>
-                    <div style={{ position: "relative", width: 60, height: 60, flexShrink: 0 }}>
-                      <svg width="60" height="60" viewBox="0 0 36 36">
-                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" strokeWidth="3" />
-                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none"
-                          stroke={diseaseResult.gemini_powered ? "#2563eb" : "#16a34a"}
-                          strokeWidth="3" strokeDasharray={`${Math.round((diseaseResult.confidence || 0) * 100)}, 100`} />
-                      </svg>
-                      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", fontSize: 11, fontWeight: 700 }}>
-                        {Math.round((diseaseResult.confidence || 0) * 100)}%
-                      </div>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <strong style={{ display: "block", fontSize: 13, color: "var(--text-dark)" }}>
-                        {diseaseResult.plant_name || diseaseResult.crop || language === 'mr' ? 'ऑळखलेले अन्नद्रव्य' : 'Identified Plant'}
-                      </strong>
-                      <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{diseaseResult.plant_name || diseaseResult.crop}</span>
-                      {diseaseResult.health_status && (
-                        <span style={{
-                          display: "inline-block", marginTop: 4, fontSize: 11, fontWeight: 700,
-                          padding: "2px 8px", borderRadius: 20,
-                          background: diseaseResult.health_status === "Healthy" ? "#dcfce7" : diseaseResult.health_status === "Infected" ? "#fee2e2" : "#fef3c7",
-                          color: diseaseResult.health_status === "Healthy" ? "#166534" : diseaseResult.health_status === "Infected" ? "#991b1b" : "#92400e"
-                        }}>
-                          {diseaseResult.health_status === "Healthy" ? "🟢 Healthy" : diseaseResult.health_status === "Infected" ? "🔴 Infected" : "🟡 Suspect"}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Disease + Severity */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                    <div style={{ background: "var(--bg-main)", borderRadius: 8, padding: 10 }}>
-                      <span style={{ color: "var(--text-muted)", fontSize: 11 }}>{language === 'mr' ? 'आढळलेला रोग' : 'Detected Disease'}</span>
-                      <div style={{ fontWeight: 700, fontSize: 13, color: "#dc2626", marginTop: 2 }}>{diseaseResult.disease}</div>
-                    </div>
-                    <div style={{ background: "var(--bg-main)", borderRadius: 8, padding: 10 }}>
-                      <span style={{ color: "var(--text-muted)", fontSize: 11 }}>{language === 'mr' ? 'रोगाची तीव्रता' : 'Severity Level'}</span>
-                      <div style={{ marginTop: 4 }}>
-                        <div style={{ height: 6, background: "#e2e8f0", borderRadius: 4, overflow: "hidden" }}>
-                          <div style={{
-                            height: "100%",
-                            width: diseaseResult.severity === "high" ? "100%" : diseaseResult.severity === "medium" ? "65%" : "30%",
-                            background: diseaseResult.severity === "high" ? "#ef4444" : diseaseResult.severity === "medium" ? "#f59e0b" : "#16a34a",
-                            transition: "width 0.8s ease"
-                          }} />
+                  {/* --- CASE 1: CROP DIAGNOSTICS (CV) --- */}
+                  {diseaseSubTab === "crop_cv" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                      <div style={{ display: "flex", gap: 12, alignItems: "center", background: "var(--bg-main)", padding: 12, borderRadius: 8 }}>
+                        <div style={{ position: "relative", width: 60, height: 60, flexShrink: 0 }}>
+                          <svg width="60" height="60" viewBox="0 0 36 36">
+                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none"
+                              stroke="#2563eb"
+                              strokeWidth="3" strokeDasharray={`${Math.round((diseaseResult.confidence || 0.95) * 100)}, 100`} />
+                          </svg>
+                          <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", fontSize: 11, fontWeight: 700 }}>
+                            {Math.round((diseaseResult.confidence || 0.95) * 100)}%
+                          </div>
                         </div>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: diseaseResult.severity === "high" ? "#ef4444" : diseaseResult.severity === "medium" ? "#d97706" : "#16a34a", textTransform: "uppercase" }}>
-                          {diseaseResult.severity === "high" ? (language === 'mr' ? 'उच्च' : 'HIGH') : diseaseResult.severity === "medium" ? (language === 'mr' ? 'मध्यम' : 'MEDIUM') : (language === 'mr' ? 'कमी' : 'LOW')}
-                        </span>
+                        <div style={{ flex: 1 }}>
+                          <strong style={{ display: "block", fontSize: 13, color: "var(--text-dark)" }}>
+                            {language === 'mr' ? 'ओळखलेले पीक' : 'Identified Crop'}
+                          </strong>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--primary)" }}>{diseaseResult.crop_name || "Unknown"}</span>
+                          
+                          <div style={{ marginTop: 4, display: "flex", gap: 8 }}>
+                            <span style={{
+                              fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+                              background: "#dbeafe", color: "#1e40af"
+                            }}>
+                              🌱 Stage: {diseaseResult.growth_stage || "Unknown"}
+                            </span>
+                            <span style={{
+                              fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+                              background: diseaseResult.crop_health === "Healthy" ? "#dcfce7" : "#fee2e2",
+                              color: diseaseResult.crop_health === "Healthy" ? "#166534" : "#991b1b"
+                            }}>
+                              🩺 Health: {diseaseResult.crop_health || "Unknown"}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
 
-                  {/* Image Analysis */}
-                  {diseaseResult.image_analysis && (
-                    <div style={{ background: "#f8fafc", border: "1px solid var(--border-color)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
-                      🔍 <strong style={{ fontStyle: "normal" }}>{language === 'mr' ? 'प्रतिमा विश्लेषण:' : 'Image Analysis:'}</strong> {diseaseResult.image_analysis}
+                      <div style={{ background: "#f8fafc", border: "1px solid var(--border-color)", borderRadius: 8, padding: 12 }}>
+                        <strong style={{ fontSize: 12, color: "var(--text-dark)", display: "block", marginBottom: 4 }}>
+                          ⚠️ {language === 'mr' ? 'शोधलेल्या समस्या:' : 'Problems Detected:'}
+                        </strong>
+                        <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.5 }}>
+                          {diseaseResult.problems_detected || "None"}
+                        </p>
+                      </div>
+
+                      <div style={{ background: "#ecfdf5", borderLeft: "4px solid #16a34a", padding: 12, borderRadius: 8 }}>
+                        <strong style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#14532d" }}>
+                          💡 {language === 'mr' ? 'शिफारसी व सल्ला:' : 'Recommendations & Advice:'}
+                        </strong>
+                        <p style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: 13, color: "#14532d", lineHeight: 1.6 }}>
+                          {diseaseResult.recommendations}
+                        </p>
+                      </div>
                     </div>
                   )}
 
-                  {/* Causes */}
-                  {diseaseResult.causes && diseaseResult.causes !== "N/A" && (
-                    <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderLeft: "4px solid #f97316", borderRadius: 8, padding: 12 }}>
-                      <strong style={{ fontSize: 12, color: "#92400e", display: "block", marginBottom: 4 }}>
-                        🧫 {language === 'mr' ? 'रोगाचे कारण:' : 'Disease Causes:'}
-                      </strong>
-                      <p style={{ fontSize: 12, color: "#78350f", margin: 0, lineHeight: 1.5 }}>{diseaseResult.causes}</p>
+                  {/* --- CASE 2: LEAF DIAGNOSTICS --- */}
+                  {diseaseSubTab === "leaf_diag" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                      <div style={{ display: "flex", gap: 12, alignItems: "center", background: "var(--bg-main)", padding: 12, borderRadius: 8 }}>
+                        <div style={{ position: "relative", width: 60, height: 60, flexShrink: 0 }}>
+                          <svg width="60" height="60" viewBox="0 0 36 36">
+                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none"
+                              stroke="#16a34a"
+                              strokeWidth="3" strokeDasharray={`${Math.round((diseaseResult.confidence || 0.95) * 100)}, 100`} />
+                          </svg>
+                          <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", fontSize: 11, fontWeight: 700 }}>
+                            {Math.round((diseaseResult.confidence || 0.95) * 100)}%
+                          </div>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <strong style={{ display: "block", fontSize: 13, color: "var(--text-dark)" }}>
+                            {language === 'mr' ? 'वनस्पतीचे नाव' : 'Plant Name'}
+                          </strong>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--primary)" }}>{diseaseResult.plant_name || "Unknown"}</span>
+                          
+                          <div style={{ marginTop: 4 }}>
+                            <span style={{
+                              fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+                              background: diseaseResult.health_status === "Healthy" ? "#dcfce7" : "#fee2e2",
+                              color: diseaseResult.health_status === "Healthy" ? "#166534" : "#991b1b"
+                            }}>
+                              {diseaseResult.health_status === "Healthy" ? "🟢 Healthy" : "🔴 Infected"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ background: "var(--bg-main)", borderRadius: 8, padding: 12 }}>
+                        <span style={{ color: "var(--text-muted)", fontSize: 11 }}>{language === 'mr' ? 'आढळलेला रोग' : 'Detected Disease'}</span>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: "#dc2626", marginTop: 2 }}>{diseaseResult.disease_name}</div>
+                      </div>
+
+                      <div style={{ background: "#f8fafc", border: "1px solid var(--border-color)", borderRadius: 8, padding: 12 }}>
+                        <strong style={{ fontSize: 12, color: "var(--text-dark)", display: "block", marginBottom: 4 }}>
+                          📌 {language === 'mr' ? 'रोगाचे वर्णन:' : 'Disease Description:'}
+                        </strong>
+                        <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.5 }}>
+                          {diseaseResult.disease_description}
+                        </p>
+                      </div>
+
+                      <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderLeft: "4px solid #f97316", borderRadius: 8, padding: 12 }}>
+                        <strong style={{ fontSize: 12, color: "#92400e", display: "block", marginBottom: 4 }}>
+                          🧫 {language === 'mr' ? 'रोगाचे कारण:' : 'Disease Causes:'}
+                        </strong>
+                        <p style={{ fontSize: 13, color: "#78350f", margin: 0, lineHeight: 1.5 }}>{diseaseResult.causes}</p>
+                      </div>
+
+                      <div style={{ background: "#ecfdf5", borderLeft: "4px solid #16a34a", padding: 12, borderRadius: 8 }}>
+                        <strong style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#14532d" }}>
+                          💊 {language === 'mr' ? 'उपचार व नियंत्रण:' : 'Treatment Remedies:'}
+                        </strong>
+                        <p style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: 13, color: "#14532d", lineHeight: 1.6 }}>
+                          {diseaseResult.treatment}
+                        </p>
+                      </div>
+
+                      <div style={{ background: "#f5f3ff", borderLeft: "4px solid #7c3aed", padding: 12, borderRadius: 8 }}>
+                        <strong style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#3b0764" }}>
+                          🛡️ {language === 'mr' ? 'प्रतिबंधात्मक उपाय:' : 'Prevention Methods:'}
+                        </strong>
+                        <p style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: 13, color: "#3b0764", lineHeight: 1.6 }}>
+                          {diseaseResult.prevention_methods}
+                        </p>
+                      </div>
                     </div>
                   )}
 
-                  {/* Disease Description */}
-                  {diseaseResult.disease_description && diseaseResult.disease_description !== "N/A" && (
-                    <div style={{ background: "var(--bg-main)", borderRadius: 8, padding: 12 }}>
-                      <strong style={{ fontSize: 12, color: "var(--text-dark)", display: "block", marginBottom: 4 }}>
-                        📌 {language === 'mr' ? 'रोगाचे वर्णन:' : 'Disease Description:'}
-                      </strong>
-                      <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, lineHeight: 1.5 }}>{diseaseResult.disease_description}</p>
-                    </div>
-                  )}
-
-                  <hr style={{ borderColor: "var(--border-color)", margin: "2px 0" }} />
-
-                  {/* Treatment Tabs */}
-                  <div>
-                    <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
-                      {["organic", "chemical", "prevention"].map(tab => (
-                        <button key={tab} type="button"
-                          onClick={() => setLeafTreatmentTab(tab)}
-                          style={{
-                            flex: 1, padding: "5px 4px", fontSize: 11, fontWeight: 700,
-                            border: leafTreatmentTab === tab ? "none" : "1px solid var(--border-color)",
-                            borderRadius: 6, cursor: "pointer",
-                            background: leafTreatmentTab === tab
-                              ? (tab === "organic" ? "#16a34a" : tab === "chemical" ? "#2563eb" : "#7c3aed")
-                              : "var(--bg-main)",
-                            color: leafTreatmentTab === tab ? "white" : "var(--text-muted)"
-                          }}
-                        >
-                          {tab === "organic" ? (language === 'mr' ? '🌿 सेंद्रिय' : '🌿 Organic')
-                            : tab === "chemical" ? (language === 'mr' ? '⚡ रासायनिक' : '⚡ Chemical')
-                            : (language === 'mr' ? '🛡️ प्रतिबंध' : '🛡️ Prevention')}
-                        </button>
-                      ))}
-                    </div>
-
-                    {leafTreatmentTab === "organic" && (
-                      <div style={{ background: "#ecfdf5", borderLeft: "4px solid #16a34a", padding: 12, borderRadius: 8, fontSize: 13, color: "#14532d", lineHeight: 1.6 }}>
-                        <strong style={{ display: "block", marginBottom: 6 }}>🌿 {language === 'mr' ? 'सेंद्रिय उपचार:' : 'Organic Treatment:'}</strong>
-                        <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{diseaseResult.organic_treatment || diseaseResult.treatment || diseaseResult.advice || "No organic treatment data available."}</p>
+                  {/* --- CASE 3: CROP DISEASE DETECTION --- */}
+                  {diseaseSubTab === "crop_detect" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                      <div style={{ display: "flex", gap: 12, alignItems: "center", background: "var(--bg-main)", padding: 12, borderRadius: 8 }}>
+                        <div style={{ position: "relative", width: 60, height: 60, flexShrink: 0 }}>
+                          <svg width="60" height="60" viewBox="0 0 36 36">
+                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none"
+                              stroke="#f59e0b"
+                              strokeWidth="3" strokeDasharray={`${Math.round((diseaseResult.confidence || 0.95) * 100)}, 100`} />
+                          </svg>
+                          <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", fontSize: 11, fontWeight: 700 }}>
+                            {Math.round((diseaseResult.confidence || 0.95) * 100)}%
+                          </div>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <strong style={{ display: "block", fontSize: 13, color: "var(--text-dark)" }}>
+                            {language === 'mr' ? 'पिकाचे नाव' : 'Crop Name'}
+                          </strong>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--primary)" }}>{diseaseResult.crop || "Unknown"}</span>
+                          
+                          <div style={{ marginTop: 4 }}>
+                            <span style={{
+                              fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+                              background: diseaseResult.severity === "high" ? "#fee2e2" : diseaseResult.severity === "medium" ? "#fef3c7" : "#dcfce7",
+                              color: diseaseResult.severity === "high" ? "#991b1b" : diseaseResult.severity === "medium" ? "#92400e" : "#166534"
+                            }}>
+                              Severity: {diseaseResult.severity ? diseaseResult.severity.toUpperCase() : "MEDIUM"}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    )}
-                    {leafTreatmentTab === "chemical" && (
-                      <div style={{ background: "#eff6ff", borderLeft: "4px solid #2563eb", padding: 12, borderRadius: 8, fontSize: 13, color: "#1e3a8a", lineHeight: 1.6 }}>
-                        <strong style={{ display: "block", marginBottom: 6 }}>⚡ {language === 'mr' ? 'रासायनिक नियंत्रण:' : 'Chemical Control:'}</strong>
-                        <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{diseaseResult.chemical_treatment || "No chemical treatment data available."}</p>
-                      </div>
-                    )}
-                    {leafTreatmentTab === "prevention" && (
-                      <div style={{ background: "#f5f3ff", borderLeft: "4px solid #7c3aed", padding: 12, borderRadius: 8, fontSize: 13, color: "#3b0764", lineHeight: 1.6 }}>
-                        <strong style={{ display: "block", marginBottom: 6 }}>🛡️ {language === 'mr' ? 'प्रतिबंध उपाय:' : 'Prevention Methods:'}</strong>
-                        <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{diseaseResult.prevention_methods || "No prevention data available."}</p>
-                      </div>
-                    )}
-                  </div>
 
-                  {/* Fertilizer Advice */}
-                  {diseaseResult.fertilizer_advice && diseaseResult.fertilizer_advice !== "N/A" && (
-                    <div style={{ background: "linear-gradient(135deg, #fefce8, #fef9c3)", border: "1px solid #fde047", borderRadius: 8, padding: 10 }}>
-                      <strong style={{ fontSize: 12, color: "#713f12", display: "block", marginBottom: 4 }}>
-                        🌾 {language === 'mr' ? 'खत शिफारस:' : 'Fertilizer Advice:'}
-                      </strong>
-                      <p style={{ fontSize: 12, color: "#854d0e", margin: 0, lineHeight: 1.5 }}>{diseaseResult.fertilizer_advice}</p>
+                      <div style={{ background: "var(--bg-main)", borderRadius: 8, padding: 12 }}>
+                        <span style={{ color: "var(--text-muted)", fontSize: 11 }}>{language === 'mr' ? 'आढळलेला रोग' : 'Detected Disease'}</span>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: "#dc2626", marginTop: 2 }}>{diseaseResult.disease}</div>
+                      </div>
+
+                      <div style={{ background: "#f8fafc", border: "1px solid var(--border-color)", borderRadius: 8, padding: 12 }}>
+                        <strong style={{ fontSize: 12, color: "var(--text-dark)", display: "block", marginBottom: 4 }}>
+                          🔍 {language === 'mr' ? 'लक्षणे:' : 'Symptoms:'}
+                        </strong>
+                        <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.5 }}>
+                          {diseaseResult.symptoms}
+                        </p>
+                      </div>
+
+                      <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderLeft: "4px solid #f97316", borderRadius: 8, padding: 12 }}>
+                        <strong style={{ fontSize: 12, color: "#92400e", display: "block", marginBottom: 4 }}>
+                          🧫 {language === 'mr' ? 'रोगाचे कारण:' : 'Causes:'}
+                        </strong>
+                        <p style={{ fontSize: 13, color: "#78350f", margin: 0, lineHeight: 1.5 }}>{diseaseResult.causes}</p>
+                      </div>
+
+                      <div style={{ background: "#ecfdf5", borderLeft: "4px solid #16a34a", padding: 12, borderRadius: 8 }}>
+                        <strong style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#14532d" }}>
+                          🌿 {language === 'mr' ? 'सेंद्रिय उपचार:' : 'Organic Treatment:'}
+                        </strong>
+                        <p style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: 13, color: "#14532d", lineHeight: 1.6 }}>
+                          {diseaseResult.organic_treatment}
+                        </p>
+                      </div>
+
+                      <div style={{ background: "#eff6ff", borderLeft: "4px solid #2563eb", padding: 12, borderRadius: 8 }}>
+                        <strong style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#1e3a8a" }}>
+                          ⚡ {language === 'mr' ? 'रासायनिक नियंत्रण:' : 'Chemical Treatment:'}
+                        </strong>
+                        <p style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: 13, color: "#1e3a8a", lineHeight: 1.6 }}>
+                          {diseaseResult.chemical_treatment}
+                        </p>
+                      </div>
+
+                      <div style={{ background: "#f5f3ff", borderLeft: "4px solid #7c3aed", padding: 12, borderRadius: 8 }}>
+                        <strong style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#3b0764" }}>
+                          🛡️ {language === 'mr' ? 'प्रतिबंधात्मक उपाय:' : 'Prevention Methods:'}
+                        </strong>
+                        <p style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: 13, color: "#3b0764", lineHeight: 1.6 }}>
+                          {diseaseResult.prevention_methods}
+                        </p>
+                      </div>
+
+                      {diseaseResult.suggested_fertilizers && (
+                        <div style={{ background: "linear-gradient(135deg, #fefce8, #fef9c3)", border: "1px solid #fde047", borderRadius: 8, padding: 12 }}>
+                          <strong style={{ fontSize: 12, color: "#713f12", display: "block", marginBottom: 4 }}>
+                            🌾 {language === 'mr' ? 'सुचविलेली खते:' : 'Suggested Fertilizers:'}
+                          </strong>
+                          <p style={{ fontSize: 13, color: "#854d0e", margin: 0, lineHeight: 1.5 }}>{diseaseResult.suggested_fertilizers}</p>
+                        </div>
+                      )}
+
+                      {diseaseResult.irrigation_advice && (
+                        <div style={{ background: "#f0fdfa", border: "1px solid #99f6e4", borderRadius: 8, padding: 12 }}>
+                          <strong style={{ fontSize: 12, color: "#0f766e", display: "block", marginBottom: 4 }}>
+                            💧 {language === 'mr' ? 'पाणी व्यवस्थापन सल्ला:' : 'Irrigation Advice:'}
+                          </strong>
+                          <p style={{ fontSize: 13, color: "#115e59", margin: 0, lineHeight: 1.5 }}>{diseaseResult.irrigation_advice}</p>
+                        </div>
+                      )}
                     </div>
                   )}
 

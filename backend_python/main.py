@@ -20,7 +20,7 @@ except ImportError:
     pass
 
 from database import init_db, get_db, DiseaseReport, CropLog, WeatherCache, User, PushSubscription, EmergencyAlert, CommunityOfficer, CommunityWebinar, GovernmentScheme, seed_db
-from ml_model import predict_image, get_gemini_api_key
+from ml_model import predict_image, get_gemini_api_key, run_crop_diagnose_cv, run_leaf_disease_diagnose, run_crop_disease_detect
 from use_dataset_for_disease_detection import register_dataset_routes, get_dataset_stats, load_dataset_classes
 
 # Global crop recommendation model data
@@ -248,199 +248,145 @@ async def diagnose_crop_disease(
     }
 
 
-# --- MODULE A2: Leaf Disease Diagnosis (Leaf-Specific Endpoint) ---
-@app.post("/api/leaf-diagnose", status_code=status.HTTP_201_CREATED)
-async def diagnose_leaf_disease(
+# --- MODULE A2: Crop Diagnostics CV ---
+@app.post("/api/crop-diagnose", status_code=status.HTTP_201_CREATED)
+async def diagnose_crop_cv_endpoint(
     image: UploadFile = File(...),
     crop: Optional[str] = Form(None),
-    region: Optional[str] = Form(None),
-    user_id: Optional[int] = Form(None),
     x_gemini_key: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
     """
-    Leaf-specific disease diagnosis endpoint for AITools Leaf Disease Diagnostics tab.
-    Validates that the uploaded image is a plant leaf.
-    If NOT a leaf → returns: Invalid image. Please upload a clear image of a plant leaf.
-    Returns structured: plant_name, disease, health_status, confidence, disease_description,
-    causes, organic_treatment, chemical_treatment, prevention_methods, fertilizer_advice.
+    Examines crop image. Accepts ONLY crop/plant images.
+    If NOT a crop -> returns success: False, error: "Invalid image. Please upload a crop image or plant."
     """
     if not image.content_type.startswith("image/"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File uploaded is not a valid image format. Please upload JPG, JPEG, PNG, or WEBP."
-        )
+        raise HTTPException(status_code=400, detail="File uploaded is not a valid image format.")
 
-    # Save uploaded image
-    unique_filename = f"leaf_{int(datetime.utcnow().timestamp())}_{image.filename}"
+    unique_filename = f"crop_diag_{int(datetime.utcnow().timestamp())}_{image.filename}"
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(image.file, buffer)
     image_url = f"/py_uploads/{unique_filename}"
 
-    # Auto-resize
-    try:
-        from PIL import Image as PILImage
-        with PILImage.open(file_path) as pil_img:
-            pil_img = pil_img.convert("RGB")
-            pil_img.thumbnail((1024, 1024), PILImage.LANCZOS)
-            pil_img.save(file_path, format="JPEG", quality=92)
-    except Exception:
-        pass
+    with open(file_path, "rb") as f:
+        img_bytes = f.read()
+
+    prediction = run_crop_diagnose_cv(img_bytes, crop_hint=crop, custom_key=x_gemini_key)
+    
+    # Save search log if valid
+    if prediction.get("success", True):
+        report = DiseaseReport(
+            user_id=None,
+            crop=prediction.get("crop_name", "Unknown"),
+            disease=prediction.get("problems_detected", "Healthy"),
+            severity="medium",
+            confidence=prediction.get("confidence", 0.95),
+            advice=prediction.get("recommendations", ""),
+            image_url=image_url,
+            region="Crop Diagnostics (CV)"
+        )
+        db.add(report)
+        db.commit()
+        db.refresh(report)
+        prediction["report_id"] = report.id
+        prediction["imageUrl"] = image_url
+
+    return prediction
+
+
+# --- MODULE A3: Leaf Disease Diagnosis ---
+@app.post("/api/leaf-diagnose", status_code=status.HTTP_201_CREATED)
+async def diagnose_leaf_disease(
+    image: UploadFile = File(...),
+    crop: Optional[str] = Form(None),
+    x_gemini_key: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Leaf-specific disease diagnosis endpoint.
+    If NOT a leaf -> returns success: False, error: "Invalid image. Please upload a crop image of a plant leaf."
+    """
+    if not image.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File uploaded is not a valid image format.")
+
+    unique_filename = f"leaf_diag_{int(datetime.utcnow().timestamp())}_{image.filename}"
+    file_path = os.path.join(UPLOAD_DIR, unique_filename)
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(image.file, buffer)
+    image_url = f"/py_uploads/{unique_filename}"
 
     with open(file_path, "rb") as f:
         img_bytes = f.read()
 
-    # Attempt leaf-specific Gemini diagnosis
-    api_key = (x_gemini_key or "").strip() or get_gemini_api_key()
-    prediction = None
+    prediction = run_leaf_disease_diagnose(img_bytes, crop_hint=crop, custom_key=x_gemini_key)
 
-    if api_key:
-        try:
-            import base64, json
-            import requests as _req
-            from ml_model import get_dataset_classes
-            from PIL import Image as PILImage
-            import io as _io
+    # Save search log if valid
+    if prediction.get("success", True):
+        report = DiseaseReport(
+            user_id=None,
+            crop=prediction.get("plant_name", "Unknown"),
+            disease=prediction.get("disease_name", "Healthy"),
+            severity="medium",
+            confidence=prediction.get("confidence", 0.95),
+            advice=prediction.get("treatment", ""),
+            image_url=image_url,
+            region="Leaf Diagnostics"
+        )
+        db.add(report)
+        db.commit()
+        db.refresh(report)
+        prediction["report_id"] = report.id
+        prediction["imageUrl"] = image_url
 
-            try:
-                pil_img = PILImage.open(_io.BytesIO(img_bytes))
-                fmt = (pil_img.format or "JPEG").upper()
-                mime_type = {"JPEG": "image/jpeg", "PNG": "image/png", "WEBP": "image/webp"}.get(fmt, "image/jpeg")
-            except Exception:
-                mime_type = "image/jpeg"
+    return prediction
 
-            b64 = base64.b64encode(img_bytes).decode("utf-8")
-            dataset_classes = get_dataset_classes()
-            dataset_str = ", ".join(dataset_classes[:80])
 
-            leaf_prompt = f"""You are LeafExpert, an AI specialist trained exclusively on PlantVillage, PlantDoc, and AI Challenger Plant datasets for leaf disease detection.
+# --- MODULE A4: Crop Disease Detection ---
+@app.post("/api/crop-disease-detect", status_code=status.HTTP_201_CREATED)
+async def detect_crop_disease_endpoint(
+    image: UploadFile = File(...),
+    crop: Optional[str] = Form(None),
+    x_gemini_key: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Crop disease detection endpoint.
+    If NOT a crop -> returns success: False, error: "Invalid image. Please upload a valid crop image."
+    """
+    if not image.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File uploaded is not a valid image format.")
 
-=== MANDATORY STEP 1: LEAF VALIDATION ===
-Examine the uploaded image carefully.
-- ONLY proceed if the image shows a PLANT LEAF (single leaf, or plant with clear leaf detail visible).
-- If the image is NOT a leaf (e.g., person, animal, vehicle, building, full field/landscape, food, or any non-leaf object) → return Invalid Image.
+    unique_filename = f"crop_detect_{int(datetime.utcnow().timestamp())}_{image.filename}"
+    file_path = os.path.join(UPLOAD_DIR, unique_filename)
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(image.file, buffer)
+    image_url = f"/py_uploads/{unique_filename}"
 
-For NON-LEAF images, return EXACTLY this JSON:
-{{"disease": "Invalid Image", "plant_name": "Not a leaf", "health_status": "invalid", "confidence": 0.0, "severity": "low", "disease_description": "The uploaded image does not contain a plant leaf.", "causes": "N/A", "treatment": "N/A", "organic_treatment": "N/A", "chemical_treatment": "N/A", "prevention_methods": "N/A", "fertilizer_advice": "N/A", "image_analysis": "Image rejected — no plant leaf detected in the image.", "advice": "Invalid image. Please upload a clear image of a plant leaf.", "gemini_powered": true}}
+    with open(file_path, "rb") as f:
+        img_bytes = f.read()
 
-=== MANDATORY STEP 2: LEAF DISEASE DIAGNOSIS ===
-Reference crops: {dataset_str}
-Farmer crop hint: "{crop or 'auto-detect from image'}"
-IMPORTANT: Analyze actual leaf pixels. Identify the correct plant — do NOT rely on crop hint alone.
+    prediction = run_crop_disease_detect(img_bytes, crop_hint=crop, custom_key=x_gemini_key)
 
-Return ONLY this JSON (no text outside):
-{{
-  "plant_name": "Full plant/crop name (e.g. Tomato plant, Rice plant, Wheat plant)",
-  "disease": "Disease name with scientific name (e.g. Early Blight (Alternaria solani)) or Healthy",
-  "health_status": "Healthy|Infected|Suspect",
-  "severity": "low|medium|high",
-  "confidence": 0.92,
-  "disease_description": "Detailed description of the disease, what it does to the leaf, and how it spreads",
-  "causes": "Pathogen type (fungal/bacterial/viral/pest) + specific pathogen name + contributing weather/soil conditions",
-  "treatment": "Complete integrated treatment plan (combine organic and chemical methods)",
-  "organic_treatment": "Organic/biological treatment with exact rates (e.g. Neem oil 5mL/L every 7 days, Trichoderma viride 2g/L soil drench)",
-  "chemical_treatment": "Chemical treatment: product name, active ingredient, dose (g/L or mL/L), application frequency, safety interval",
-  "prevention_methods": "Prevention steps, sanitation, crop rotation, resistant varieties, cultural practices",
-  "fertilizer_advice": "Nutritional support for recovery (NPK, micronutrients, biostimulants)",
-  "image_analysis": "What you see: leaf color, lesion shape, color of lesion, affected percentage, distribution pattern",
-  "advice": "Summary of top 3-4 immediate action points for the farmer",
-  "gemini_powered": true
-}}"""
+    # Save search log if valid
+    if prediction.get("success", True):
+        report = DiseaseReport(
+            user_id=None,
+            crop=prediction.get("crop", "Unknown"),
+            disease=prediction.get("disease", "Healthy"),
+            severity=prediction.get("severity", "medium"),
+            confidence=prediction.get("confidence", 0.95),
+            advice=prediction.get("organic_treatment", ""),
+            image_url=image_url,
+            region="Crop Disease Detection"
+        )
+        db.add(report)
+        db.commit()
+        db.refresh(report)
+        prediction["report_id"] = report.id
+        prediction["imageUrl"] = image_url
 
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-            payload = {
-                "contents": [{"parts": [{"text": leaf_prompt}, {"inline_data": {"mime_type": mime_type, "data": b64}}]}],
-                "generationConfig": {"temperature": 0.05, "topK": 16, "topP": 0.95, "maxOutputTokens": 2000, "responseMimeType": "application/json"},
-                "safetySettings": [
-                    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-                    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-                    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-                    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
-                ]
-            }
-            resp = _req.post(url, json=payload, timeout=35)
-            if resp.status_code == 200:
-                data = resp.json()
-                parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
-                if parts:
-                    raw = parts[0].get("text", "").strip()
-                    if "```" in raw:
-                        raw = raw.split("```")[1]
-                        if raw.startswith("json"): raw = raw[4:]
-                        raw = raw.strip().rstrip("`").strip()
-                    parsed = json.loads(raw)
-                    prediction = {
-                        "plant_name": str(parsed.get("plant_name", crop or "Unknown Plant")),
-                        "crop": str(parsed.get("plant_name", crop or "Unknown Plant")),
-                        "disease": str(parsed.get("disease", "Unknown")),
-                        "health_status": str(parsed.get("health_status", "Unknown")),
-                        "severity": str(parsed.get("severity", "medium")),
-                        "confidence": min(1.0, max(0.0, float(parsed.get("confidence", 0.85)))),
-                        "disease_description": str(parsed.get("disease_description", "")),
-                        "causes": str(parsed.get("causes", "")),
-                        "treatment": str(parsed.get("treatment", "")),
-                        "organic_treatment": str(parsed.get("organic_treatment", "")),
-                        "chemical_treatment": str(parsed.get("chemical_treatment", "")),
-                        "prevention_methods": str(parsed.get("prevention_methods", "")),
-                        "fertilizer_advice": str(parsed.get("fertilizer_advice", "")),
-                        "image_analysis": str(parsed.get("image_analysis", "")),
-                        "advice": str(parsed.get("advice", "")),
-                        "gemini_powered": True,
-                        "model": "Google Gemini 1.5 Flash (LeafExpert)"
-                    }
-                    if prediction["severity"] not in ("low", "medium", "high"):
-                        prediction["severity"] = "medium"
-            print(f"[LeafDiagnose] Gemini result: {prediction.get('plant_name')} → {prediction.get('disease')} ({prediction.get('confidence', 0):.2f})")
-        except Exception as gemini_err:
-            print(f"[LeafDiagnose] Gemini leaf-specific call failed: {gemini_err}")
-
-    # Fallback to standard pipeline if Gemini failed
-    if not prediction:
-        prediction = predict_image(img_bytes, crop_hint=crop, filename=image.filename, custom_key=x_gemini_key)
-        prediction["plant_name"] = prediction.get("plant_name", prediction.get("crop", crop or "Unknown Plant"))
-        prediction["disease_description"] = prediction.get("symptoms", prediction.get("advice", ""))
-        prediction["treatment"] = prediction.get("chemical_treatment", prediction.get("advice", ""))
-        prediction["prevention_methods"] = prediction.get("prevention", "")
-
-    # Save to DB
-    report = DiseaseReport(
-        user_id=user_id,
-        crop=prediction.get("plant_name", prediction.get("crop", "Unknown")),
-        disease=prediction.get("disease", "Unknown"),
-        severity=prediction.get("severity", "medium"),
-        confidence=prediction.get("confidence", 0.0),
-        advice=prediction.get("advice", ""),
-        image_url=image_url,
-        region=region or "Global"
-    )
-    db.add(report)
-    db.commit()
-    db.refresh(report)
-
-    return {
-        "success": True,
-        "report_id": report.id,
-        "plant_name": prediction.get("plant_name", report.crop),
-        "crop": prediction.get("plant_name", report.crop),
-        "disease": report.disease,
-        "health_status": prediction.get("health_status", "Unknown"),
-        "severity": report.severity,
-        "confidence": report.confidence,
-        "disease_description": prediction.get("disease_description", ""),
-        "causes": prediction.get("causes", ""),
-        "treatment": prediction.get("treatment", ""),
-        "organic_treatment": prediction.get("organic_treatment", ""),
-        "chemical_treatment": prediction.get("chemical_treatment", ""),
-        "prevention_methods": prediction.get("prevention_methods", ""),
-        "fertilizer_advice": prediction.get("fertilizer_advice", ""),
-        "image_analysis": prediction.get("image_analysis", ""),
-        "advice": report.advice,
-        "imageUrl": image_url,
-        "gemini_powered": prediction.get("gemini_powered", False),
-        "ai_model": prediction.get("model", "AI Pipeline"),
-        "createdAt": report.created_at.isoformat()
-    }
+    return prediction
 
 
 # --- Gemini API Status Endpoint ---
