@@ -12,7 +12,6 @@ import Forum from "./pages/Forum";
 import AITools from "./pages/AITools";
 import Marketplace from "./pages/Marketplace";
 import KisanChat from "./pages/KisanChat";
-import AgriHealthPortal from "./pages/AgriHealthPortal";
 import PredictiveYield from "./pages/PredictiveYield";
 import History from "./pages/History";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -64,7 +63,6 @@ const App = () => {
               <Route path="/market" element={<ProtectedRoute><Market /></ProtectedRoute>} />
               <Route path="/forum" element={<ProtectedRoute><Forum /></ProtectedRoute>} />
               <Route path="/ai-tools" element={<ProtectedRoute><AITools /></ProtectedRoute>} />
-              <Route path="/agri-health" element={<ProtectedRoute><AgriHealthPortal /></ProtectedRoute>} />
               <Route path="/marketplace" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />
               <Route path="/predictive-yield" element={<ProtectedRoute><PredictiveYield /></ProtectedRoute>} />
               <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />

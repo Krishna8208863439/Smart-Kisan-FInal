@@ -5,7 +5,6 @@ const NAV_ITEMS = [
   { to: '/dashboard', icon: '📊', label: 'Dashboard', authRequired: true },
   { to: '/chat', icon: '🤖', label: 'Chat', authRequired: true },
   { to: '/ai-tools', icon: '🛠️', label: 'AI', authRequired: true },
-  { to: '/agri-health', icon: '🏥', label: 'Health', authRequired: true },
   { to: '/marketplace', icon: '🛒', label: 'Market', authRequired: true },
   { to: '/history', icon: '🕘', label: 'History', authRequired: true },
 ];

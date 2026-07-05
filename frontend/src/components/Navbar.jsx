@@ -58,7 +58,6 @@ const Navbar = () => {
                 <NavLink to="/chat" className={navLinkClass}>{t('chat')}</NavLink>
                 <NavLink to="/ai-tools" className={navLinkClass}>{t('aiCenter')}</NavLink>
                 <NavLink to="/predictive-yield" className={navLinkClass}>{language === 'mr' ? 'उत्पादन अंदाज' : 'Predictive Yield'}</NavLink>
-                <NavLink to="/agri-health" className={navLinkClass}>{language === 'mr' ? 'कृषी-आरोग्य' : 'Agri-Health'}</NavLink>
                 <NavLink to="/marketplace" className={navLinkClass}>{t('bazaar')}</NavLink>
                 <NavLink to="/weather" className={navLinkClass}>{t('weather')}</NavLink>
                 <NavLink to="/market" className={navLinkClass}>{t('mandiPrices')}</NavLink>
@@ -197,7 +196,6 @@ const Navbar = () => {
                 <NavLink to="/chat" className={navLinkClass}>{t('chat')}</NavLink>
                 <NavLink to="/ai-tools" className={navLinkClass}>{t('aiCenter')}</NavLink>
                 <NavLink to="/predictive-yield" className={navLinkClass}>📈 {language === 'mr' ? 'उत्पादन अंदाज' : 'Predictive Yield'}</NavLink>
-                <NavLink to="/agri-health" className={navLinkClass}>🏥 {language === 'mr' ? 'कृषी-आरोग्य' : 'Agri-Health'}</NavLink>
                 <NavLink to="/marketplace" className={navLinkClass}>{t('bazaar')}</NavLink>
                 <NavLink to="/forum" className={navLinkClass}>{language === 'mr' ? '🏛️ शासकीय योजना' : '🏛️ Govt Scheme'}</NavLink>
                 <NavLink to="/weather" className={navLinkClass}>{t('weather')}</NavLink>
