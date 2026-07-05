@@ -215,37 +215,6 @@ router.post("/chat", protect, async (req, res) => {
     activeLang = matchedTag === "hi" ? "hi" : matchedTag === "mr" ? "mr" : "en";
   }
 
-  // ── Crop Isolation Guardrail (Refuse human skin, animals, household objects, machinery, weeds) ──
-  const nonCropKeywords = [
-    "human", "skin", "finger", "hand", "face", "leg", "person", "man", "woman", "child",
-    "cat", "dog", "tiger", "lion", "elephant", "bird", "snake", "monkey",
-    "tractor", "tiller", "machinery", "plow", "harvester", "engine", "car", "bike", "truck",
-    "table", "chair", "keyboard", "mobile", "phone", "bottle", "house", "room", "building", "furniture",
-    "ornamental weed", "dandelion", "grass lawn"
-  ];
-
-  const WHITELISTED_CROPS = [
-    "chilli", "aji pepper", "almond", "amaranth", "apple", "artichoke", "avocado", "acai", "banana", "barley", "beet", "black pepper", "blueberry", "bok choy", "brazil nut", "broccoli", "brussels sprout", "buckwheat", "cabbage", "camucamu", "carrot", "cashew", "cassava", "cauliflower", "celery", "cherimoya", "cherry", "chestnut", "chickpea", "chili pepper", "cinnamon", "clove", "cocoa bean", "coconut", "coffee", "collards", "cotton", "cranberry", "cucumber", "date", "dry bean", "dry pea", "durian", "eggplant", "endive", "fava bean", "fig", "flax", "fonio", "garlic", "ginger", "gooseberry", "grape", "groundnut", "peanut", "guarana", "guava", "habanero pepper", "hazelnut", "hemp", "horseradish", "jackfruit", "jute", "kale", "kohlrabi", "leek", "lemon", "lime", "lentil", "lettuce", "lima bean", "longan", "lupin", "lychee", "maize", "corn", "mandarin", "clementine", "mango", "mangosteen", "maracuja", "passionfruit", "millet", "mint", "mung bean", "mustard green", "mustard seed", "navy bean", "oat", "oil palm", "okra", "olive", "onion", "orange", "oregano", "papaya", "parsley", "peach", "pear", "persimmon", "pine nut", "pineapple", "pinto bean", "pistachio", "plantain", "pomegranate", "potato", "pumpkin", "squash", "gourd", "quinoa", "radish", "rambutan", "rapeseed", "canola", "raspberry", "rice", "paddy", "rosemary", "rubber", "rye", "saffron", "sage", "scallion", "sorghum", "soursop", "soybean", "spinach", "starfruit", "strawberry", "sugar beet", "sugar cane", "sunflower seed", "sweet potato", "swiss chard", "tamarind", "taro", "tea", "teff", "thyme", "tomato", "triticale", "turmeric", "turnip", "vanilla bean", "walnut", "watermelon", "wheat", "yam"
-  ];
-
-  const normalizedCropHint = cropHint ? normalizeCropName(cropHint) : "";
-  const normalizedUserMessage = userMessage ? normalizeCropName(userMessage) : "";
-
-  const containsNonCrop = nonCropKeywords.some(kw => normalizedUserMessage.includes(kw)) || 
-                          (normalizedCropHint && nonCropKeywords.some(kw => normalizedCropHint.includes(kw)));
-
-  const isDiagnosticsQuery = normalizedUserMessage.includes("diagnostic") || normalizedUserMessage.includes("disease") || image || normalizedUserMessage.includes("symptom");
-  const containsWhitelistedCrop = WHITELISTED_CROPS.some(keyword => normalizedUserMessage.includes(keyword) || (normalizedCropHint && normalizedCropHint.includes(keyword)));
-
-  if (containsNonCrop || (isDiagnosticsQuery && !image && !containsWhitelistedCrop && (normalizedCropHint || normalizedUserMessage.length > 0))) {
-    const refusal = FALLBACK_RESPONSES[activeLang]?.guardrailRefusal || FALLBACK_RESPONSES["en"].guardrailRefusal;
-    return res.json({
-      success: true,
-      response: `🚨 ${refusal}`,
-      source: "guardrail"
-    });
-  }
-
   // ── Build Location, Weather & Water context ──
   let userContext = "";
   if (gps) {
@@ -261,240 +230,311 @@ router.post("/chat", protect, async (req, res) => {
     userContext += `- **Crop Identified**: ${cropHint}\n`;
   }
 
-  // ── Get Gemini/Groq API Key ──
+  // Get User's api key or system key
   const headerKey = req.headers["x-gemini-key"];
   const apiKey = (headerKey && headerKey.trim().length > 10)
     ? headerKey.trim()
-    : (process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY);
+    : (process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY || "");
 
-  let responseText = "";
-  let responseSource = "";
+  // Helper to determine active Python port
+  const getPythonUrl = () => {
+    let pythonUrl = "http://localhost:8000";
+    if (fs.existsSync("C:/Users/krish/Downloads/Project/active_ports.txt")) {
+      try {
+        const content = fs.readFileSync("C:/Users/krish/Downloads/Project/active_ports.txt", "utf8");
+        const match = content.match(/PYTHON_PORT=(\d+)/);
+        if (match) {
+          pythonUrl = `http://127.0.0.1:${match[1]}`;
+        }
+      } catch (err) {
+        console.error("[Node] Error reading active_ports.txt:", err);
+      }
+    } else if (fs.existsSync("/home/Krishna3114/active_ports.txt")) {
+      try {
+        const content = fs.readFileSync("/home/Krishna3114/active_ports.txt", "utf8");
+        const match = content.match(/PYTHON_PORT=(\d+)/);
+        if (match) {
+          pythonUrl = `http://127.0.0.1:${match[1]}`;
+        }
+      } catch (err) {
+        console.error("[Node] Error reading active_ports.txt:", err);
+      }
+    }
+    return pythonUrl;
+  };
 
-  const systemInstruction = 
-    `You are AgriExpert, an advanced AI Agricultural Specialist and Advisor. Your primary job is to diagnose crop diseases and provide treatment recommendations from uploaded images.
-
-CRITICAL GUARDRAIL:
-1. First, analyze the uploaded image to determine if it actually contains a crop, plant, leaf, or agricultural specimen.
-2. If the image is NOT a plant or crop (e.g., it is a building, person, vehicle, animal, abstract object, or completely unrelated scene), you MUST NOT provide a crop diagnosis. Instead, politely refuse to answer. Use this exact response format for invalid images:
-"Error: The uploaded image does not appear to be a crop or plant. Please upload a clear photo of your crop or plant leaves for an accurate diagnosis."
-
-If and only if the image is a valid crop/plant, provide a detailed diagnosis using the following strict markdown structure:
-
-**AI Crop Diagnosis Profile (AgriExpert)**
-
----
-
-* **Disease Name:** [Identify the disease and its scientific name, or state "Healthy" if no disease is found]
-* **Cure/Treatment:** [Provide specific, actionable treatment options, including organic methods or chemical names with precise dosages like mL/L]
-* **Precautions to Take:** [List preventative measures, sanitation steps, or future crop rotation advice]
-* **Treatment Product Links:** [Include marketplace product links in format: [Buy Product Name on Marketplace](app://marketplace/search?query=ProductName)]
-
-Additional System Rules:
-- Multilingual: Respond in the active language: "${activeLang}" (English, Hindi, or Marathi).
-- Tone: Empathetic, supportive, and practical. Speak directly to farmers.
-- Keep responses scannable using bold text and bullet points.
-- For non-diagnostic queries (irrigation, fertilizer, marketplace, weather), continue answering helpfully.
-
-Irrigation Module: Give explicit run schedules based on crop type, growth stage, soil, and weather forecast. Example: "Run drip irrigation for 45 minutes (approx. 4 liters per plant)."
-
-Marketplace Module:
-- Seller: Prompt for Product Name, Variety, Quantity, Price, Location and format as a receipt.
-- Buyer: Recommend Seeds, Fertilizers, Pesticides with marketplace links.
-
-Crop Advisory: Generate weekly sowing, fertilizer, weeding, and harvesting calendars based on GPS and weather inputs.
-
-Location/Weather context available:
-${userContext || "No additional context provided."}`;
-
-  // Intercept image diagnostics query when vision key is not set or to fall back
   const isImageRequest = image && image.data;
 
   if (isImageRequest) {
+    let endpoint = "/api/crop-diagnose"; // default
+    let isAgricultural = true;
+
     const isGeminiKey = apiKey && apiKey.trim().length > 10 && !apiKey.startsWith("gsk_") && apiKey !== "YOUR_GEMINI_API_KEY";
     if (isGeminiKey) {
       try {
-        const contents = [];
-        if (chatHistory && Array.isArray(chatHistory)) {
-          chatHistory.slice(-6).forEach(chat => {
-            contents.push({
-              role: chat.sender === "user" ? "user" : "model",
-              parts: [{ text: chat.text }]
-            });
-          });
-        }
+        const contents = [
+          {
+            role: "user",
+            parts: [
+              {
+                inlineData: {
+                  mimeType: image.mimeType || "image/jpeg",
+                  data: image.data
+                }
+              },
+              {
+                text: `Analyze this image. You must classify whether the image shows an agricultural crop, plant, field, or plant leaf, and select the most appropriate analysis module:
+- If the image contains ONLY a leaf or leaves (close up of leaf/leaves), select "leaf".
+- If the image shows a crop showing signs of disease, pests, lesions, or stress, select "crop_disease".
+- If the image shows a healthy crop, crop field, vegetable, fruit, seedling, or crop structure generally, select "crop_diagnostics".
+- If the image is NOT related to agriculture, crops, plants, or leaves (e.g. it shows a person, animal, car, building, random consumer object, etc.), select "invalid".
 
-        const userParts = [];
-        if (userContext) {
-          userParts.push({ text: `[User Context Metadata]\n${userContext}` });
-        }
-        userParts.push({ text: message });
-
-        userParts.push({
-          inline_data: {
-            mime_type: image.mimeType,
-            data: image.data
+Respond ONLY with this JSON (no markdown outside JSON):
+{
+  "is_agricultural": true|false,
+  "image_type": "leaf" | "crop_disease" | "crop_diagnostics" | "invalid"
+}`
+              }
+            ]
           }
-        });
+        ];
 
-        contents.push({ role: "user", parts: userParts });
-
-        const response = await fetch(
+        const valResp = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents,
-              systemInstruction: {
-                parts: [{ text: systemInstruction }]
-              }
-            })
+            body: JSON.stringify({ contents })
           }
         );
-
-        const data = await response.json();
-        if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-          responseText = data.candidates[0].content.parts[0].text;
-          responseSource = "gemini";
-        }
-      } catch (err) {
-        console.error("Gemini Vision failed in chat route, trying fallbacks:", err);
-      }
-    }
-
-    // Local/Hugging Face image analysis fallback
-    if (!responseText) {
-      try {
-        const imageBuffer = Buffer.from(image.data, "base64");
-        let diagResult = null;
-        try {
-          diagResult = await analyzeWithHuggingFace(imageBuffer, cropHint);
-        } catch (hfErr) {
-          console.warn("Hugging Face analysis failed in chat route:", hfErr.message);
-        }
-
-        if (!diagResult) {
-          diagResult = smartLocalFallback(cropHint || "wheat", "image.jpg");
-        }
-
-        if (diagResult) {
-          responseSource = "huggingface-local";
-          const diseaseName = diagResult.disease;
-          const adviceText = diagResult.advice;
-
-          if (activeLang === "mr") {
-            responseText = `🏥 **पीक रोग निदान अहवाल (AgriExpert)**\n\n` +
-              `1. **रोगाचे नाव**: ${getLocalizedDiseaseMR(diseaseName)} (${diseaseName})\n` +
-              `2. **उपाय/उपचार**: ${getLocalizedAdviceMR(adviceText)}\n` +
-              `3. **घ्यावयाची काळजी**: बाधित पाने किंवा भाग शेतातून काढून टाका, पाण्याचा निचरा व्यवस्थित ठेवा आणि पिकांची फेरपालट करा.\n` +
-              `4. **खरेदी दुवा**: [Bazaar वर खरेदी करा](app://marketplace/search?query=${encodeURIComponent(extractProductQuery(diseaseName))})`;
-          } else if (activeLang === "hi") {
-            responseText = `🏥 **फसल रोग निदान रिपोर्ट (AgriExpert)**\n\n` +
-              `1. **बीमारी का नाम**: ${getLocalizedDiseaseHI(diseaseName)} (${diseaseName})\n` +
-              `2. **इलाज/उपचार**: ${getLocalizedAdviceHI(adviceText)}\n` +
-              `3. **सावधानियां**: ग्रसित पौधों के हिस्सों को नष्ट करें, खेत की स्वच्छता बनाए रखें और संतुलित उर्वरक का प्रयोग करें।\n` +
-              `4. **उत्पाद लिंक**: [मार्केटप्लेस पर खरीदें](app://marketplace/search?query=${encodeURIComponent(extractProductQuery(diseaseName))})`;
+        const valData = await valResp.json();
+        const valRaw = valData.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (valRaw) {
+          let cleanJson = valRaw.trim();
+          if (cleanJson.includes("```")) {
+            cleanJson = cleanJson.split("```")[1];
+            if (cleanJson.startsWith("json")) {
+              cleanJson = cleanJson.substring(4);
+            }
+            cleanJson = cleanJson.trim().split("```")[0].trim();
+          }
+          const valObj = JSON.parse(cleanJson);
+          if (valObj.is_agricultural === false || valObj.image_type === "invalid") {
+            isAgricultural = false;
           } else {
-            responseText = `🏥 **AI Crop Diagnosis Profile (AgriExpert)**\n\n` +
-              `1. **Disease Name**: ${diseaseName}\n` +
-              `2. **Cure/Treatment**: ${adviceText}\n` +
-              `3. **Precautions to Take**: Prune affected foliage, ensure clean field sanitation, and implement appropriate crop rotation.\n` +
-              `4. **Treatment Product Links**: [Buy Treatment on Marketplace](app://marketplace/search?query=${encodeURIComponent(extractProductQuery(diseaseName))})`;
+            if (valObj.image_type === "leaf") {
+              endpoint = "/api/leaf-diagnose";
+            } else if (valObj.image_type === "crop_disease") {
+              endpoint = "/api/crop-disease-detect";
+            } else {
+              endpoint = "/api/crop-diagnose";
+            }
           }
         }
-      } catch (fallbackErr) {
-        console.error("Local/HF diagnostics fallback failed:", fallbackErr);
+      } catch (err) {
+        console.error("Gemini Vision classification failed, defaulting to forward directly to Python:", err);
+      }
+    } else {
+      if (cropHint && cropHint.toLowerCase().includes("leaf")) {
+        endpoint = "/api/leaf-diagnose";
+      } else {
+        endpoint = "/api/crop-diagnose";
       }
     }
 
-    if (responseText) {
+    if (!isAgricultural) {
+      return res.json({
+        success: false,
+        response: "Unsupported image. Please upload a valid crop or plant leaf image.",
+        source: "system"
+      });
+    }
+
+    // Forward to Python Backend
+    try {
+      const pythonUrl = getPythonUrl();
+      const formData = new FormData();
+      const imageBuffer = Buffer.from(image.data, "base64");
+      const fileBlob = new Blob([imageBuffer], { type: image.mimeType || "image/jpeg" });
+      formData.append("image", fileBlob, "upload.jpg");
+      if (cropHint) {
+        formData.append("crop", cropHint);
+      }
+
+      console.log(`Forwarding to Python endpoint: ${pythonUrl}${endpoint}`);
+      const pyResp = await fetch(`${pythonUrl}${endpoint}`, {
+        method: "POST",
+        headers: {
+          "x-gemini-key": apiKey
+        },
+        body: formData
+      });
+
+      if (!pyResp.ok) {
+        throw new Error(`Python backend returned status ${pyResp.status}`);
+      }
+
+      const pyData = await pyResp.json();
+      if (pyData.success === false) {
+        return res.json({
+          success: false,
+          response: pyData.error || "Invalid image. Please upload a clear crop or leaf image.",
+          source: "python-fallback"
+        });
+      }
+
+      // Format response based on endpoint
+      let formattedText = "";
+      if (endpoint === "/api/leaf-diagnose") {
+        const confPercent = Math.round((pyData.confidence || 0.95) * 100);
+        formattedText = `🏥 **Leaf Disease Diagnostics (AgriExpert)**
+
+* **Plant Name:** ${pyData.plant_name || "Unknown"}
+* **Disease Name:** ${pyData.disease_name || "Healthy"}
+* **Healthy / Diseased Status:** ${pyData.health_status || "Healthy"}
+* **Confidence Score:** ${confPercent}%
+* **Symptoms:** ${pyData.disease_description || "No symptoms."}
+* **Disease Cause:** ${pyData.causes || "N/A"}
+* **Organic Treatment:** ${pyData.organic_treatment || "N/A"}
+* **Chemical Treatment:** ${pyData.chemical_treatment || "N/A"}
+* **Prevention Methods:** ${pyData.prevention_methods || "N/A"}`;
+      } else if (endpoint === "/api/crop-diagnose") {
+        const confPercent = Math.round((pyData.confidence || 0.95) * 100);
+        formattedText = `🏥 **Crop Diagnostics (AgriExpert)**
+
+* **Crop Name:** ${pyData.crop_name || "Unknown"}
+* **Crop Health Status:** ${pyData.crop_health || "Healthy"}
+* **Growth Stage:** ${pyData.growth_stage || "Unknown"}
+* **Confidence Score:** ${confPercent}%
+* **Identified Problems:** ${pyData.problems_detected || "None"}
+* **Recommended Solution:** ${pyData.recommendations || "N/A"}
+* **Fertilizer Recommendation:** ${pyData.fertilizer_recommendation || "N/A"}
+* **Irrigation Advice:** ${pyData.irrigation_advice || "N/A"}`;
+      } else {
+        const confPercent = Math.round((pyData.confidence || 0.95) * 100);
+        formattedText = `🏥 **Crop Disease Detection (AgriExpert)**
+
+* **Crop Name:** ${pyData.crop || "Unknown"}
+* **Disease Name:** ${pyData.disease || "Healthy"}
+* **Confidence Score:** ${confPercent}%
+* **Disease Severity:** ${pyData.severity || "medium"}
+* **Symptoms:** ${pyData.symptoms || "No severe symptoms."}
+* **Causes:** ${pyData.causes || "N/A"}
+* **Organic Treatment:** ${pyData.organic_treatment || "N/A"}
+* **Chemical Treatment:** ${pyData.chemical_treatment || "N/A"}
+* **Recommended Fertilizer:** ${pyData.suggested_fertilizers || "N/A"}
+* **Irrigation Recommendation:** ${pyData.irrigation_advice || "N/A"}
+* **Prevention Methods:** ${pyData.prevention_methods || "N/A"}`;
+      }
+
       return res.json({
         success: true,
-        response: responseText,
-        source: responseSource
+        response: formattedText,
+        source: "python-cv-model",
+        ai_model: pyData.ai_model || "AI Computer Vision Model"
+      });
+    } catch (err) {
+      console.error("Python backend forward failed:", err);
+      return res.json({
+        success: true,
+        response: `🏥 **Crop Diagnostics (AgriExpert - Fallback)**\n\n* **Crop Name:** ${cropHint || "Crop"}\n* **Crop Health Status:** Healthy\n* **Problems Detected:** Offline prediction fallback activated.\n* **Recommendations:** Ensure consistent crop monitoring and maintain water supply.`,
+        source: "offline-fallback"
       });
     }
   }
 
-  // Non-image requests or if image fallback failed to generate response
-  if (apiKey && apiKey !== "YOUR_GEMINI_API_KEY" && apiKey.trim().length > 10) {
-    const isGroq = apiKey.startsWith("gsk_");
+  // ── Text Query Guardrail ──
+  const isGeminiKey = apiKey && apiKey.trim().length > 10 && !apiKey.startsWith("gsk_") && apiKey !== "YOUR_GEMINI_API_KEY";
+  if (isGeminiKey) {
     try {
-      if (isGroq) {
-        // Groq text-only chat integration
-        const messages = [
-          { role: "system", content: systemInstruction }
-        ];
-        if (userContext) {
-          messages.push({ role: "system", content: `[User Context Metadata]\n${userContext}` });
-        }
-        if (chatHistory && Array.isArray(chatHistory)) {
-          chatHistory.slice(-6).forEach(chat => {
-            messages.push({
-              role: chat.sender === "user" ? "user" : "assistant",
-              content: chat.text
-            });
-          });
-        }
-        messages.push({ role: "user", content: message });
-
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      const checkResp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${apiKey}`
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
-            messages,
-            temperature: 0.6
+            contents: [{
+              parts: [{
+                text: `Analyze if this user query is related to agriculture, farming, crops, plants, soil, plant diseases, pests, fertilizers, irrigation, weather for crops, or agri B2B marketplace.
+Return ONLY this JSON (no markdown outside JSON):
+{
+  "is_agriculture": true|false
+}
+Query: "${message}"`
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.1,
+              responseMimeType: "application/json"
+            }
           })
-        });
-
-        const data = await response.json();
-        if (data.choices && data.choices[0]?.message?.content) {
-          const text = data.choices[0].message.content;
-          return res.json({ success: true, response: text, source: "groq" });
         }
-      } else {
-        // Gemini text/vision fallback for text-only messages
-        const contents = [];
-        if (chatHistory && Array.isArray(chatHistory)) {
-          chatHistory.slice(-6).forEach(chat => {
-            contents.push({
-              role: chat.sender === "user" ? "user" : "model",
-              parts: [{ text: chat.text }]
-            });
+      ).then(r => r.json()).catch(() => null);
+
+      const checkRaw = checkResp?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (checkRaw) {
+        let cleanText = checkRaw.trim();
+        if (cleanText.includes("```")) {
+          cleanText = cleanText.split("```")[1];
+          if (cleanText.startsWith("json")) {
+            cleanText = cleanText.substring(4);
+          }
+          cleanText = cleanText.trim().split("```")[0].trim();
+        }
+        const checkObj = JSON.parse(cleanText);
+        if (checkObj.is_agriculture === false) {
+          return res.json({
+            success: false,
+            response: "I am an Agriculture AI Assistant. I can answer only agriculture and farming-related questions.",
+            source: "guardrail"
           });
         }
+      }
+    } catch (err) {
+      console.error("Query guardrail check error:", err);
+    }
+  }
 
-        const userParts = [];
-        if (userContext) {
-          userParts.push({ text: `[User Context Metadata]\n${userContext}` });
+  // ── Process Text Query with systemInstruction and history ──
+  if (isGeminiKey) {
+    try {
+      const systemInstruction = `You are SmartKisanBot, a specialized B2B Agricultural AI Assistant for Indian farmers.
+You MUST follow the language request from the user message, which contains a metadata tag like [Language: EN], [Language: HI], or [Language: MR]. You MUST reply ONLY in the requested language (English, Hindi, or Marathi).
+You can ONLY answer agriculture and farming-related questions. If a question is not related to agriculture, politely refuse.
+Formatting requirement: Always format your response using clean, simple Markdown with bullet points or numbered lists. Do not write large paragraphs.`;
+
+      const contents = [];
+      if (chatHistory && Array.isArray(chatHistory)) {
+        chatHistory.slice(-6).forEach(item => {
+          contents.push({
+            role: item.sender === "user" ? "user" : "model",
+            parts: [{ text: item.text }]
+          });
+        });
+      }
+      contents.push({
+        role: "user",
+        parts: [{ text: `${message} [Language: ${activeLang.toUpperCase()}]` }]
+      });
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents,
+            systemInstruction: {
+              parts: [{ text: systemInstruction }]
+            }
+          })
         }
-        userParts.push({ text: message });
+      );
 
-        contents.push({ role: "user", parts: userParts });
-
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents,
-              systemInstruction: {
-                parts: [{ text: systemInstruction }]
-              }
-            })
-          }
-        );
-
-        const data = await response.json();
-        if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-          const text = data.candidates[0].content.parts[0].text;
-          return res.json({ success: true, response: text, source: "gemini" });
-        }
+      const data = await response.json();
+      if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+        const text = data.candidates[0].content.parts[0].text;
+        return res.json({ success: true, response: text, source: "gemini" });
       }
     } catch (err) {
       console.error("AI service error, dropping to local rule-based expert:", err);

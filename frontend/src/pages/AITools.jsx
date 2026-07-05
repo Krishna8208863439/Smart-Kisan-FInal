@@ -231,14 +231,25 @@ const AITools = () => {
     setDiseaseFile(file);
     setDiseasePreview(URL.createObjectURL(file));
     setDiseaseResult(null);
-    setDiseaseStatus("Image loaded. Click 'Analyze Leaf'.");
+    if (diseaseSubTab === "leaf_diag") {
+      setDiseaseStatus(language === 'mr' ? "प्रतिमा लोड झाली. 'पानाचे विश्लेषण करा' वर क्लिक करा." : "Image loaded. Click 'Analyze Leaf'.");
+    } else {
+      setDiseaseStatus(language === 'mr' ? "प्रतिमा लोड झाली. 'पिकाचे विश्लेषण करा' वर क्लिक करा." : "Image loaded. Click 'Analyze Crop'.");
+    }
   };
 
-  const clearDiseaseImage = () => {
+  const clearDiseaseImage = (subTabId) => {
+    const activeSubTab = subTabId || diseaseSubTab;
     setDiseaseFile(null);
     setDiseasePreview(null);
     setDiseaseResult(null);
-    setDiseaseStatus("Upload a leaf photo and click analyze to output report.");
+    if (activeSubTab === "crop_cv") {
+      setDiseaseStatus(language === 'mr' ? "पिकाचा फोटो अपलोड करा आणि विश्लेषणावर क्लिक करा." : "Upload a crop photo and click analyze to output report.");
+    } else if (activeSubTab === "leaf_diag") {
+      setDiseaseStatus(language === 'mr' ? "पानाचा फोटो अपलोड करा आणि विश्लेषणावर क्लिक करा." : "Upload a leaf photo and click analyze to output report.");
+    } else {
+      setDiseaseStatus(language === 'mr' ? "पिकाचा फोटो अपलोड करा आणि विश्लेषणावर क्लिक करा." : "Upload a crop photo and click analyze to output report.");
+    }
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -302,7 +313,11 @@ const AITools = () => {
         setDiseaseStatus(`🚫 ${errMsg}`);
       } else {
         const modelUsed = result.ai_model || "AI Analysis";
-        setDiseaseStatus(`✅ ${language === 'mr' ? 'Google Gemini द्वारे निदान पूर्ण.' : 'Diagnosis completed via Gemini AI.'}`);
+        if (diseaseSubTab === "leaf_diag") {
+          setDiseaseStatus(`✅ ${language === 'mr' ? `${modelUsed} द्वारे निदान पूर्ण.` : `Diagnosis completed via ${modelUsed}.`}`);
+        } else {
+          setDiseaseStatus(`✅ ${language === 'mr' ? 'Google Gemini द्वारे निदान पूर्ण.' : 'Diagnosis completed via Gemini AI.'}`);
+        }
         
         addHistoryEntry({
           type: "disease_scan",
@@ -819,7 +834,7 @@ const AITools = () => {
                   type="button"
                   onClick={() => {
                     setDiseaseSubTab(subTab.id);
-                    clearDiseaseImage();
+                    clearDiseaseImage(subTab.id);
                   }}
                   style={{
                     padding: "8px 18px",
@@ -1113,7 +1128,9 @@ const AITools = () => {
                   }}>
                     <span>✨</span>
                     <span style={{ color: "#1d4ed8", fontWeight: 600 }}>
-                      Google Gemini 1.5 Flash (AgriExpert AI)
+                      {diseaseSubTab === "leaf_diag" 
+                        ? (diseaseResult?.ai_model || "AI Computer Vision Model")
+                        : "Google Gemini 1.5 Flash (AgriExpert AI)"}
                     </span>
                   </div>
 

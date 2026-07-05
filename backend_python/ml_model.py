@@ -1259,47 +1259,125 @@ def query_gemini_raw(image_bytes: bytes, prompt: str, custom_key: str = None) ->
         return None
 
 
+def validate_image_type(image_bytes: bytes, custom_key: str = None) -> dict:
+    """
+    Uses Gemini Vision to validate if the image contains a crop/plant leaf/agricultural crop.
+    Returns: {"is_crop": bool, "is_leaf": bool}
+    """
+    prompt = """Analyze this image. You must classify whether it shows an agricultural crop/plant/vegetable/fruit/field, and whether it is specifically a plant leaf/leaves.
+    Return ONLY this JSON (no markdown outside JSON):
+    {
+      "is_crop": true|false,
+      "is_leaf": true|false
+    }"""
+    result = query_gemini_raw(image_bytes, prompt, custom_key)
+    if result and isinstance(result, dict) and "is_crop" in result and "is_leaf" in result:
+        return result
+    return {"is_crop": True, "is_leaf": True}
+
+
+def query_gemini_text(prompt: str, custom_key: str = None) -> dict | None:
+    api_key = (custom_key or "").strip()
+    if not api_key:
+        api_key = get_gemini_api_key()
+    if not api_key:
+        print("[Gemini-Text] No API key available.")
+        return None
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        payload = {
+            "contents": [{
+                "parts": [{"text": prompt}]
+            }],
+            "generationConfig": {
+                "temperature": 0.2,
+                "maxOutputTokens": 1000,
+                "responseMimeType": "application/json"
+            }
+        }
+        resp = requests.post(url, json=payload, timeout=25)
+        if resp.status_code != 200:
+            print(f"[Gemini-Text] HTTP Error: {resp.status_code}")
+            return None
+        data = resp.json()
+        raw = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])[0].get("text", "").strip()
+        if "```" in raw:
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip().rstrip("`").strip()
+        return json.loads(raw)
+    except Exception as e:
+        print(f"[Gemini-Text] Request failed: {e}")
+        return None
+
+
+def run_cv_prediction(image_bytes: bytes, crop_hint: str = None) -> dict:
+    """
+    Runs computer vision models (local PyTorch or Hugging Face) to identify the crop and disease class.
+    """
+    torch_res = None
+    if TORCH_AVAILABLE:
+        torch_res = predict_via_torch(image_bytes)
+        if torch_res and "disease" in torch_res:
+            return torch_res
+            
+    hf_res = predict_via_huggingface(image_bytes, crop_hint)
+    if hf_res:
+        return hf_res
+        
+    return predict_via_static_fallback(crop_hint)
+
+
 def run_crop_diagnose_cv(image_bytes: bytes, crop_hint: str = None, custom_key: str = None) -> dict:
     """
     1. Crop Diagnostics (Computer Vision)
     Accepts ONLY crop/plant images.
-    Returns: success, crop_name, growth_stage, crop_health, confidence, problems_detected, recommendations.
     """
-    prompt = f"""You are CropDiagnoseAI, a computer vision system specializing in agricultural crops, plants, vegetables, and fruit plants.
+    val = validate_image_type(image_bytes, custom_key)
+    if val and not val.get("is_crop", True):
+        return {"success": False, "error": "Invalid image. Please upload a clear crop image."}
 
-=== MANDATORY STEP 1: CROP VALIDATION ===
-Examine the image carefully.
-- If the image does NOT show a crop, plant, tree, flower, vegetable, fruit, or agricultural field (for example, if it shows a person, animal, vehicle, building, food dish, consumer object, etc.) -> you MUST return a failure response.
-- Do NOT generate any diagnosis for non-crop images.
+    pred = run_cv_prediction(image_bytes, crop_hint)
+    predicted_crop = pred.get("crop", crop_hint or "Crop")
+    predicted_disease = pred.get("disease", "Healthy")
+    confidence = pred.get("confidence", 0.95)
 
-For non-crop images, return exactly this JSON:
-{{"success": false, "error": "Invalid image. Please upload a crop image or plant."}}
+    prompt = f"""You are an agricultural expert. Explain the following crop health classification:
+Crop: {predicted_crop}
+Condition: {predicted_disease}
+Confidence: {confidence:.2f}
 
-=== MANDATORY STEP 2: CROP DIAGNOSIS ===
-If the image shows a valid crop/plant, analyze it and return exactly this JSON:
+Generate a detailed diagnostics report in English, Hindi, or Marathi based on the condition.
+Return ONLY this JSON (no markdown outside JSON):
 {{
   "success": true,
-  "crop_name": "Name of the crop (e.g. Tomato, Wheat, Paddy)",
-  "growth_stage": "Growth stage (Seedling, Vegetative, Flowering, Fruiting, Harvest, or Unknown)",
-  "crop_health": "Healthy, Infected, or Diseased",
-  "confidence": 0.95,
-  "problems_detected": "Brief description of any symptoms, pests, nutrient deficiencies, or diseases detected",
-  "recommendations": "Actionable agronomic recommendations and treatments"
+  "crop_name": "Name of the crop (e.g. Tomato, Wheat)",
+  "growth_stage": "Growth stage (Seedling, Vegetative, Flowering, Fruiting, or Harvest)",
+  "crop_health": "Healthy | Infected | Diseased",
+  "confidence": {confidence:.2f},
+  "problems_detected": "Detailed description of the problems/symptoms identified",
+  "recommendations": "Detailed agronomic recommendations and treatments",
+  "fertilizer_recommendation": "Precise fertilizer recommendation for recovery",
+  "irrigation_advice": "Detailed watering advice"
 }}"""
 
-    result = query_gemini_raw(image_bytes, prompt, custom_key)
+    result = query_gemini_text(prompt, custom_key)
     if result:
+        result["ai_model"] = pred.get("model", "AI Computer Vision Model")
         return result
 
-    # Offline / Error Fallback
     return {
         "success": True,
-        "crop_name": crop_hint or "Tomato",
+        "crop_name": predicted_crop,
         "growth_stage": "Vegetative",
-        "crop_health": "Healthy",
-        "confidence": 0.75,
-        "problems_detected": "No severe symptoms observed. (Offline Fallback)",
-        "recommendations": "Maintain standard drip irrigation. Apply nitrogen-rich fertilizers."
+        "crop_health": "Healthy" if "healthy" in predicted_disease.lower() else "Diseased",
+        "confidence": confidence,
+        "problems_detected": f"Detected: {predicted_disease}.",
+        "recommendations": pred.get("advice", "Maintain proper crop management."),
+        "fertilizer_recommendation": "Apply standard NPK split dosage.",
+        "irrigation_advice": "Irrigate according to growth stage requirements.",
+        "ai_model": pred.get("model", "AI Computer Vision Model")
     }
 
 
@@ -1307,47 +1385,55 @@ def run_leaf_disease_diagnose(image_bytes: bytes, crop_hint: str = None, custom_
     """
     2. Leaf Disease Diagnostics
     Accepts ONLY leaf images.
-    Returns: success, plant_name, disease_name, health_status, confidence, disease_description, causes, treatment, prevention_methods.
     """
-    prompt = f"""You are LeafExpertAI, a plant pathology model specializing in leaf disease identification.
+    val = validate_image_type(image_bytes, custom_key)
+    if val and not val.get("is_leaf", True):
+        return {"success": False, "error": "Invalid image. Please upload a clear leaf image."}
 
-=== MANDATORY STEP 1: LEAF VALIDATION ===
-Examine the image carefully.
-- If the image does NOT show a plant/crop leaf (for example, if it shows a person, animal, vehicle, building, landscape without clear leaf details, or non-leaf object) -> you MUST return a failure response.
-- Do NOT generate any disease diagnosis for non-leaf images.
+    pred = run_cv_prediction(image_bytes, crop_hint)
+    predicted_crop = pred.get("crop", crop_hint or "Plant")
+    predicted_disease = pred.get("disease", "Healthy")
+    confidence = pred.get("confidence", 0.95)
 
-For non-leaf images, return exactly this JSON:
-{{"success": false, "error": "Invalid image. Please upload a crop image of a plant leaf."}}
+    prompt = f"""You are a plant pathologist. Explain the following leaf disease classification:
+Plant Name: {predicted_crop}
+Disease Name: {predicted_disease}
+Confidence: {confidence:.2f}
 
-=== MANDATORY STEP 2: LEAF DIAGNOSIS ===
-If the image is a plant leaf, analyze it and return exactly this JSON:
+Generate a leaf disease diagnostics report in English, Hindi, or Marathi based on the condition.
+Return ONLY this JSON (no markdown outside JSON):
 {{
   "success": true,
-  "plant_name": "Name of the plant (e.g. Tomato plant, Rice plant)",
-  "disease_name": "Name of the disease (scientific name in parentheses, e.g. Early Blight (Alternaria solani)) or Healthy",
-  "health_status": "Healthy or Infected",
-  "confidence": 0.95,
-  "disease_description": "Detailed description of the disease and how it affects the leaf",
-  "causes": "Pathogen details (fungal/bacterial/viral/pest) + specific pathogen name + conditions favoring spread",
-  "treatment": "Complete treatment recommendations (organic and chemical remedies)",
-  "prevention_methods": "Sanitation, cultural practices, and preventative measures"
+  "plant_name": "Name of the plant (e.g. Tomato, Rice)",
+  "disease_name": "Name of the disease (scientific name in parentheses) or Healthy",
+  "health_status": "Healthy | Infected",
+  "confidence": {confidence:.2f},
+  "disease_description": "Detailed description of the symptoms on the leaf",
+  "causes": "Specific causes and pathogen details (fungal/bacterial/viral/pest)",
+  "treatment": "Actionable chemical and organic treatments",
+  "organic_treatment": "Organic/biological treatment options with exact dosages",
+  "chemical_treatment": "Chemical treatment with active ingredients and doses (g/L or mL/L)",
+  "prevention_methods": "Sanitation and cultural prevention methods"
 }}"""
 
-    result = query_gemini_raw(image_bytes, prompt, custom_key)
+    result = query_gemini_text(prompt, custom_key)
     if result:
+        result["ai_model"] = pred.get("model", "AI Computer Vision Model")
         return result
 
-    # Offline / Error Fallback
     return {
         "success": True,
-        "plant_name": f"{crop_hint or 'Tomato'} plant",
-        "disease_name": "Healthy",
-        "health_status": "Healthy",
-        "confidence": 0.75,
-        "disease_description": "The leaf shows healthy cell morphology with no visible lesions. (Offline Fallback)",
-        "causes": "None (Healthy crop)",
-        "treatment": "No treatment required. Maintain standard crop care.",
-        "prevention_methods": "Sanitation, regular scouting, and proper irrigation spacing."
+        "plant_name": f"{predicted_crop} plant",
+        "disease_name": predicted_disease,
+        "health_status": "Healthy" if "healthy" in predicted_disease.lower() else "Infected",
+        "confidence": confidence,
+        "disease_description": f"Observed symptoms of {predicted_disease} on plant leaves.",
+        "causes": "Pathogen infection favored by environmental humidity.",
+        "treatment": pred.get("advice", "Apply standard treatment."),
+        "organic_treatment": "Apply neem oil spray (3-5 ml/L) as a preventive measure.",
+        "chemical_treatment": "Apply suitable contact fungicide if infection spreads.",
+        "prevention_methods": "Sanitation, remove infected debris, maintain space.",
+        "ai_model": pred.get("model", "AI Computer Vision Model")
     }
 
 
@@ -1355,51 +1441,55 @@ def run_crop_disease_detect(image_bytes: bytes, crop_hint: str = None, custom_ke
     """
     3. Crop Disease Detection
     Accepts ONLY crop/plant images.
-    Returns: success, crop, disease, confidence, severity, symptoms, causes, organic_treatment, chemical_treatment, prevention_methods, suggested_fertilizers, irrigation_advice.
     """
-    prompt = f"""You are CropDiseaseAI, a machine learning model for plant disease identification.
+    val = validate_image_type(image_bytes, custom_key)
+    if val and not val.get("is_crop", True):
+        return {"success": False, "error": "Invalid image. Please upload a valid crop image."}
 
-=== MANDATORY STEP 1: CROP VALIDATION ===
-Examine the image carefully.
-- If the image does NOT show a crop or plant (for example, if it shows a person, animal, vehicle, building, food, object, etc.) -> you MUST return a failure response.
-- Do NOT generate any disease diagnosis for non-crop images.
+    pred = run_cv_prediction(image_bytes, crop_hint)
+    predicted_crop = pred.get("crop", crop_hint or "Crop")
+    predicted_disease = pred.get("disease", "Healthy")
+    confidence = pred.get("confidence", 0.95)
 
-For non-crop images, return exactly this JSON:
-{{"success": false, "error": "Invalid image. Please upload a valid crop image."}}
+    prompt = f"""You are a crop pathology specialist. Explain the following crop disease detection result:
+Crop Name: {predicted_crop}
+Disease/Condition: {predicted_disease}
+Confidence: {confidence:.2f}
 
-=== MANDATORY STEP 2: CROP DISEASE ANALYSIS ===
-If the image shows a valid crop, analyze it and return exactly this JSON:
+Generate a comprehensive crop disease detection report in English, Hindi, or Marathi based on the condition.
+Return ONLY this JSON (no markdown outside JSON):
 {{
   "success": true,
-  "crop": "Exact name of the crop (e.g. Tomato, Rice, Wheat)",
+  "crop": "Name of the crop",
   "disease": "Disease name (scientific name in parentheses) or Healthy",
-  "confidence": 0.95,
-  "severity": "low, medium, or high",
-  "symptoms": "Visible leaf/stem/fruit symptoms shown in the image",
-  "causes": "Details of the pathogen (fungal, bacterial, viral, or pest)",
-  "organic_treatment": "Detailed organic treatment or biological solutions",
-  "chemical_treatment": "Chemical spray products, active ingredients, and doses",
-  "prevention_methods": "Sanitation, crop rotation, and preventative practices",
+  "confidence": {confidence:.2f},
+  "severity": "low | medium | high",
+  "symptoms": "Detailed visual symptoms",
+  "causes": "Detailed pathogen information and favorability conditions",
+  "organic_treatment": "Actionable organic/biological treatments with doses",
+  "chemical_treatment": "Precise chemical treatments with products and doses (g/L or mL/L)",
   "suggested_fertilizers": "Fertilizers recommended for recovery",
-  "irrigation_advice": "Irrigation recommendations based on disease state and crop"
+  "irrigation_advice": "Irrigation recommendations based on disease state",
+  "prevention_methods": "Prevention and sanitation methods"
 }}"""
 
-    result = query_gemini_raw(image_bytes, prompt, custom_key)
+    result = query_gemini_text(prompt, custom_key)
     if result:
+        result["ai_model"] = pred.get("model", "AI Computer Vision Model")
         return result
 
-    # Offline / Error Fallback
     return {
         "success": True,
-        "crop": crop_hint or "Tomato",
-        "disease": "Healthy",
-        "confidence": 0.75,
-        "severity": "low",
-        "symptoms": "None (Offline Fallback)",
-        "causes": "None",
-        "organic_treatment": "None required.",
-        "chemical_treatment": "None required.",
+        "crop": predicted_crop,
+        "disease": predicted_disease,
+        "confidence": confidence,
+        "severity": pred.get("severity", "medium"),
+        "symptoms": f"Signs of {predicted_disease} spotted on foliage.",
+        "causes": "Pathogen spores or insect vectors.",
+        "organic_treatment": "Apply organic bio-remedies (e.g. Pseudomonas fluorescens).",
+        "chemical_treatment": pred.get("advice", "Apply appropriate chemical treatment."),
+        "suggested_fertilizers": "Apply balanced micronutrient spray for quick recovery.",
+        "irrigation_advice": "Avoid overhead watering; ensure standard soil moisture.",
         "prevention_methods": "Sanitation and crop rotation.",
-        "suggested_fertilizers": "Standard NPK balance.",
-        "irrigation_advice": "Standard stage-based watering."
+        "ai_model": pred.get("model", "AI Computer Vision Model")
     }

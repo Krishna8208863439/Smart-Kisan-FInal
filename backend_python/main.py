@@ -267,6 +267,17 @@ async def diagnose_crop_cv_endpoint(
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(image.file, buffer)
+
+    # Preprocess & Resize image
+    try:
+        from PIL import Image as PILImage
+        with PILImage.open(file_path) as pil_img:
+            pil_img = pil_img.convert("RGB")
+            pil_img.thumbnail((800, 800), PILImage.LANCZOS)
+            pil_img.save(file_path, format="JPEG", quality=90)
+    except Exception as e:
+        print(f"[Resize] Error: {e}")
+
     image_url = f"/py_uploads/{unique_filename}"
 
     with open(file_path, "rb") as f:
@@ -314,6 +325,17 @@ async def diagnose_leaf_disease(
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(image.file, buffer)
+
+    # Preprocess & Resize image
+    try:
+        from PIL import Image as PILImage
+        with PILImage.open(file_path) as pil_img:
+            pil_img = pil_img.convert("RGB")
+            pil_img.thumbnail((800, 800), PILImage.LANCZOS)
+            pil_img.save(file_path, format="JPEG", quality=90)
+    except Exception as e:
+        print(f"[Resize] Error: {e}")
+
     image_url = f"/py_uploads/{unique_filename}"
 
     with open(file_path, "rb") as f:
@@ -361,6 +383,17 @@ async def detect_crop_disease_endpoint(
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(image.file, buffer)
+
+    # Preprocess & Resize image
+    try:
+        from PIL import Image as PILImage
+        with PILImage.open(file_path) as pil_img:
+            pil_img = pil_img.convert("RGB")
+            pil_img.thumbnail((800, 800), PILImage.LANCZOS)
+            pil_img.save(file_path, format="JPEG", quality=90)
+    except Exception as e:
+        print(f"[Resize] Error: {e}")
+
     image_url = f"/py_uploads/{unique_filename}"
 
     with open(file_path, "rb") as f:
