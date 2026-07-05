@@ -1351,7 +1351,7 @@ def run_crop_diagnose_cv(image_bytes: bytes, crop_hint: str = None, custom_key: 
         return {"success": False, "error": "Invalid image. Please upload a clear crop image."}
 
     pred = run_cv_prediction(image_bytes, crop_hint)
-    if not pred or pred.get("model") not in ("HuggingFace ViT PlantVillage", "Local PyTorch Model (PlantVillage)"):
+    if not pred:
         return {"success": False, "error": "AI Computer Vision model is temporarily offline or unable to process this image. Please try again later."}
 
     predicted_crop = pred.get("crop", crop_hint or "Crop")
@@ -1408,7 +1408,7 @@ def run_leaf_disease_diagnose(image_bytes: bytes, crop_hint: str = None, custom_
         return {"success": False, "error": "Invalid image. Please upload a clear leaf image."}
 
     pred = run_cv_prediction(image_bytes, crop_hint)
-    if not pred or pred.get("model") not in ("HuggingFace ViT PlantVillage", "Local PyTorch Model (PlantVillage)"):
+    if not pred:
         return {"success": False, "error": "AI Computer Vision model is temporarily offline or unable to process this image. Please try again later."}
 
     predicted_crop = pred.get("crop", crop_hint or "Plant")
@@ -1469,7 +1469,7 @@ def run_crop_disease_detect(image_bytes: bytes, crop_hint: str = None, custom_ke
         return {"success": False, "error": "Invalid image. Please upload a valid crop image."}
 
     pred = run_cv_prediction(image_bytes, crop_hint)
-    if not pred or pred.get("model") not in ("HuggingFace ViT PlantVillage", "Local PyTorch Model (PlantVillage)"):
+    if not pred:
         return {"success": False, "error": "AI Computer Vision model is temporarily offline or unable to process this image. Please try again later."}
 
     predicted_crop = pred.get("crop", crop_hint or "Crop")
