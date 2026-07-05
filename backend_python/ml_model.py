@@ -1262,18 +1262,26 @@ def query_gemini_raw(image_bytes: bytes, prompt: str, custom_key: str = None) ->
 def validate_image_type(image_bytes: bytes, custom_key: str = None) -> dict:
     """
     Uses Gemini Vision to validate if the image contains a crop/plant leaf/agricultural crop.
-    Returns: {"is_crop": bool, "is_leaf": bool}
+    Returns: {"is_crop": bool, "is_leaf": bool} or {"is_crop": False, "is_leaf": False, "error": str}
     """
-    prompt = """Analyze this image. You must classify whether it shows an agricultural crop/plant/vegetable/fruit/field, and whether it is specifically a plant leaf/leaves.
-    Return ONLY this JSON (no markdown outside JSON):
+    prompt = """Analyze this image. Determine if the image depicts an agricultural crop, crop field, plant, plant leaf/leaves, fruit, or vegetable.
+    You must classify:
+    1. "is_crop": true if the image contains any agricultural crop, crop plant, vegetable, fruit, or farm field. false if it contains people, animals, objects, cars, buildings, text-only, or anything unrelated to crops/agriculture.
+    2. "is_leaf": true if the image clearly shows a plant leaf or leaves. false if it does not show any leaves (e.g. only soil, only wood, only insects, or unrelated objects).
+    
+    Return ONLY this JSON structure (no markdown code blocks, no backticks, no other text):
     {
       "is_crop": true|false,
       "is_leaf": true|false
     }"""
-    result = query_gemini_raw(image_bytes, prompt, custom_key)
+    api_key = (custom_key or "").strip() or get_gemini_api_key()
+    if not api_key:
+        return {"is_crop": False, "is_leaf": False, "error": "Gemini API key not configured. Please set your Gemini API key in the settings panel."}
+    
+    result = query_gemini_raw(image_bytes, prompt, api_key)
     if result and isinstance(result, dict) and "is_crop" in result and "is_leaf" in result:
         return result
-    return {"is_crop": True, "is_leaf": True}
+    return {"is_crop": False, "is_leaf": False, "error": "Unable to validate image due to Gemini API failure or error."}
 
 
 def query_gemini_text(prompt: str, custom_key: str = None) -> dict | None:
@@ -1335,10 +1343,15 @@ def run_crop_diagnose_cv(image_bytes: bytes, crop_hint: str = None, custom_key: 
     Accepts ONLY crop/plant images.
     """
     val = validate_image_type(image_bytes, custom_key)
+    if val and "error" in val:
+        return {"success": False, "error": val["error"]}
     if val and not val.get("is_crop", True):
         return {"success": False, "error": "Invalid image. Please upload a clear crop image."}
 
     pred = run_cv_prediction(image_bytes, crop_hint)
+    if not pred or pred.get("model") not in ("HuggingFace ViT PlantVillage", "Local PyTorch Model (PlantVillage)"):
+        return {"success": False, "error": "AI Computer Vision model is temporarily offline or unable to process this image. Please try again later."}
+
     predicted_crop = pred.get("crop", crop_hint or "Crop")
     predicted_disease = pred.get("disease", "Healthy")
     confidence = pred.get("confidence", 0.95)
@@ -1387,10 +1400,15 @@ def run_leaf_disease_diagnose(image_bytes: bytes, crop_hint: str = None, custom_
     Accepts ONLY leaf images.
     """
     val = validate_image_type(image_bytes, custom_key)
+    if val and "error" in val:
+        return {"success": False, "error": val["error"]}
     if val and not val.get("is_leaf", True):
         return {"success": False, "error": "Invalid image. Please upload a clear leaf image."}
 
     pred = run_cv_prediction(image_bytes, crop_hint)
+    if not pred or pred.get("model") not in ("HuggingFace ViT PlantVillage", "Local PyTorch Model (PlantVillage)"):
+        return {"success": False, "error": "AI Computer Vision model is temporarily offline or unable to process this image. Please try again later."}
+
     predicted_crop = pred.get("crop", crop_hint or "Plant")
     predicted_disease = pred.get("disease", "Healthy")
     confidence = pred.get("confidence", 0.95)
@@ -1443,10 +1461,15 @@ def run_crop_disease_detect(image_bytes: bytes, crop_hint: str = None, custom_ke
     Accepts ONLY crop/plant images.
     """
     val = validate_image_type(image_bytes, custom_key)
+    if val and "error" in val:
+        return {"success": False, "error": val["error"]}
     if val and not val.get("is_crop", True):
         return {"success": False, "error": "Invalid image. Please upload a valid crop image."}
 
     pred = run_cv_prediction(image_bytes, crop_hint)
+    if not pred or pred.get("model") not in ("HuggingFace ViT PlantVillage", "Local PyTorch Model (PlantVillage)"):
+        return {"success": False, "error": "AI Computer Vision model is temporarily offline or unable to process this image. Please try again later."}
+
     predicted_crop = pred.get("crop", crop_hint or "Crop")
     predicted_disease = pred.get("disease", "Healthy")
     confidence = pred.get("confidence", 0.95)

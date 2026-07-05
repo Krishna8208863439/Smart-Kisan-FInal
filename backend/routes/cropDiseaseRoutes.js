@@ -692,18 +692,10 @@ router.post("/analyze", protect, upload.single("image"), async (req, res) => {
       console.error("[HuggingFace] Error during analysis:", err.message);
     }
 
-    // ── TIER 3: Smart local database fallback (correct crop, NOT Tomato default) ──
-    console.log(`[cropDisease] Using smart local fallback for crop="${crop || 'unknown'}"`);
-    const localResult = smartLocalFallback(crop, req.file.originalname);
-
+    // ── TIER 3: Disabled Fallback to comply with strict AI vision requirement ──
     return res.json({
-      success:       true,
-      imageUrl,
-      gemini_powered: false,
-      ai_model:      geminiKey
-        ? "Local Database (Gemini returned no result)"
-        : "Local Database (Configure GEMINI_API_KEY for AI analysis)",
-      ...localResult
+      success: false,
+      error: "AI Computer Vision model is temporarily offline or unable to process this image. Please try again later."
     });
 
   } catch (err) {

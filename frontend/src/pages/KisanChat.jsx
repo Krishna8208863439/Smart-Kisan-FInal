@@ -359,7 +359,7 @@ const KisanChat = () => {
       const response = await api.post(
         "/ai/chat",
         {
-          message: inputContent + (activeMode === "diagnostics" ? " [Mode: Crop Disease Diagnostics]" : activeMode === "marketplace" ? " [Mode: Marketplace]" : ""),
+          message: inputContent,
           chatHistory,
           language,
           gps,
@@ -644,44 +644,7 @@ const KisanChat = () => {
             </select>
           </div>
 
-          {/* Mode Selector Tab */}
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 700, marginBottom: 6, display: "block" }}>🛠️ {ui.assistantMode}</label>
-            <div className="mode-selection-tabs">
-              <button 
-                className={`mode-tab ${activeMode === "advisory" ? "mode-tab-active" : ""}`}
-                onClick={() => { setActiveMode("advisory"); clearAttachment(); }}
-              >
-                💬 {ui.modeAdvisory}
-              </button>
-              <button 
-                className={`mode-tab ${activeMode === "marketplace" ? "mode-tab-active" : ""}`}
-                onClick={() => { setActiveMode("marketplace"); clearAttachment(); }}
-              >
-                🛒 {ui.modeMarketplace}
-              </button>
-            </div>
-          </div>
 
-          {/* Sourcing Quick Helpers */}
-          {activeMode === "marketplace" && (
-            <div style={{ display: "flex", gap: 8, animation: "fadeIn 0.2s" }}>
-              <button 
-                className="button button-secondary" 
-                style={{ flex: 1, padding: "8px 4px", fontSize: 11, background: "#ecfdf5", border: "1px solid #10b981", color: "#065f46" }}
-                onClick={() => handleSendMessage("I want to buy raw materials for farming")}
-              >
-                {ui.buyingBtn}
-              </button>
-              <button 
-                className="button button-secondary" 
-                style={{ flex: 1, padding: "8px 4px", fontSize: 11, background: "#fef3c7", border: "1px solid #d97706", color: "#92400e" }}
-                onClick={() => handleSendMessage("I want to list surplus crop produce to sell")}
-              >
-                {ui.sellingBtn}
-              </button>
-            </div>
-          )}
 
 
           {/* Settings / Configuration */}
@@ -768,7 +731,7 @@ const KisanChat = () => {
               </div>
             </div>
             <div style={{ fontSize: 11.5, background: "rgba(255,255,255,0.2)", padding: "4px 10px", borderRadius: 12, color: "white", fontWeight: 700 }}>
-              {activeMode === "diagnostics" ? ui.modeDiagnostics : activeMode === "marketplace" ? ui.modeMarketplace : ui.modeAdvisory}
+              {ui.modeAdvisory}
             </div>
           </header>
 
