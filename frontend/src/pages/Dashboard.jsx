@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
-import CropDiseaseDetectionSection from "../components/CropDiseaseDetectionSection";
 import api from "../api";
 
 const getFallbackImage = (product) => {
@@ -940,9 +939,6 @@ const Dashboard = () => {
 
 
       </div>
-
-      {/* Disease Detection Panel */}
-      <CropDiseaseDetectionSection />
     </div>
   );
 };

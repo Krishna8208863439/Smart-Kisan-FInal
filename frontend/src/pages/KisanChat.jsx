@@ -239,9 +239,9 @@ const KisanChat = () => {
 
     // Default system greeting if no history found
     const greetings = {
-      en: "Namaste Kisan Bhai/Behan! I am **AgriExpert**, your elite AI agricultural assistant. Thank you for your hard work in feeding our nation.\n\nI can help you with:\n1. 🏥 **Disease Diagnostics** (Upload a photo of crop foliage)\n2. 🚜 **Marketplace Listings** (Sell crops or find organic seeds/fertilizers)\n3. 📅 **Weekly Sowing Calendars** (Custom advice for your soil)\n4. 💧 **Drip Irrigation Schedules** (Personalized run times)\n\nHow can I help you today?",
-      hi: "नमस्ते किसान भाई/बहन! मैं **AgriExpert** हूँ, आपका एआई कृषि विशेषज्ञ। हमारे देश को अन्न देने के लिए आपका बहुत-बहुत धन्यवाद।\n\nमैं आपकी निम्नलिखित सहायता कर सकता हूँ:\n1. 🏥 **फसल रोग निदान** (तस्वीर अपलोड कर बीमारी पहचानें)\n2. 🚜 **फसल बिक्री/खरीद** (उपज बेचें या उच्च गुणवत्ता वाले उर्वरक/बीज खोजें)\n3. 📅 **साप्ताहिक कृषि कैलेंडर** (मिट्टी के अनुसार योजना)\n4. 💧 **ड्रिप सिंचाई अनुसूची** (सिंचाई का सही समय और पानी की मात्रा)\n\nआज मैं आपके लिए क्या कर सकता हूँ?",
-      mr: "नमस्ते शेतकरी बंधू आणि भगिनींनो! मी **AgriExpert** आहे, तुमचा एआय कृषी सल्लागार. देशासाठी अन्न पिकवणाऱ्या आपल्या कष्टाला माझा सलाम.\n\nमी खालील बाबींमध्ये मदत करू शकतो:\n1. 🏥 **पीक रोग निदान** (बाधित पानाचा फोटो अपलोड करा)\n2. 🚜 **बाजार खरेदी-विक्री** (शेतमाल विक्री नोंदवा किंवा बियाणे/खते शोधा)\n3. 📅 **साप्ताहिक पीक वेळापत्रक** (मातीच्या प्रकारानुसार सल्ला)\n4. 💧 **ठिबक सिंचन वेळापत्रक** (नियोजनाचे मार्गदर्शन)\n\nआज आपण काय चर्चा करूया?"
+      en: "Namaste Kisan Bhai/Behan! I am **AgriExpert**, your elite AI agricultural assistant. Thank you for your hard work in feeding our nation.\n\nI can help you with:\n1. 🚜 **Marketplace Listings** (Sell crops or find organic seeds/fertilizers)\n2. 📅 **Weekly Sowing Calendars** (Custom advice for your soil)\n3. 💧 **Drip Irrigation Schedules** (Personalized run times)\n\nHow can I help you today?",
+      hi: "नमस्ते किसान भाई/बहन! मैं **AgriExpert** हूँ, आपका एआई कृषि विशेषज्ञ। हमारे देश को अन्न देने के लिए आपका बहुत-बहुत धन्यवाद।\n\nमैं आपकी निम्नलिखित सहायता कर सकता हूँ:\n1. 🚜 **फसल बिक्री/खरीद** (उपज बेचें या उच्च गुणवत्ता वाले उर्वरक/बीज खोजें)\n2. 📅 **साप्ताहिक कृषि कैलेंडर** (मिट्टी के अनुसार योजना)\n3. 💧 **ड्रिप सिंचाई अनुसूची** (सिंचाई का सही समय और पानी की मात्रा)\n\nआज मैं आपके लिए क्या कर सकता हूँ?",
+      mr: "नमस्ते शेतकरी बंधू आणि भगिनींनो! मी **AgriExpert** आहे, तुमचा एआय कृषी सल्लागार. देशासाठी अन्न पिकवणाऱ्या आपल्या कष्टाला माझा सलाम.\n\nमी खालील बाबींमध्ये मदत करू शकतो:\n1. 🚜 **बाजार खरेदी-विक्री** (शेतमाल विक्री नोंदवा किंवा बियाणे/खते शोधा)\n2. 📅 **साप्ताहिक पीक वेळापत्रक** (मातीच्या प्रकारानुसार सल्ला)\n3. 💧 **ठिबक सिंचन वेळापत्रक** (नियोजनाचे मार्गदर्शन)\n\nआज आपण काय चर्चा करूया?"
     };
 
     setMessages([
@@ -262,13 +262,13 @@ const KisanChat = () => {
 
   // Handler to clear chat history
   const handleClearHistory = () => {
-    if (!window.confirm(language === 'mr' ? 'तुम्हाला खरोखरच चॅट हिस्ट्री मिटवायची आहे का?' : 'Are you sure you want to clear your chat history?')) return;
+    if (!window.confirm(language === 'mr' ? 'तुम्हाली खरोखरच चॅट हिस्ट्री मिटवायची आहे का?' : 'Are you sure you want to clear your chat history?')) return;
     localStorage.removeItem(historyKey);
     
     const greetings = {
-      en: "Namaste Kisan Bhai/Behan! I am **AgriExpert**, your elite AI agricultural assistant. Thank you for your hard work in feeding our nation.\n\nI can help you with:\n1. 🏥 **Disease Diagnostics** (Upload a photo of crop foliage)\n2. 🚜 **Marketplace Listings** (Sell crops or find organic seeds/fertilizers)\n3. 📅 **Weekly Sowing Calendars** (Custom advice for your soil)\n4. 💧 **Drip Irrigation Schedules** (Personalized run times)\n\nHow can I help you today?",
-      hi: "नमस्ते किसान भाई/बहन! मैं **AgriExpert** हूँ, आपका एआई कृषि विशेषज्ञ। हमारे देश को अन्न देने के लिए आपका बहुत-बहुत धन्यवाद।\n\nमैं आपकी निम्नलिखित सहायता कर सकता हूँ:\n1. 🏥 **फसल रोग निदान** (तस्वीर अपलोड कर बीमारी पहचानें)\n2. 🚜 **फसल बिक्री/खरीद** (उपज बेचें या उच्च गुणवत्ता वाले उर्वरक/बीज खोजें)\n3. 📅 **साप्ताहिक कृषि कैलेंडर** (मिट्टी के अनुसार योजना)\n4. 💧 **ड्रिप सिंचाई अनुसूची** (सिंचाई का सही समय और पानी की मात्रा)\n\nआज मैं आपके लिए क्या कर सकता हूँ?",
-      mr: "नमस्ते शेतकरी बंधू आणि भगिनींनो! मी **AgriExpert** आहे, तुमचा एआय कृषी सल्लागार. देशासाठी अन्न पिकवणाऱ्या आपल्या कष्टाला माझा सलाम.\n\nमी खालील बाबींमध्ये मदत करू शकतो:\n1. 🏥 **पीक रोग निदान** (बाधित पानाचा फोटो अपलोड करा)\n2. 🚜 **बाजार खरेदी-विक्री** (शेतमाल विक्री नोंदवा किंवा बियाणे/खते शोधा)\n3. 📅 **साप्ताहिक पीक वेळापत्रक** (मातीच्या प्रकारानुसार सल्ला)\n4. 💧 **ठिबक सिंचन वेळापत्रक** (नियोजनाचे मार्गदर्शन)\n\nआज आपण काय चर्चा करूया?"
+      en: "Namaste Kisan Bhai/Behan! I am **AgriExpert**, your elite AI agricultural assistant. Thank you for your hard work in feeding our nation.\n\nI can help you with:\n1. 🚜 **Marketplace Listings** (Sell crops or find organic seeds/fertilizers)\n2. 📅 **Weekly Sowing Calendars** (Custom advice for your soil)\n3. 💧 **Drip Irrigation Schedules** (Personalized run times)\n\nHow can I help you today?",
+      hi: "नमस्ते किसान भाई/बहन! मैं **AgriExpert** हूँ, आपका एआई कृषि विशेषज्ञ। हमारे देश को अन्न देने के लिए आपका बहुत-बहुत धन्यवाद।\n\nमैं आपकी निम्नलिखित सहायता कर सकता हूँ:\n1. 🚜 **फसल बिक्री/खरीद** (उपज बेचें या उच्च गुणवत्ता वाले उर्वरक/बीज खोजें)\n2. 📅 **साप्ताहिक कृषि कैलेंडर** (मिट्टी के अनुसार योजना)\n3. 💧 **ड्रिप सिंचाई अनुसूची** (सिंचाई का सही समय और पानी की मात्रा)\n\nआज मैं आपके लिए क्या कर सकता हूँ?",
+      mr: "नमस्ते शेतकरी बंधू आणि भगिनींनो! मी **AgriExpert** आहे, तुमचा एआय कृषी सल्लागार. देशासाठी अन्न पिकवणाऱ्या आपल्या कष्टाला माझा सलाम.\n\nमी खालील बाबींमध्ये मदत करू शकतो:\n1. 🚜 **बाजार खरेदी-विक्री** (शेतमाल विक्री नोंदवा किंवा बियाणे/खते शोधा)\n2. 📅 **साप्ताहिक पीक वेळापत्रक** (मातीच्या प्रकारानुसार सल्ला)\n3. 💧 **ठिबक सिंचन वेळापत्रक** (नियोजनाचे मार्गदर्शन)\n\nआज आपण काय चर्चा करूया?"
     };
 
     setMessages([
@@ -653,12 +653,6 @@ const KisanChat = () => {
                 onClick={() => { setActiveMode("advisory"); clearAttachment(); }}
               >
                 💬 {ui.modeAdvisory}
-              </button>
-              <button 
-                className={`mode-tab ${activeMode === "diagnostics" ? "mode-tab-active" : ""}`}
-                onClick={() => setActiveMode("diagnostics")}
-              >
-                🏥 {ui.modeDiagnostics}
               </button>
               <button 
                 className={`mode-tab ${activeMode === "marketplace" ? "mode-tab-active" : ""}`}
