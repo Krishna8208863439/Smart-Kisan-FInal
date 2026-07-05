@@ -806,9 +806,9 @@ const AITools = () => {
         
         {/* --- DISEASE DETECTION TAB --- */}
         {activeTab === "Disease Detection" && (
-          <div className="grid-2">
+          <div>
             {/* Sub-tabs for Crop CV, Leaf Diag, and Crop Disease Detect */}
-            <div style={{ gridColumn: "1 / -1", display: "flex", gap: 10, borderBottom: "1.5px solid var(--border-color)", paddingBottom: 10, marginBottom: 16, overflowX: "auto" }}>
+            <div style={{ display: "flex", gap: 10, borderBottom: "1.5px solid var(--border-color)", paddingBottom: 10, marginBottom: 16, overflowX: "auto" }}>
               {[
                 { id: "crop_cv", label: language === 'mr' ? '🌾 पीक संगणक दृष्टी' : '🌾 Crop Diagnostics (CV)' },
                 { id: "leaf_diag", label: language === 'mr' ? '🍃 पान रोग निदान' : '🍃 Leaf Disease Diagnostics' },
@@ -840,8 +840,9 @@ const AITools = () => {
               ))}
             </div>
 
-            {/* Upload Card */}
-            <div className="card">
+            <div className="grid-2">
+              {/* Upload Card */}
+              <div className="card">
               <h3>
                 {diseaseSubTab === "crop_cv" ? (language === 'mr' ? '🌾 पीक संगणक दृष्टी' : 'Crop Diagnostics (CV)') :
                  diseaseSubTab === "leaf_diag" ? (language === 'mr' ? '🍃 पान रोग निदान' : 'Leaf Disease Diagnostics') :
@@ -1354,7 +1355,8 @@ const AITools = () => {
               )}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
         {/* --- IRRIGATION TAB --- */}
         {activeTab === "Irrigation" && (
