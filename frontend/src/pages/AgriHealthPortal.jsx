@@ -31,6 +31,24 @@ const AgriHealthPortal = () => {
   const [cropSearchQuery, setCropSearchQuery] = useState("Tomatoes");
   const [showCropSuggestions, setShowCropSuggestions] = useState(false);
 
+  const [diseaseGeminiKey, setDiseaseGeminiKey] = useState(localStorage.getItem("sk_gemini_key") || "");
+  const [showKeyInput, setShowKeyInput] = useState(!localStorage.getItem("sk_gemini_key"));
+  const [keySavedStatus, setKeySavedStatus] = useState("");
+
+  const saveGeminiKey = () => {
+    const trimmed = diseaseGeminiKey.trim();
+    if (trimmed) {
+      localStorage.setItem("sk_gemini_key", trimmed);
+      setKeySavedStatus(language === 'mr' ? "की यशस्वीपणे जतन केली!" : "Key saved successfully!");
+      setTimeout(() => setKeySavedStatus(""), 3000);
+      setShowKeyInput(false);
+    } else {
+      localStorage.removeItem("sk_gemini_key");
+      setKeySavedStatus(language === 'mr' ? "की काढली गेली!" : "Key cleared!");
+      setTimeout(() => setKeySavedStatus(""), 3000);
+    }
+  };
+
   const scanSteps = [
     "🤖 Connecting to Google Gemini 1.5 Flash Vision AI...",
     "🔬 Analyzing leaf morphology, lesion patterns & color signatures...",
@@ -670,6 +688,84 @@ const AgriHealthPortal = () => {
               {currLabel.choosePhoto}
             </p>
 
+            {/* ── Gemini API Key Panel ── */}
+            <div style={{
+              background: localStorage.getItem("sk_gemini_key")
+                ? "linear-gradient(135deg, #d1fae5, #ecfdf5)"
+                : "linear-gradient(135deg, #fff7ed, #fef3c7)",
+              border: `1px solid ${localStorage.getItem("sk_gemini_key") ? "#6ee7b7" : "#fde68a"}`,
+              borderRadius: 10,
+              padding: "10px 12px",
+              marginBottom: 14
+            }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 18 }}>{localStorage.getItem("sk_gemini_key") ? "✅" : "🔑"}</span>
+                  <div>
+                    <strong style={{ fontSize: 12.5, color: localStorage.getItem("sk_gemini_key") ? "#065f46" : "#92400e", display: "block" }}>
+                      {localStorage.getItem("sk_gemini_key")
+                        ? (language === 'mr' ? 'Gemini API Key सेट आहे — AI निदान चालू आहे!' : 'Gemini API Key configured — AI diagnosis active!')
+                        : (language === 'mr' ? 'Gemini API Key आवश्यक आहे' : 'Gemini API Key required for AI diagnosis')}
+                    </strong>
+                    <span style={{ fontSize: 11, color: "#6b7280" }}>
+                      {localStorage.getItem("sk_gemini_key")
+                        ? `Key: ${"•".repeat(8)}${localStorage.getItem("sk_gemini_key").slice(-4)}`
+                        : (language === 'mr' ? 'विनामूल्य मिळवा: aistudio.google.com' : 'Free at: aistudio.google.com/app/apikey')}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowKeyInput(v => !v)}
+                  style={{
+                    background: "transparent",
+                    border: `1px solid ${localStorage.getItem("sk_gemini_key") ? "#059669" : "#d97706"}`,
+                    color: localStorage.getItem("sk_gemini_key") ? "#065f46" : "#92400e",
+                    borderRadius: 6,
+                    padding: "3px 10px",
+                    fontSize: 11,
+                    cursor: "pointer",
+                    fontWeight: 600,
+                    whiteSpace: "nowrap"
+                  }}
+                >
+                  {showKeyInput ? (language === 'mr' ? 'लपवा' : 'Hide') : (localStorage.getItem("sk_gemini_key") ? (language === 'mr' ? 'बदला' : 'Change') : (language === 'mr' ? 'सेट करा' : 'Set Key'))}
+                </button>
+              </div>
+              {showKeyInput && (
+                <div style={{ marginTop: 10, display: "flex", gap: 6 }}>
+                  <input
+                    type="password"
+                    className="input"
+                    style={{ flex: 1, fontSize: 12, padding: "6px 10px", margin: 0 }}
+                    placeholder={language === 'mr' ? 'AIza... येथे पेस्ट करा' : 'Paste AIza... Gemini key here'}
+                    value={diseaseGeminiKey}
+                    onChange={e => setDiseaseGeminiKey(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && saveGeminiKey()}
+                  />
+                  <button
+                    type="button"
+                    onClick={saveGeminiKey}
+                    style={{
+                      background: "linear-gradient(135deg, #15803d, #059669)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: 6,
+                      padding: "6px 12px",
+                      fontSize: 12,
+                      cursor: "pointer",
+                      fontWeight: 700
+                    }}
+                  >
+                    {language === 'mr' ? 'जतन करा' : 'Save'}
+                  </button>
+                </div>
+              )}
+              {keySavedStatus && (
+                <p style={{ fontSize: 12, color: "#065f46", margin: "6px 0 0 0", fontWeight: 600 }}>{keySavedStatus}</p>
+              )}
+            </div>
+
             <div style={{ marginBottom: 14, position: "relative" }}>
               <label style={{ fontWeight: 600, fontSize: 12.5, display: "block", marginBottom: 4 }}>
                 {language === "mr" ? "तुमचे पीक शोधा किंवा निवडा (१४०+ पिके) *" : "Search or Select Your Crop (140+ Crops) *"}
@@ -1067,7 +1163,7 @@ const AgriHealthPortal = () => {
                       <p style={{ fontSize: 12, color: "#78350f", lineHeight: 1.55, margin: 0 }}>
                         This result is based on your selected crop type (<strong>{diagResult.crop}</strong>), 
                         not your uploaded photo. To get a real AI image diagnosis, configure your{" "}
-                        <strong>Gemini API key</strong> in Settings (⚙️) — it's free at{" "}
+                        <strong>Gemini API key</strong> in the setup panel above — it's free at{" "}
                         <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer"
                           style={{ color: "#1a73e8", fontWeight: 600 }}>aistudio.google.com</a>.
                       </p>
