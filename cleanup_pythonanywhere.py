@@ -36,7 +36,7 @@ def delete_path(abs_path):
     return ok
 
 def delete_dir_recursive(abs_path, depth=0):
-    """Recursively delete all contents of a directory."""
+    """Recursively delete all contents of a directory and then the directory itself."""
     if depth > 12:
         return
     items = list_dir(abs_path)
@@ -46,6 +46,8 @@ def delete_dir_recursive(abs_path, depth=0):
             delete_dir_recursive(child, depth + 1)
         else:
             delete_path(child)
+    # Also delete the directory itself (which is now empty)
+    delete_path(abs_path)
 
 print("=" * 60)
 print("  PythonAnywhere Storage Cleanup")
@@ -70,9 +72,8 @@ for f in [
 print("\n[3] Clearing old frontend dist folder contents...")
 delete_dir_recursive(f"{HOME}/smart-kisan-frontend")
 
-# 4. Delete node_modules (this is the BIGGEST space saver ~150-200 MB)
-print("\n[4] Clearing node_modules (will be reinstalled by npm)...")
-delete_dir_recursive(f"{HOME}/smart-kisan-backend/node_modules")
+# 4. Skip node_modules — bundled in backend.zip from Windows deploy (deleting breaks the live app)
+print("\n[4] Skipping node_modules (bundled via deploy script)...")
 
 # 5. Delete old uploads (crop image files uploaded by users)
 print("\n[5] Clearing old uploaded images...")
@@ -82,6 +83,13 @@ delete_dir_recursive(f"{HOME}/smart-kisan-backend-python/uploads")
 # 6. Delete Python pycache
 print("\n[6] Clearing Python __pycache__...")
 delete_dir_recursive(f"{HOME}/smart-kisan-backend-python/__pycache__")
+
+# 7. Clear redundant repositories and package manager caches to free up quota
+print("\n[7] Clearing redundant repositories and package manager caches...")
+for folder in ["smart-kisan-repo", "Smart-Kisan-FInal"]:
+    delete_dir_recursive(f"{HOME}/{folder}")
+for cache_folder in [".nvm/.cache", ".npm"]:
+    delete_dir_recursive(f"{HOME}/{cache_folder}")
 
 # 7. Check remaining usage (optional: check quota)
 print("\n" + "=" * 60)

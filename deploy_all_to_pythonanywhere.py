@@ -3,6 +3,21 @@ import zipfile
 import requests
 import sys
 import subprocess
+import time
+
+def safe_remove(file_path):
+    print(f"[clean] Removing local temporary file {file_path}...")
+    for i in range(5):
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            return
+        except PermissionError:
+            print(f"[warn] File {file_path} locked. Retrying in 1s... (attempt {i+1}/5)")
+            time.sleep(1)
+    # Final attempt
+    if os.path.exists(file_path):
+        os.remove(file_path)
 
 def zip_directory(folder_path, zip_path, exclude_dir=None):
     print(f"[zip] Zipping {folder_path} to {zip_path}...")
@@ -47,21 +62,26 @@ def main():
     dist_zip = os.path.join(script_dir, "dist.zip")
     zip_directory(dist_dir, dist_zip)
     upload_file(dist_zip, "dist.zip", username, api_token)
-    os.remove(dist_zip)
+    safe_remove(dist_zip)
 
-    # 3. Package and upload Node backend
+    # 3. Package and upload Node backend — include node_modules so PA never needs npm
     backend_dir = os.path.join(script_dir, "backend")
+    print("\n[build] Installing Node backend production dependencies on Windows...")
+    npm_res = subprocess.run("npm install --production", shell=True, cwd=backend_dir)
+    if npm_res.returncode != 0:
+        print("[warn] Backend npm install failed — bundling whatever node_modules exists.")
     backend_zip = os.path.join(script_dir, "backend.zip")
-    zip_directory(backend_dir, backend_zip, exclude_dir="node_modules")
+    # Include node_modules in zip (no exclude_dir)
+    zip_directory(backend_dir, backend_zip)
     upload_file(backend_zip, "backend.zip", username, api_token)
-    os.remove(backend_zip)
+    safe_remove(backend_zip)
 
     # 4. Package and upload Python backend
     py_backend_dir = os.path.join(script_dir, "backend_python")
     py_zip = os.path.join(script_dir, "backend_python.zip")
     zip_directory(py_backend_dir, py_zip, exclude_dir="__pycache__")
     upload_file(py_zip, "backend_python.zip", username, api_token)
-    os.remove(py_zip)
+    safe_remove(py_zip)
 
     # 5. Create WSGI proxy configurations
     wsgi_content = """import os
@@ -91,6 +111,22 @@ with open('/home/Krishna3114/active_ports.txt', 'w') as f:
 NODE_PATH = '/home/Krishna3114/.nvm/versions/node/v18.20.8/bin/node'
 SERVER_JS = '/home/Krishna3114/smart-kisan-backend/server.js'
 
+# Auto-detect node path if hardcoded one doesn't exist
+import glob as _glob
+if not os.path.exists(NODE_PATH):
+    candidates = _glob.glob('/home/Krishna3114/.nvm/versions/node/*/bin/node')
+    if candidates:
+        candidates.sort(reverse=True)
+        NODE_PATH = candidates[0]
+    else:
+        # Try system node
+        for p in ['/usr/bin/node', '/usr/local/bin/node']:
+            if os.path.exists(p):
+                NODE_PATH = p
+                break
+
+NODE_BIN_DIR = os.path.dirname(NODE_PATH) if NODE_PATH else ''
+
 def is_port_open(port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(0.5)
@@ -117,15 +153,22 @@ if os.path.exists(backend_zip):
         with zipfile.ZipFile(backend_zip, 'r') as zip_ref:
             zip_ref.extractall('/home/Krishna3114/smart-kisan-backend')
         os.remove(backend_zip)
-        env = os.environ.copy()
-        env['PATH'] = '/home/Krishna3114/.nvm/versions/node/v18.20.8/bin:' + env.get('PATH', '')
-        subprocess.run(
-            ['/home/Krishna3114/.nvm/versions/node/v18.20.8/bin/npm', 'install', '--production'],
-            cwd='/home/Krishna3114/smart-kisan-backend',
-            env=env,
-            stdout=open('/home/Krishna3114/node_stdout.log', 'a'),
-            stderr=open('/home/Krishna3114/node_stderr.log', 'a')
-        )
+        # node_modules is bundled in backend.zip from Windows — skip npm on PA to save disk/quota
+        node_modules_path = '/home/Krishna3114/smart-kisan-backend/node_modules'
+        if not os.path.isdir(node_modules_path):
+            env = os.environ.copy()
+            if NODE_BIN_DIR:
+                env['PATH'] = NODE_BIN_DIR + ':' + env.get('PATH', '')
+                npm_bin = os.path.join(NODE_BIN_DIR, 'npm')
+            else:
+                npm_bin = 'npm'
+            subprocess.run(
+                [npm_bin, 'install', '--production'],
+                cwd='/home/Krishna3114/smart-kisan-backend',
+                env=env,
+                stdout=open('/home/Krishna3114/node_stdout.log', 'a'),
+                stderr=open('/home/Krishna3114/node_stderr.log', 'a')
+            )
     except Exception as e:
         with open('/home/Krishna3114/node_stderr.log', 'a') as log_f:
             log_f.write(f"Backend extract error: {str(e)}\\n")
@@ -174,7 +217,8 @@ if not is_port_open(NODE_PORT):
     env['JWT_SECRET'] = 'supersecretjwtkey'
     env['GOOGLE_CLIENT_ID'] = '1234567890-abc123def456.apps.googleusercontent.com'
     # Ensure node is in the environment PATH
-    env['PATH'] = '/home/Krishna3114/.nvm/versions/node/v18.20.8/bin:' + env.get('PATH', '')
+    if NODE_BIN_DIR:
+        env['PATH'] = NODE_BIN_DIR + ':' + env.get('PATH', '')
     subprocess.Popen(
         [NODE_PATH, SERVER_JS],
         env=env,
