@@ -20,7 +20,7 @@ except ImportError:
     pass
 
 from database import init_db, get_db, DiseaseReport, CropLog, WeatherCache, User, PushSubscription, EmergencyAlert, CommunityOfficer, CommunityWebinar, GovernmentScheme, seed_db
-from ml_model import predict_image, get_gemini_api_key, run_crop_diagnose_cv, run_leaf_disease_diagnose, run_crop_disease_detect, run_plant_identification
+from ml_model import predict_image, get_gemini_api_key, run_crop_diagnose_cv, run_leaf_disease_diagnose, run_crop_disease_detect
 from use_dataset_for_disease_detection import register_dataset_routes, get_dataset_stats, load_dataset_classes
 from pydantic import BaseModel
 from fastapi.responses import FileResponse
@@ -557,33 +557,7 @@ class PDFReportRequest(BaseModel):
     region: Optional[str] = "India"
 
 
-# --- Plant Identification Endpoint ---
-@app.post("/api/plant-identify", status_code=status.HTTP_201_CREATED)
-@app.post("/api/plant-identification", status_code=status.HTTP_201_CREATED)
-async def identify_plant_endpoint(
-    image: UploadFile = File(...),
-    x_gemini_key: Optional[str] = Header(None)
-):
-    """
-    Accepts plant photo, validates it is a plant, and runs Gemini Vision Identification.
-    """
-    verify_request_preconditions(image, x_gemini_key)
-    
-    unique_filename = f"plant_id_{int(datetime.utcnow().timestamp())}_{image.filename}"
-    file_path = os.path.join(UPLOAD_DIR, unique_filename)
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(image.file, buffer)
-        
-    image_size = os.path.getsize(file_path)
-    print(f"Incoming request: POST /api/plant-identification | Uploaded filename: {image.filename} | Image size: {image_size} bytes")
-    
-    with open(file_path, "rb") as f:
-        img_bytes = f.read()
-        
-    import asyncio
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(None, run_plant_identification, img_bytes, x_gemini_key)
-    return result
+
 
 
 # --- Strictly Agricultural RAG Chat Endpoint ---
