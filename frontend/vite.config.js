@@ -84,6 +84,25 @@ export default defineConfig({
     })
   ],
   server: {
-    port: 5173
+    port: 5173,
+    proxy: {
+      "/api": {
+        target: "http://localhost:5000",
+        changeOrigin: true
+      },
+      "/uploads": {
+        target: "http://localhost:5000",
+        changeOrigin: true
+      },
+      "/pyapi": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/pyapi/, "/api")
+      },
+      "/py_uploads": {
+        target: "http://localhost:8000",
+        changeOrigin: true
+      }
+    }
   }
 });

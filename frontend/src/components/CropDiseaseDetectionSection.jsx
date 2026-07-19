@@ -4,10 +4,7 @@ import axios from "axios";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
 
-// Python backend URL — points to FastAPI server (port 8000 locally, /api in production via WSGI proxy)
-const PY_API_URL = typeof window !== "undefined" && window.location.hostname === "localhost"
-  ? (import.meta.env.VITE_PY_API_URL || "http://localhost:8000/api")
-  : "/api";
+const PY_API_URL = import.meta.env.VITE_PY_API_URL || "/pyapi";
 
 // Crop options with Hindi/Marathi labels
 const CROP_OPTIONS = [

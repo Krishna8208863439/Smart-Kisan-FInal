@@ -1682,7 +1682,7 @@ def run_crop_diagnose_cv(image_bytes: bytes, crop_hint: str = None, custom_key: 
     if not val or not val.get("success", False):
         return {
             "success": False,
-            "error": val.get("error") if (val and val.get("error")) else "This is not a valid crop or plant image. Please upload a clear image of a crop, plant, fruit, stem, flower, or leaf."
+            "error": "Please upload a clear image of a crop or agricultural plant. No crop was detected in the uploaded image."
         }
 
     pred = run_cv_prediction(image_bytes, crop_hint)
@@ -1693,27 +1693,36 @@ def run_crop_diagnose_cv(image_bytes: bytes, crop_hint: str = None, custom_key: 
     predicted_disease = pred.get("disease", "Healthy")
     confidence = pred.get("confidence", 0.95)
 
-    prompt = f"""You are an agricultural expert. Explain the following crop health classification:
-Crop: {predicted_crop}
-Condition: {predicted_disease}
+    if confidence < 0.80:
+        return {
+            "success": False,
+            "error": "Unable to identify the crop confidently. Please upload a clearer image."
+        }
+
+    prompt = f"""You are an AI Crop Diagnostics Expert.
+
+Analyze and explain the following crop classification:
+Crop Name: {predicted_crop}
+Disease/Condition: {predicted_disease}
 Confidence: {confidence:.2f}
 
-Generate a detailed diagnostics report in English, Hindi, or Marathi based on the condition.
-Return ONLY this JSON (no markdown outside JSON):
+Provide a detailed agricultural diagnostics report.
+Return ONLY this JSON structure (no markdown outside JSON):
 {{
   "success": true,
-  "crop_name": "Name of the crop (e.g. Tomato, Wheat)",
+  "crop_name": "{predicted_crop}",
+  "scientific_name": "Scientific name of the crop",
   "growth_stage": "Growth stage (Seedling, Vegetative, Flowering, Fruiting, or Harvest)",
   "crop_health": "Healthy | Infected | Diseased",
   "confidence": {confidence:.2f},
-  "problems_detected": "Detailed description of the problems/symptoms identified",
-  "recommendations": "Detailed agronomic recommendations and treatments",
+  "problems_detected": "Disease Detected: {predicted_disease}. Description of visual symptoms and possible causes.",
+  "recommendations": "Recommended treatment and preventive measures.",
   "fertilizer_recommendation": "Precise fertilizer recommendation for recovery",
   "irrigation_advice": "Detailed watering advice"
 }}"""
 
     result = query_gemini_text(prompt, custom_key)
-    if result:
+    if result and isinstance(result, dict):
         result["ai_model"] = pred.get("model", "AI Computer Vision Model")
         return result
 
@@ -1731,21 +1740,17 @@ Return ONLY this JSON (no markdown outside JSON):
     }
 
 
+
 def run_leaf_disease_diagnose(image_bytes: bytes, crop_hint: str = None, custom_key: str = None) -> dict:
     """
     2. Leaf Disease Diagnostics
     Accepts ONLY leaf images.
     """
     val = validate_image_type(image_bytes, custom_key)
-    if not val or not val.get("success", False):
+    if not val or not val.get("success", False) or not val.get("is_leaf", False):
         return {
             "success": False,
-            "error": val.get("error") if val else "AI validation service is temporarily unavailable. Please try again later."
-        }
-    if not val.get("is_leaf", False):
-        return {
-            "success": False,
-            "error": "Only crop leaf images are accepted."
+            "error": "Please upload a clear close-up photo of a single plant leaf."
         }
 
     pred = run_cv_prediction(image_bytes, crop_hint)
@@ -1756,21 +1761,30 @@ def run_leaf_disease_diagnose(image_bytes: bytes, crop_hint: str = None, custom_
     predicted_disease = pred.get("disease", "Healthy")
     confidence = pred.get("confidence", 0.95)
 
-    prompt = f"""You are a plant pathologist. Explain the following leaf disease classification:
+    if confidence < 0.80:
+        return {
+            "success": False,
+            "error": "The disease cannot be identified confidently. Please upload a clearer image."
+        }
+
+    prompt = f"""You are an AI Leaf Disease Detection Expert.
+
+Analyze the following leaf disease classification:
 Plant Name: {predicted_crop}
-Disease Name: {predicted_disease}
+Disease/Condition: {predicted_disease}
 Confidence: {confidence:.2f}
 
-Generate a leaf disease diagnostics report in English, Hindi, or Marathi based on the condition.
-Return ONLY this JSON (no markdown outside JSON):
+Provide a detailed leaf disease diagnostics report.
+Return ONLY this JSON structure (no markdown outside JSON):
 {{
   "success": true,
-  "plant_name": "Name of the plant (e.g. Tomato, Rice)",
-  "disease_name": "Name of the disease (scientific name in parentheses) or Healthy",
+  "plant_name": "{predicted_crop}",
   "health_status": "Healthy | Infected",
+  "disease_name": "{predicted_disease}",
+  "severity": "low | medium | high",
   "confidence": {confidence:.2f},
-  "disease_description": "Detailed description of the symptoms on the leaf",
-  "causes": "Specific causes and pathogen details (fungal/bacterial/viral/pest)",
+  "disease_description": "Detailed visual symptoms observed on the leaf",
+  "causes": "Specific cause and pathogen details (e.g. fungal/bacterial/viral/pest)",
   "treatment": "Actionable chemical and organic treatments",
   "organic_treatment": "Organic/biological treatment options with exact dosages",
   "chemical_treatment": "Chemical treatment with active ingredients and doses (g/L or mL/L)",
@@ -1778,7 +1792,7 @@ Return ONLY this JSON (no markdown outside JSON):
 }}"""
 
     result = query_gemini_text(prompt, custom_key)
-    if result:
+    if result and isinstance(result, dict):
         result["ai_model"] = pred.get("model", "AI Computer Vision Model")
         return result
 
@@ -1798,6 +1812,7 @@ Return ONLY this JSON (no markdown outside JSON):
     }
 
 
+
 def run_crop_disease_detect(image_bytes: bytes, crop_hint: str = None, custom_key: str = None) -> dict:
     """
     3. Crop Disease Detection
@@ -1807,7 +1822,7 @@ def run_crop_disease_detect(image_bytes: bytes, crop_hint: str = None, custom_ke
     if not val or not val.get("success", False):
         return {
             "success": False,
-            "error": val.get("error") if val else "AI validation service is temporarily unavailable. Please try again later."
+            "error": "Invalid image. Please upload a clear crop or leaf image for disease detection."
         }
 
     pred = run_cv_prediction(image_bytes, crop_hint)
@@ -1818,17 +1833,25 @@ def run_crop_disease_detect(image_bytes: bytes, crop_hint: str = None, custom_ke
     predicted_disease = pred.get("disease", "Healthy")
     confidence = pred.get("confidence", 0.95)
 
-    prompt = f"""You are a crop pathology specialist. Explain the following crop disease detection result:
+    if confidence < 0.80:
+        return {
+            "success": False,
+            "error": "Disease could not be identified confidently. Please upload a clearer image."
+        }
+
+    prompt = f"""You are an AI Crop Disease Detection System.
+
+Analyze the following crop disease classification:
 Crop Name: {predicted_crop}
 Disease/Condition: {predicted_disease}
 Confidence: {confidence:.2f}
 
-Generate a comprehensive crop disease detection report in English, Hindi, or Marathi based on the condition.
-Return ONLY this JSON (no markdown outside JSON):
+Provide a comprehensive crop disease detection report.
+Return ONLY this JSON structure (no markdown outside JSON):
 {{
   "success": true,
-  "crop": "Name of the crop",
-  "disease": "Disease name (scientific name in parentheses) or Healthy",
+  "crop": "{predicted_crop}",
+  "disease": "{predicted_disease}",
   "confidence": {confidence:.2f},
   "severity": "low | medium | high",
   "symptoms": "Detailed visual symptoms",
@@ -1841,9 +1864,10 @@ Return ONLY this JSON (no markdown outside JSON):
 }}"""
 
     result = query_gemini_text(prompt, custom_key)
-    if result:
+    if result and isinstance(result, dict):
         result["ai_model"] = pred.get("model", "AI Computer Vision Model")
         return result
+
 
     return {
         "success": True,
@@ -1872,22 +1896,36 @@ def run_plant_identification(image_bytes: bytes, custom_key: str = None) -> dict
     if not val or not val.get("success", False):
         return {
             "success": False,
-            "error": val.get("error") if val else "AI validation service is temporarily unavailable. Please try again later."
+            "error": "Please upload a clear image of a plant or crop. This image does not contain a recognizable plant."
         }
         
-    prompt = """Identify the plant depicted in this image and provide a detailed analysis.
-    Return ONLY this JSON structure (no backticks, no markdown, no other text):
-    {
-      "success": true,
-      "common_name": "Common name of the plant",
-      "scientific_name": "Scientific name of the plant (in italics/parentheses)",
-      "crop_type": "Horticulture | Cereal | Vegetable | Cash Crop | Pulses | Oilseeds",
-      "growth_stage": "Seedling | Vegetative | Flowering | Fruiting | Harvest",
-      "health_status": "Healthy | Diseased | Nutrient Deficient",
-      "nutrient_deficiency": "Specify any nutrient deficiency identified (e.g., Nitrogen deficiency, none)",
-      "disease_risk": "Specify any disease risks identified or spotted symptoms (e.g., Early Blight risk, none)",
-      "treatment": "Provide actionable agronomic treatments or fertilization recommendations"
-    }"""
+    prompt = """You are an AI Plant Identification Expert.
+
+Your first task is to determine whether the uploaded image contains a real plant, crop, leaf, flower, fruit, stem, or tree.
+
+Validation Rules:
+- If the image does NOT contain a plant, return a JSON object with:
+  "success": false,
+  "error": "Please upload a clear image of a plant or crop. This image does not contain a recognizable plant."
+  Do NOT identify animals, humans, vehicles, buildings, food, objects, or scenery as plants. Only continue if a plant is detected.
+- If the plant cannot be confidently identified (confidence below 70%), return a JSON object with:
+  "success": false,
+  "error": "Unable to identify the plant. Please upload a clearer close-up image showing the leaves or the entire plant in good lighting."
+  Never guess the plant species. Only provide information based on what is visible in the image.
+
+If a plant is successfully detected and identified, you must return ONLY this JSON format structure (no markdown outside JSON):
+{
+  "success": true,
+  "common_name": "Plant Name",
+  "scientific_name": "Scientific Name",
+  "confidence": 0.95, // Confidence score as a float between 0.0 and 1.0
+  "crop_type": "Plant Type (e.g. Horticulture | Cereal | Vegetable | Cash Crop | Pulses | Oilseeds)",
+  "growth_stage": "Growth Stage (e.g. Seedling | Vegetative | Flowering | Fruiting | Harvest)",
+  "health_status": "Overall Health (Healthy | Diseased | Nutrient Deficient)",
+  "nutrient_deficiency": "Nutrient Deficiency (if visible, otherwise 'none')",
+  "disease_risk": "Observed Issues (if visible, otherwise 'none')",
+  "treatment": "Markdown formatted details combining Care Recommendations, Irrigation Advice, Fertilizer Suggestions, and Additional Notes"
+}"""
     
     api_key = (custom_key or "").strip() or get_gemini_api_key()
     if not api_key:
@@ -1897,18 +1935,43 @@ def run_plant_identification(image_bytes: bytes, custom_key: str = None) -> dict
         }
         
     result = query_gemini_raw(image_bytes, prompt, api_key)
-    if result and isinstance(result, dict) and "common_name" in result:
-        result["success"] = True
-        result["plant"] = {
-            "common_name": result.get("common_name", "Tomato"),
-            "scientific_name": result.get("scientific_name", "Solanum lycopersicum"),
-            "growth_stage": result.get("growth_stage", "Fruiting"),
-            "health": result.get("health_status", "Healthy"),
-            "confidence": 98
-        }
-        return result
+    if result and isinstance(result, dict):
+        if result.get("success") is False:
+            return {
+                "success": False,
+                "error": result.get("error", "Unable to identify the plant. Please upload a clearer close-up image showing the leaves or the entire plant in good lighting.")
+            }
+        
+        if "common_name" in result:
+            result["success"] = True
+            
+            # Normalize confidence to percentage for the plant dict
+            conf_val = result.get("confidence", 0.95)
+            try:
+                if isinstance(conf_val, (int, float)):
+                    if conf_val <= 1.0:
+                        conf_pct = int(conf_val * 100)
+                    else:
+                        conf_pct = int(conf_val)
+                elif isinstance(conf_val, str):
+                    conf_val_clean = conf_val.replace("%", "").strip()
+                    conf_pct = int(float(conf_val_clean))
+                else:
+                    conf_pct = 95
+            except Exception:
+                conf_pct = 95
+                
+            result["plant"] = {
+                "common_name": result.get("common_name", "Tomato"),
+                "scientific_name": result.get("scientific_name", "Solanum lycopersicum"),
+                "growth_stage": result.get("growth_stage", "Fruiting"),
+                "health": result.get("health_status", "Healthy"),
+                "confidence": conf_pct
+            }
+            return result
         
     return {
         "success": False,
         "error": "Failed to analyze plant details. Please try with a clearer image."
-    }
+    }
+

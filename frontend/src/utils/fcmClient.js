@@ -1,9 +1,7 @@
 // frontend/src/utils/fcmClient.js
 import axios from "axios";
 
-const API_URL = typeof window !== "undefined" && window.location.hostname === "localhost"
-  ? (import.meta.env.VITE_PY_API_URL || "http://localhost:8000/api")
-  : "/api";
+const API_URL = import.meta.env.VITE_PY_API_URL || "/pyapi";
 
 /**
  * Requests browser permission for showing high-priority alerts

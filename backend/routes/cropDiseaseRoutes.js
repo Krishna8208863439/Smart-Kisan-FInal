@@ -461,19 +461,50 @@ async function analyzeWithHuggingFace(imageBuffer, cropHint) {
 async function analyzeWithGemini(imagePath, imageBuffer, mimetype, cropHint, apiKey) {
   const base64Image = imageBuffer.toString("base64");
 
-  const prompt = `You are AgriExpert, an advanced AI Agricultural Specialist and Advisor. Your primary job is to diagnose crop diseases and provide treatment recommendations from uploaded images.
+  const prompt = `You are an AI Crop Diagnostics Expert.
 
-CRITICAL GUARDRAIL:
-1. First, analyze the uploaded image to determine if it actually contains a crop, plant, leaf, or agricultural specimen.
-2. If the image is NOT a plant or crop (e.g., it is a building, person, vehicle, animal, abstract object, or completely unrelated scene), you MUST NOT provide a crop diagnosis. Instead, return this exact refusal in the JSON field "advice":
-"Error: The uploaded image does not appear to be a crop or plant. Please upload a clear photo of your crop or plant leaves for an accurate diagnosis."
-And set: "disease": "Invalid Image", "crop": "Not a crop", "severity": "low", "confidence": 0.0, "gemini_powered": true
+Your FIRST task is to validate the uploaded image.
+Only continue if the image clearly contains a real agricultural crop or cultivated plant.
+Reject the image if it contains:
+* Humans or faces
+* Animals or birds
+* Vehicles
+* Buildings
+* Food on plates
+* Fruits or vegetables after harvest
+* Documents
+* Screenshots
+* Flowers only
+* Random objects
+* Landscapes without visible crops
+* Blurry or unreadable images
 
-If and only if the image is a valid crop/plant:
-- Analyze the ACTUAL image pixels — do NOT assume crop from hint alone
-- If image shows rice but hint says tomato → report RICE disease
-- Identify the ACTUAL crop visible in the image
-- Detect disease from ACTUAL visual symptoms
+If the image is invalid, return:
+{
+  "crop": "Not a crop",
+  "disease": "Invalid Image",
+  "severity": "low",
+  "confidence": 0.0,
+  "advice": "Please upload a clear image of a crop or agricultural plant. No crop was detected in the uploaded image.",
+  "image_analysis": "Invalid Image",
+  "gemini_powered": true
+}
+
+If a crop is detected:
+- Analyze the ACTUAL image pixels — do NOT assume crop from hint alone.
+- If image shows rice but hint says tomato → report RICE disease.
+- Identify the ACTUAL crop visible in the image.
+- Detect disease from ACTUAL visual symptoms.
+- Never guess. If confidence is below 80%, return:
+  {
+    "crop": "Unknown",
+    "disease": "Low Confidence",
+    "severity": "low",
+    "confidence": 0.0,
+    "advice": "Unable to identify the crop confidently. Please upload a clearer image.",
+    "image_analysis": "Low Confidence",
+    "gemini_powered": true
+  }
 
 Farmer's crop hint: "${cropHint || 'Not specified - identify from image'}"
 
@@ -483,12 +514,18 @@ Provide your diagnosis using this strict structure in the "advice" field (markdo
 
 ---
 
+* **Crop Name:** [Crop Name]
+* **Scientific Name:** [Scientific Name]
+* **Growth Stage:** [Growth Stage]
+* **Health Status:** [Health Status]
 * **Disease Name:** [Identify the disease and its scientific name, or state "Healthy" if no disease is found]
+* **Severity:** [Severity (Low/Medium/High)]
+* **Confidence (%):** [Confidence %]
+* **Symptoms:** [Symptoms]
+* **Possible Causes:** [Possible Causes]
 * **Cure/Treatment:** [Specific actionable treatment options including organic methods AND chemical names with precise dosages like mL/L or g/L]
 * **Precautions to Take:** [Preventative measures, sanitation steps, crop rotation advice]
-* **Treatment Product Links:** [Format as: Buy [ProductName] on Marketplace](app://marketplace/search?query=ProductName)]
-
-Cover ALL crops: Tomato, Rice, Wheat, Maize, Cotton, Sugarcane, Potato, Groundnut, Soybean, Chilli, Banana, Onion, Mango, and all livestock.
+* **Treatment Product Links:** [Format as: Buy [ProductName] on Marketplace(app://marketplace/search?query=ProductName)]
 
 Respond ONLY with valid JSON (no markdown outside JSON):
 {
