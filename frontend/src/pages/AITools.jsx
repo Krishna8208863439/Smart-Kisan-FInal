@@ -145,7 +145,7 @@ const AITools = () => {
   };
 
   // Python API base URL (same as AgriHealthPortal)
-  const PY_API_BASE = typeof window !== "undefined" && window.location.hostname === "localhost"
+  const PY_API_BASE = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
     ? (import.meta.env.VITE_PY_API_URL || "http://localhost:8000/api")
     : "/api";
 
@@ -299,7 +299,7 @@ const AITools = () => {
       if (geminiKey) extraHeaders["x-gemini-key"] = geminiKey;
 
       // Use dedicated endpoint based on diseaseSubTab
-      const endpoint = diseaseSubTab === "crop_cv" ? "/crop-diagnose" : diseaseSubTab === "leaf_diag" ? "/leaf-diagnose" : "/crop-disease-detect";
+      const endpoint = diseaseSubTab === "crop_cv" ? "/crop-diagnostics" : diseaseSubTab === "leaf_diag" ? "/leaf-disease" : "/crop-disease";
       const { default: axios } = await import("axios");
       const response = await axios.post(`${PY_API_BASE}${endpoint}`, formData, {
         headers: extraHeaders,
@@ -343,30 +343,22 @@ const AITools = () => {
     } catch (err) {
       clearInterval(stepInterval);
       console.error("[DiseaseDetection] Error:", err);
-      // Try Node backend as secondary fallback
-      try {
-        const formData2 = new FormData();
-        const finalCrop = diseaseCropHint === "Other" ? diseaseCustomCrop : diseaseCropHint;
-        if (finalCrop) formData2.append("crop", finalCrop);
-        formData2.append("image", diseaseFile);
-        const response2 = await api.post("/crop-disease/analyze", formData2, {
-          headers: { "Content-Type": "multipart/form-data" },
-          timeout: 30000
-        });
-        if (response2.data.success) {
-          const isInvalid2 = response2.data.disease === "Invalid Image" || response2.data.disease === "System Error"
-            || (response2.data.advice || "").startsWith("Error:");
-          setDiseaseIsInvalid(isInvalid2);
-          setDiseaseResult(response2.data);
-          setDiseaseStatus(isInvalid2
-            ? "🚫 Non-crop image rejected."
-            : `📊 ${response2.data.ai_model || "Local Database"}`);
-          return;
+      
+      let statusMsg = "⚠️ Server unreachable.";
+      if (err.response) {
+        if (err.response.data && (err.response.data.message === "Gemini API key missing." || err.response.data.detail === "Gemini API key missing.")) {
+          statusMsg = language === 'mr' ? "🚫 जेमिनी एपीआय की गहाळ आहे." : "Gemini API key is missing.";
+        } else if (err.response.status === 504 || (err.response.data && err.response.data.message && err.response.data.message.includes("timeout"))) {
+          statusMsg = language === 'mr' ? "⚠️ एआय सेवा कालबाह्य झाली. कृपया पुन्हा प्रयत्न करा." : "AI service timeout. Please retry.";
+        } else {
+          statusMsg = `🚫 ${err.response.data.message || err.response.data.detail || "Diagnosis failed."}`;
         }
-      } catch (fallbackErr) {
-        console.error("[DiseaseDetection] Fallback also failed:", fallbackErr);
+      } else if (err.message && err.message.toLowerCase().includes("timeout")) {
+        statusMsg = language === 'mr' ? "⚠️ एआय सेवा कालबाह्य झाली. कृपया पुन्हा प्रयत्न करा." : "AI service timeout. Please retry.";
+      } else {
+        statusMsg = language === 'mr' ? "⚠️ बॅकएंड सर्व्हर ऑफलाइन आहे. कृपया FastAPI सुरू करा." : "Backend server is offline. Please start FastAPI.";
       }
-      setDiseaseStatus(language === 'mr' ? "⚠️ सर्व्हरशी संपर्क नाही. Gemini API Key सेट करा." : "⚠️ Server unreachable. Configure Gemini API key for AI diagnosis.");
+      setDiseaseStatus(statusMsg);
     } finally {
       setDiseaseLoading(false);
     }
@@ -505,7 +497,7 @@ const AITools = () => {
       const geminiKey = localStorage.getItem("sk_gemini_key") || "";
       const pyApiBase = localStorage.getItem("sk_py_api_base") || "http://localhost:8000/api";
       
-      const res = await fetch(`${pyApiBase}/plant-identify`, {
+      const res = await fetch(`${pyApiBase}/plant-identification`, {
         method: "POST",
         headers: {
           "x-gemini-key": geminiKey
@@ -539,7 +531,19 @@ const AITools = () => {
       }
     } catch (err) {
       console.error(err);
-      setPlantError(language === "mr" ? "सर्व्हरशी संपर्क साधता आला नाही." : "Server connection failed.");
+      if (err.response) {
+        if (err.response.data && (err.response.data.message === "Gemini API key missing." || err.response.data.detail === "Gemini API key missing.")) {
+          setPlantError(language === 'mr' ? "जेमिनी एपीआय की गहाळ आहे." : "Gemini API key is missing.");
+        } else if (err.response.status === 504 || (err.response.data && err.response.data.message && err.response.data.message.includes("timeout"))) {
+          setPlantError(language === 'mr' ? "एआय सेवा कालबाह्य झाली. कृपया पुन्हा प्रयत्न करा." : "AI service timeout. Please retry.");
+        } else {
+          setPlantError(err.response.data.message || err.response.data.detail || "Failed to identify plant.");
+        }
+      } else if (err.message && err.message.toLowerCase().includes("timeout")) {
+        setPlantError(language === 'mr' ? "एआय सेवा कालबाह्य झाली. कृपया पुन्हा प्रयत्न करा." : "AI service timeout. Please retry.");
+      } else {
+        setPlantError(language === 'mr' ? "बॅकएंड सर्व्हर ऑफलाइन आहे. कृपया FastAPI सुरू करा." : "Backend server is offline. Please start FastAPI.");
+      }
     } finally {
       setPlantLoading(false);
     }

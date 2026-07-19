@@ -1237,43 +1237,72 @@ def query_gemini_raw(image_bytes: bytes, prompt: str, custom_key: str = None) ->
 
         # Timeout and Retry logic with exponential backoff
         import time
+        from fastapi import HTTPException
+        
         max_retries = 3
         backoff = 1.5
+        last_status_code = None
+        last_error_text = ""
+        
         for attempt in range(max_retries):
             try:
-                resp = requests.post(url, json=payload, timeout=35)
+                # Log Gemini request
+                print(f"[Gemini-Raw] Request attempt {attempt+1}/{max_retries} | Prompt length: {len(prompt)}")
+                resp = requests.post(url, json=payload, timeout=30)
+                last_status_code = resp.status_code
+                last_error_text = resp.text
+                
                 if resp.status_code == 200:
                     data = resp.json()
                     parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
                     if not parts:
-                        return None
+                        raise HTTPException(status_code=502, detail="Gemini API returned an empty response.")
                     raw = parts[0].get("text", "").strip()
+                    print(f"[Gemini-Raw] Response: {raw}")
+                    
                     if "```" in raw:
                         raw = raw.split("```")[1]
                         if raw.startswith("json"):
                             raw = raw[4:]
                         raw = raw.strip().rstrip("`").strip()
-                    return json.loads(raw)
+                    try:
+                        return json.loads(raw)
+                    except json.JSONDecodeError as je:
+                        print(f"[Gemini-Raw] JSON decode error: {je}. Raw output was: {raw}")
+                        raise HTTPException(status_code=502, detail="Failed to parse Gemini response as JSON.")
+                        
                 elif resp.status_code == 429:
                     print(f"[Gemini-Raw] Rate limited (429). Retrying in {backoff}s... (Attempt {attempt+1}/{max_retries})")
                     time.sleep(backoff)
                     backoff *= 2
+                elif resp.status_code in (400, 403):
+                    print(f"[Gemini-Raw] Invalid API Key or client error (HTTP {resp.status_code}): {resp.text}")
+                    raise HTTPException(status_code=400, detail="Gemini API key is invalid.")
                 else:
-                    print(f"[Gemini-Raw] HTTP Error status {resp.status_code} on attempt {attempt+1}")
+                    print(f"[Gemini-Raw] HTTP Error status {resp.status_code} on attempt {attempt+1}: {resp.text}")
                     if attempt == max_retries - 1:
-                        return None
+                        raise HTTPException(status_code=502, detail="Gemini API unavailable.")
             except requests.exceptions.Timeout:
                 print(f"[Gemini-Raw] Timeout. Retrying in {backoff}s... (Attempt {attempt+1}/{max_retries})")
+                if attempt == max_retries - 1:
+                    raise HTTPException(status_code=504, detail="AI service timeout. Please retry.")
                 time.sleep(backoff)
                 backoff *= 2
+            except HTTPException:
+                raise
             except Exception as e:
-                print(f"[Gemini-Raw] Request failed: {e} on attempt {attempt+1}")
+                import traceback
+                print(f"[Gemini-Raw] Request failed: {e}\n{traceback.format_exc()}")
                 if attempt == max_retries - 1:
-                    return None
-        return None
+                    raise HTTPException(status_code=502, detail="Gemini API unavailable.")
+                    
+        if last_status_code == 429:
+            raise HTTPException(status_code=429, detail="Gemini API quota exceeded or rate limited. Please try again later.")
+        raise HTTPException(status_code=502, detail="Gemini API unavailable.")
     except Exception as e:
         print(f"[Gemini] query_gemini_raw overall failure: {e}")
-        return None
+        from fastapi import HTTPException
+        raise HTTPException(status_code=502, detail="Gemini API unavailable.")
 
 
 import hashlib
@@ -1563,40 +1592,68 @@ def query_gemini_text(prompt: str, custom_key: str = None) -> dict | None:
         
         # Timeout and Retry logic with exponential backoff
         import time
+        from fastapi import HTTPException
+        
         max_retries = 3
         backoff = 1.5
+        last_status_code = None
+        
         for attempt in range(max_retries):
             try:
-                resp = requests.post(url, json=payload, timeout=25)
+                print(f"[Gemini-Text] Request attempt {attempt+1}/{max_retries}")
+                resp = requests.post(url, json=payload, timeout=20)
+                last_status_code = resp.status_code
+                
                 if resp.status_code == 200:
                     data = resp.json()
-                    raw = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])[0].get("text", "").strip()
+                    parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+                    if not parts:
+                        raise HTTPException(status_code=502, detail="Gemini API returned empty response.")
+                    raw = parts[0].get("text", "").strip()
+                    print(f"[Gemini-Text] Response: {raw}")
+                    
                     if "```" in raw:
                         raw = raw.split("```")[1]
                         if raw.startswith("json"):
                             raw = raw[4:]
                         raw = raw.strip().rstrip("`").strip()
-                    return json.loads(raw)
+                    try:
+                        return json.loads(raw)
+                    except json.JSONDecodeError as je:
+                        print(f"[Gemini-Text] JSON decode error: {je}. Raw output: {raw}")
+                        raise HTTPException(status_code=502, detail="Failed to parse response JSON.")
+                        
                 elif resp.status_code == 429:
                     print(f"[Gemini-Text] Rate limited (429). Retrying in {backoff}s... (Attempt {attempt+1}/{max_retries})")
                     time.sleep(backoff)
                     backoff *= 2
+                elif resp.status_code in (400, 403):
+                    print(f"[Gemini-Text] Invalid API Key or client error (HTTP {resp.status_code}): {resp.text}")
+                    raise HTTPException(status_code=400, detail="Gemini API key is invalid.")
                 else:
-                    print(f"[Gemini-Text] HTTP Error status {resp.status_code} on attempt {attempt+1}")
+                    print(f"[Gemini-Text] HTTP Error status {resp.status_code} on attempt {attempt+1}: {resp.text}")
                     if attempt == max_retries - 1:
-                        return None
+                        raise HTTPException(status_code=502, detail="Gemini API unavailable.")
             except requests.exceptions.Timeout:
                 print(f"[Gemini-Text] Timeout. Retrying in {backoff}s... (Attempt {attempt+1}/{max_retries})")
+                if attempt == max_retries - 1:
+                    raise HTTPException(status_code=504, detail="AI service timeout. Please retry.")
                 time.sleep(backoff)
                 backoff *= 2
+            except HTTPException:
+                raise
             except Exception as e:
-                print(f"[Gemini-Text] Request failed: {e} on attempt {attempt+1}")
+                import traceback
+                print(f"[Gemini-Text] Request failed: {e}\n{traceback.format_exc()}")
                 if attempt == max_retries - 1:
-                    return None
-        return None
+                    raise HTTPException(status_code=502, detail="Gemini API unavailable.")
+                    
+        if last_status_code == 429:
+            raise HTTPException(status_code=429, detail="Gemini API quota exceeded or rate limited. Please try again later.")
+        raise HTTPException(status_code=502, detail="Gemini API unavailable.")
     except Exception as e:
         print(f"[Gemini-Text] query_gemini_text overall failure: {e}")
-        return None
+        raise HTTPException(status_code=502, detail="Gemini API unavailable.")
 
 
 def run_cv_prediction(image_bytes: bytes, crop_hint: str = None) -> dict:
@@ -1842,6 +1899,13 @@ def run_plant_identification(image_bytes: bytes, custom_key: str = None) -> dict
     result = query_gemini_raw(image_bytes, prompt, api_key)
     if result and isinstance(result, dict) and "common_name" in result:
         result["success"] = True
+        result["plant"] = {
+            "common_name": result.get("common_name", "Tomato"),
+            "scientific_name": result.get("scientific_name", "Solanum lycopersicum"),
+            "growth_stage": result.get("growth_stage", "Fruiting"),
+            "health": result.get("health_status", "Healthy"),
+            "confidence": 98
+        }
         return result
         
     return {

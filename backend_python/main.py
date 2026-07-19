@@ -5,7 +5,7 @@ import pickle
 import pandas as pd
 from datetime import datetime, timedelta
 from typing import Optional, List
-from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Form, status, Header
+from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Form, status, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -38,11 +38,71 @@ app = FastAPI(
 # Setup CORS for frontend interactions
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, restrict this to specific frontend domain
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Logging middleware
+import logging
+logger = logging.getLogger("SmartKisanBackend")
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    print(f"Incoming request: {request.method} {request.url.path} from {request.client.host if request.client else 'Unknown'}")
+    response = await call_next(request)
+    return response
+
+# Exception handlers
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+import traceback
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request, exc):
+    print(f"[Error] HTTP {exc.status_code}: {exc.detail}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"success": False, "message": exc.detail}
+    )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    tb = traceback.format_exc()
+    print(f"[Error] Internal Server Error: {exc}\n{tb}")
+    return JSONResponse(
+        status_code=500,
+        content={"success": False, "message": "An unexpected error occurred on the server.", "error": str(exc)}
+    )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    print(f"[Error] Validation failed: {exc.errors()}")
+    return JSONResponse(
+        status_code=422,
+        content={"success": False, "message": "Request validation failed.", "details": exc.errors()}
+    )
+
+def verify_request_preconditions(image: UploadFile, x_gemini_key: Optional[str]):
+    # 1. Verify Gemini API Key
+    api_key = (x_gemini_key or "").strip() or get_gemini_api_key()
+    if not api_key:
+        print("[Error] Gemini API key is missing.")
+        raise HTTPException(
+            status_code=500,
+            detail="Gemini API key missing."
+        )
+        
+    # 2. Validate uploaded image format
+    filename = image.filename.lower()
+    ext = filename.split('.')[-1]
+    if ext not in ["jpg", "jpeg", "png", "webp"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file format. Only JPG, JPEG, PNG, and WEBP images are accepted."
+        )
 
 # Ensure folders exist
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
@@ -277,6 +337,7 @@ async def diagnose_crop_disease(
 
 # --- MODULE A2: Crop Diagnostics CV ---
 @app.post("/api/crop-diagnose", status_code=status.HTTP_201_CREATED)
+@app.post("/api/crop-diagnostics", status_code=status.HTTP_201_CREATED)
 async def diagnose_crop_cv_endpoint(
     image: UploadFile = File(...),
     crop: Optional[str] = Form(None),
@@ -287,13 +348,15 @@ async def diagnose_crop_cv_endpoint(
     Examines crop image. Accepts ONLY crop/plant images.
     If NOT a crop -> returns success: False, error: "Invalid image. Please upload a crop image or plant."
     """
-    if not image.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="File uploaded is not a valid image format.")
+    verify_request_preconditions(image, x_gemini_key)
 
     unique_filename = f"crop_diag_{int(datetime.utcnow().timestamp())}_{image.filename}"
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(image.file, buffer)
+
+    image_size = os.path.getsize(file_path)
+    print(f"Incoming request: POST /api/crop-diagnostics | Uploaded filename: {image.filename} | Image size: {image_size} bytes")
 
     # Preprocess & Resize image
     try:
@@ -337,6 +400,7 @@ async def diagnose_crop_cv_endpoint(
 
 # --- MODULE A3: Leaf Disease Diagnosis ---
 @app.post("/api/leaf-diagnose", status_code=status.HTTP_201_CREATED)
+@app.post("/api/leaf-disease", status_code=status.HTTP_201_CREATED)
 async def diagnose_leaf_disease(
     image: UploadFile = File(...),
     crop: Optional[str] = Form(None),
@@ -347,13 +411,15 @@ async def diagnose_leaf_disease(
     Leaf-specific disease diagnosis endpoint.
     If NOT a leaf -> returns success: False, error: "Invalid image. Please upload a crop image of a plant leaf."
     """
-    if not image.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="File uploaded is not a valid image format.")
+    verify_request_preconditions(image, x_gemini_key)
 
     unique_filename = f"leaf_diag_{int(datetime.utcnow().timestamp())}_{image.filename}"
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(image.file, buffer)
+
+    image_size = os.path.getsize(file_path)
+    print(f"Incoming request: POST /api/leaf-disease | Uploaded filename: {image.filename} | Image size: {image_size} bytes")
 
     # Preprocess & Resize image
     try:
@@ -397,6 +463,7 @@ async def diagnose_leaf_disease(
 
 # --- MODULE A4: Crop Disease Detection ---
 @app.post("/api/crop-disease-detect", status_code=status.HTTP_201_CREATED)
+@app.post("/api/crop-disease", status_code=status.HTTP_201_CREATED)
 async def detect_crop_disease_endpoint(
     image: UploadFile = File(...),
     crop: Optional[str] = Form(None),
@@ -407,13 +474,15 @@ async def detect_crop_disease_endpoint(
     Crop disease detection endpoint.
     If NOT a crop -> returns success: False, error: "Invalid image. Please upload a valid crop image."
     """
-    if not image.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="File uploaded is not a valid image format.")
+    verify_request_preconditions(image, x_gemini_key)
 
     unique_filename = f"crop_detect_{int(datetime.utcnow().timestamp())}_{image.filename}"
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(image.file, buffer)
+
+    image_size = os.path.getsize(file_path)
+    print(f"Incoming request: POST /api/crop-disease | Uploaded filename: {image.filename} | Image size: {image_size} bytes")
 
     # Preprocess & Resize image
     try:
@@ -490,6 +559,7 @@ class PDFReportRequest(BaseModel):
 
 # --- Plant Identification Endpoint ---
 @app.post("/api/plant-identify", status_code=status.HTTP_201_CREATED)
+@app.post("/api/plant-identification", status_code=status.HTTP_201_CREATED)
 async def identify_plant_endpoint(
     image: UploadFile = File(...),
     x_gemini_key: Optional[str] = Header(None)
@@ -497,9 +567,19 @@ async def identify_plant_endpoint(
     """
     Accepts plant photo, validates it is a plant, and runs Gemini Vision Identification.
     """
-    if not image.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="File uploaded is not a valid image format.")
-    img_bytes = await image.read()
+    verify_request_preconditions(image, x_gemini_key)
+    
+    unique_filename = f"plant_id_{int(datetime.utcnow().timestamp())}_{image.filename}"
+    file_path = os.path.join(UPLOAD_DIR, unique_filename)
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(image.file, buffer)
+        
+    image_size = os.path.getsize(file_path)
+    print(f"Incoming request: POST /api/plant-identification | Uploaded filename: {image.filename} | Image size: {image_size} bytes")
+    
+    with open(file_path, "rb") as f:
+        img_bytes = f.read()
+        
     import asyncio
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(None, run_plant_identification, img_bytes, x_gemini_key)
@@ -1346,5 +1426,34 @@ def delete_government_scheme(scheme_id: int, db: Session = Depends(get_db)):
     db.delete(scheme)
     db.commit()
     return {"success": True, "message": "Scheme deleted successfully"}
+
+
+@app.get("/api/health")
+def health_check(db: Session = Depends(get_db)):
+    gemini_status = "connected"
+    gemini_key = get_gemini_api_key()
+    if not gemini_key or gemini_key == "YOUR_GEMINI_API_KEY":
+        gemini_status = "disconnected"
+    else:
+        try:
+            from ml_model import query_gemini_text
+            res = query_gemini_text("Hello. Reply with only JSON: {\"status\": \"ok\"}", custom_key=gemini_key)
+            if not res or not isinstance(res, dict) or res.get("status") != "ok":
+                gemini_status = "disconnected"
+        except Exception:
+            gemini_status = "disconnected"
+
+    db_status = "connected"
+    try:
+        from sqlalchemy import text
+        db.execute(text("SELECT 1"))
+    except Exception:
+        db_status = "disconnected"
+
+    return {
+        "status": "ok",
+        "gemini": gemini_status,
+        "database": db_status
+    }
 
 
