@@ -105,11 +105,11 @@ try:
     try:
         import numpy
         with open('/home/Krishna3114/numpy_test.log', 'w') as log_f:
-            log_f.write(f"Success! Imported numpy from {numpy.__file__}\n")
+            log_f.write("Success! Imported numpy from " + str(numpy.__file__))
     except Exception as e:
         import traceback
         with open('/home/Krishna3114/numpy_test.log', 'w') as log_f:
-            log_f.write(f"Failed to import numpy:\n{traceback.format_exc()}\n")
+            log_f.write("Failed to import numpy: " + str(traceback.format_exc()))
             
     # Copy system web app error log to home for download
     import shutil
