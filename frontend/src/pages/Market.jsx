@@ -385,53 +385,6 @@ const Market = () => {
     localStorage.setItem("sk_fav_mandis", JSON.stringify(next));
   };
 
-    setTimeout(() => {
-      const avg = data.stats.avgPrice;
-      const trendDir = data.trend.dir; // "up", "down", "stable"
-      const period = parseInt(forecastPeriod);
-
-      let sentiment = "Neutral";
-      let multiplier = 0;
-
-      if (trendDir === "up") {
-        sentiment = "Bullish";
-        multiplier = period === 7 ? 0.03 : period === 15 ? 0.06 : 0.12;
-      } else if (trendDir === "down") {
-        sentiment = "Bearish";
-        multiplier = period === 7 ? -0.02 : period === 15 ? -0.05 : -0.10;
-      } else {
-        sentiment = "Neutral";
-        multiplier = period === 7 ? 0.005 : period === 15 ? 0.01 : 0.02;
-      }
-
-      const expectedMin = Math.round(avg * (1 + multiplier - 0.03));
-      const expectedMax = Math.round(avg * (1 + multiplier + 0.04));
-
-      let advisoryEn = "";
-      let advisoryMr = "";
-
-      if (sentiment === "Bullish") {
-        advisoryEn = `Market trend is strong. Prices are expected to rise by ${Math.round(multiplier * 100)}% over the next ${period} days. We recommend holding your stock to maximize profit.`;
-        advisoryMr = `बाजार कल मजबूत आहे. पुढील ${period} दिवसांत भाव सुमारे ${Math.round(multiplier * 100)}% वाढण्याची शक्यता आहे. अधिक नफ्यासाठी माल काही दिवस राखून ठेवण्याचा सल्ला दिला जातो.`;
-      } else if (sentiment === "Bearish") {
-        advisoryEn = `Market shows declining demand. Prices could decrease by ${Math.abs(Math.round(multiplier * 100))}% in ${period} days. It is advised to sell your produce soon to prevent loss.`;
-        advisoryMr = `बाजारात मागणी कमी होत आहे. पुढील ${period} दिवसांत भाव सुमारे ${Math.abs(Math.round(multiplier * 100))}% घसरण्याची शक्यता आहे. नुकसान टाळण्यासाठी लवकरात लवकर पिकाची विक्री करा.`;
-      } else {
-        advisoryEn = `Prices are expected to remain stable with minor fluctuations (±2%). Plan your sales according to your immediate cash requirements.`;
-        advisoryMr = `अल्पशा बदलांसह बाजार भाव स्थिर राहण्याची शक्यता आहे (±२%). आपल्या पैशांच्या गरजेनुसार विक्रीचे नियोजन करा.`;
-      }
-
-      setForecastResult({
-        expectedMin,
-        expectedMax,
-        sentiment,
-        advisoryEn,
-        advisoryMr
-      });
-      setIsAnalyzing(false);
-    }, 1000);
-  };
-
   // Localized recommendations helper
   const getLocalizedRecommendation = (recAction) => {
     if (!recAction) return null;
