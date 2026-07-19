@@ -341,11 +341,14 @@ def application(environ, start_response):
     
     # Route python advisory/diagnose/alerts/dataset/py_uploads endpoints to Python Port
     if (path_info.startswith('/api/diagnose') or path_info.startswith('/api/crop-diagnose')
-            or path_info.startswith('/api/leaf-diagnose') or path_info.startswith('/api/crop-disease-detect')
+            or path_info.startswith('/api/crop-diagnostics')
+            or path_info.startswith('/api/leaf-diagnose') or path_info.startswith('/api/leaf-disease')
+            or path_info.startswith('/api/crop-disease-detect') or path_info.startswith('/api/crop-disease')
             or path_info.startswith('/api/advisory') or path_info.startswith('/api/alerts')
             or path_info.startswith('/api/community') or path_info.startswith('/api/dataset')
             or path_info.startswith('/api/chat') or path_info.startswith('/api/generate-pdf')
-            or path_info.startswith('/api/plant-identify') or path_info.startswith('/py_uploads')):
+            or path_info.startswith('/api/plant-identify') or path_info.startswith('/api/plant-identification')
+            or path_info.startswith('/api/health') or path_info.startswith('/py_uploads')):
         return proxy_request(environ, start_response, PYTHON_PORT)
     # Route Node uploads static files and general Node endpoints to Node Port
     elif path_info.startswith('/uploads') or path_info.startswith('/api'):
