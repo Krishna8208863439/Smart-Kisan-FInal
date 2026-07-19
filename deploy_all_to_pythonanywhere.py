@@ -93,11 +93,20 @@ import urllib.error
 import mimetypes
 
 try:
-    with open('/home/Krishna3114/numpy_uninstall.log', 'w') as log_f:
-        subprocess.run(['/usr/bin/python3.10', '-m', 'pip', 'uninstall', '-y', 'numpy'], stdout=log_f, stderr=log_f)
     # Clean up leftover corrupt numpy user packages
     subprocess.run(['rm', '-rf', '/home/Krishna3114/.local/lib/python3.10/site-packages/numpy'])
     subprocess.run(['rm', '-rf', '/home/Krishna3114/.local/lib/python3.10/site-packages/~umpy'])
+    
+    # Run numpy import diagnostics
+    try:
+        import numpy
+        with open('/home/Krishna3114/numpy_test.log', 'w') as log_f:
+            log_f.write(f"Success! Imported numpy from {numpy.__file__}\n")
+    except Exception as e:
+        import traceback
+        with open('/home/Krishna3114/numpy_test.log', 'w') as log_f:
+            log_f.write(f"Failed to import numpy:\n{traceback.format_exc()}\n")
+            
     # Force kill any running uvicorn or node instances to ensure they reload under the clean state
     subprocess.run(['pkill', '-f', 'uvicorn'])
     subprocess.run(['pkill', '-f', 'node'])
