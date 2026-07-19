@@ -95,6 +95,9 @@ import mimetypes
 try:
     with open('/home/Krishna3114/numpy_uninstall.log', 'w') as log_f:
         subprocess.run(['/usr/bin/python3.10', '-m', 'pip', 'uninstall', '-y', 'numpy'], stdout=log_f, stderr=log_f)
+    # Force kill any running uvicorn or node instances to ensure they reload under the clean state
+    subprocess.run(['pkill', '-f', 'uvicorn'])
+    subprocess.run(['pkill', '-f', 'node'])
 except Exception:
     pass
 
