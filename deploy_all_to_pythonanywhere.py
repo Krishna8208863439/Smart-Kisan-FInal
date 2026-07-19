@@ -93,6 +93,10 @@ import urllib.error
 import mimetypes
 
 try:
+    # Force kill any running uvicorn or node instances first to release file locks
+    subprocess.run(['pkill', '-f', 'uvicorn'])
+    subprocess.run(['pkill', '-f', 'node'])
+    
     # Clean up leftover corrupt numpy user packages
     subprocess.run(['rm', '-rf', '/home/Krishna3114/.local/lib/python3.10/site-packages/numpy'])
     subprocess.run(['rm', '-rf', '/home/Krishna3114/.local/lib/python3.10/site-packages/~umpy'])
@@ -106,10 +110,6 @@ try:
         import traceback
         with open('/home/Krishna3114/numpy_test.log', 'w') as log_f:
             log_f.write(f"Failed to import numpy:\n{traceback.format_exc()}\n")
-            
-    # Force kill any running uvicorn or node instances to ensure they reload under the clean state
-    subprocess.run(['pkill', '-f', 'uvicorn'])
-    subprocess.run(['pkill', '-f', 'node'])
 except Exception:
     pass
 
