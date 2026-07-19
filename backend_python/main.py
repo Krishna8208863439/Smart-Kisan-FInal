@@ -310,7 +310,9 @@ async def diagnose_crop_cv_endpoint(
     with open(file_path, "rb") as f:
         img_bytes = f.read()
 
-    prediction = run_crop_diagnose_cv(img_bytes, crop_hint=crop, custom_key=x_gemini_key)
+    import asyncio
+    loop = asyncio.get_event_loop()
+    prediction = await loop.run_in_executor(None, run_crop_diagnose_cv, img_bytes, crop, x_gemini_key)
     
     # Save search log if valid
     if prediction.get("success", True):
@@ -368,7 +370,9 @@ async def diagnose_leaf_disease(
     with open(file_path, "rb") as f:
         img_bytes = f.read()
 
-    prediction = run_leaf_disease_diagnose(img_bytes, crop_hint=crop, custom_key=x_gemini_key)
+    import asyncio
+    loop = asyncio.get_event_loop()
+    prediction = await loop.run_in_executor(None, run_leaf_disease_diagnose, img_bytes, crop, x_gemini_key)
 
     # Save search log if valid
     if prediction.get("success", True):
@@ -426,7 +430,9 @@ async def detect_crop_disease_endpoint(
     with open(file_path, "rb") as f:
         img_bytes = f.read()
 
-    prediction = run_crop_disease_detect(img_bytes, crop_hint=crop, custom_key=x_gemini_key)
+    import asyncio
+    loop = asyncio.get_event_loop()
+    prediction = await loop.run_in_executor(None, run_crop_disease_detect, img_bytes, crop, x_gemini_key)
 
     # Save search log if valid
     if prediction.get("success", True):
@@ -494,7 +500,9 @@ async def identify_plant_endpoint(
     if not image.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File uploaded is not a valid image format.")
     img_bytes = await image.read()
-    result = run_plant_identification(img_bytes, x_gemini_key)
+    import asyncio
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(None, run_plant_identification, img_bytes, x_gemini_key)
     return result
 
 

@@ -1276,88 +1276,269 @@ def query_gemini_raw(image_bytes: bytes, prompt: str, custom_key: str = None) ->
         return None
 
 
+import hashlib
+import numpy as np
+from PIL import ImageEnhance, Image as PILImage
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("SmartKisanML")
+
+# Validation Cache
+VALIDATION_CACHE = {}
+MAX_CACHE_SIZE = 200
+
+def get_image_hash(image_bytes: bytes) -> str:
+    return hashlib.sha256(image_bytes).hexdigest()
+
+def preprocess_image_and_check_quality(image_bytes: bytes) -> tuple[bytes, dict]:
+    """
+    Decodes the image, resizes if too large, checks blurriness using Laplacian variance,
+    checks and corrects brightness, and returns processed bytes with quality parameters.
+    """
+    try:
+        img = Image.open(io.BytesIO(image_bytes))
+        img = img.convert("RGB")
+        
+        # 1. Resize if exceeds max dimensions of 800x800
+        original_size = img.size
+        img.thumbnail((800, 800), Image.Resampling.LANCZOS)
+        resized_size = img.size
+        
+        # 2. Brightness Check & Correction
+        gray_arr = np.array(img.convert("L"), dtype=np.float32)
+        mean_brightness = float(np.mean(gray_arr))
+        
+        corrected_img = img
+        brightness_adjusted = False
+        factor = 1.0
+        if mean_brightness < 80:
+            factor = 1.4
+            enhancer = ImageEnhance.Brightness(img)
+            corrected_img = enhancer.enhance(factor)
+            brightness_adjusted = True
+            logger.info(f"[ML] Low brightness detected ({mean_brightness:.1f}). Adjusted by factor of {factor}.")
+        elif mean_brightness > 220:
+            factor = 0.8
+            enhancer = ImageEnhance.Brightness(img)
+            corrected_img = enhancer.enhance(factor)
+            brightness_adjusted = True
+            logger.info(f"[ML] High brightness detected ({mean_brightness:.1f}). Adjusted by factor of {factor}.")
+            
+        # 3. Blur Detection (Laplacian Variance using NumPy)
+        gray_corrected = np.array(corrected_img.convert("L"), dtype=np.float32)
+        laplacian = (
+            gray_corrected[1:-1, 2:] + gray_corrected[1:-1, :-2] +
+            gray_corrected[2:, 1:-1] + gray_corrected[:-2, 1:-1] -
+            4 * gray_corrected[1:-1, 1:-1]
+        )
+        laplacian_variance = float(np.var(laplacian))
+        is_blurry = laplacian_variance < 30.0
+        logger.info(f"[ML] Quality Check: Original Size={original_size} -> Resized={resized_size} | Brightness={mean_brightness:.2f} (Adjusted: {brightness_adjusted}) | Blur Score={laplacian_variance:.2f}")
+
+        out_buf = io.BytesIO()
+        corrected_img.save(out_buf, format="JPEG", quality=90)
+        processed_bytes = out_buf.getvalue()
+
+        quality_report = {
+            "is_blurry": is_blurry,
+            "blur_score": laplacian_variance,
+            "brightness": mean_brightness,
+            "brightness_adjusted": brightness_adjusted,
+            "resized": original_size != resized_size,
+            "success": not is_blurry
+        }
+        return processed_bytes, quality_report
+
+    except Exception as e:
+        logger.error(f"[ML] Error in image preprocessing and quality check: {e}")
+        return image_bytes, {
+            "is_blurry": False,
+            "blur_score": 999.0,
+            "brightness": 128.0,
+            "brightness_adjusted": False,
+            "resized": False,
+            "success": True
+        }
+
+def calculate_agriculture_score(labels: list[str]) -> int:
+    """
+    Calculates agriculture score by matching labels against agricultural terms.
+    Weights:
+      Specific Crop: +40
+      High-level Crop/Plant/Foliage: +30
+      Parts/Secondary: +20
+    """
+    cleaned_labels = [str(l).lower().strip() for l in labels]
+    
+    crop_keywords = {
+        "tomato", "potato", "onion", "rice", "wheat", "cotton", "maize", "corn", 
+        "banana", "sugarcane", "soybean", "groundnut", "turmeric", "chili", "chilly", 
+        "mango", "pomegranate", "apple", "orange", "papaya", "guava", "brinjal", 
+        "cabbage", "cauliflower", "spinach", "okra", "cucumber", "pumpkin", "peas", 
+        "beans", "millets", "millet", "mustard", "sunflower", "agriculture", 
+        "agricultural", "field", "crop field", "cultivated crop", "cultivated plant"
+    }
+    
+    plant_keywords = {
+        "plant", "leaf", "leaves", "farm", "field", "nursery", "greenhouse", 
+        "foliage", "crop", "crops", "garden plant", "nursery plant", "greenhouse plant"
+    }
+    
+    secondary_keywords = {
+        "fruit", "fruits", "vegetable", "vegetables", "stem", "stems", "flower", 
+        "flowers", "root", "roots", "branch", "branches", "seedling", "seedlings", 
+        "tree", "trees", "shrub", "shrubs", "herb", "herbs", "produce", "food", 
+        "soil", "dirt", "harvest", "plant stem", "plant branch", "plant root", 
+        "fruit plant", "vegetable plant"
+    }
+
+    score = 0
+    matched_words = set()
+    for label in cleaned_labels:
+        for kw in crop_keywords:
+            if kw in label and kw not in matched_words:
+                score += 40
+                matched_words.add(kw)
+        for kw in plant_keywords:
+            if kw in label and kw not in matched_words:
+                score += 30
+                matched_words.add(kw)
+        for kw in secondary_keywords:
+            if kw in label and kw not in matched_words:
+                score += 20
+                matched_words.add(kw)
+                
+    return score
+
 def validate_image_type(image_bytes: bytes, custom_key: str = None) -> dict:
     """
     Uses Gemini Vision to validate if the image contains an agricultural crop, plant, leaf, fruit, stem, or flower.
-    Enforces a strict confidence score checking.
+    Enforces image preprocessing, blur/quality detection, caching, and Python-based Agriculture Score.
     """
-    prompt = """Analyze this image as an agricultural expert. Perform classification and return a JSON structure.
-    Determine what objects are depicted in the image. You must return the following JSON:
-    {
-      "labels": ["label1", "label2", ...],  // A list of descriptive labels/tags representing the main objects in the image.
-      "is_leaf": true|false,               // true if the image clearly depicts a plant leaf or leaves.
-      "agriculture_score": float           // A value between 0.0 and 1.0 representing the proportion or confidence that the image contains agricultural elements (crops, crop plants, foliage, fields, vegetables, fruits, plant stems/roots, farm, soil, etc.) rather than unrelated items (humans, animals, vehicles, electronics, furniture, buildings, etc.).
-    }
+    global VALIDATION_CACHE
     
-    Return ONLY this JSON (no backticks, no markdown, no other text)."""
+    processed_bytes, quality = preprocess_image_and_check_quality(image_bytes)
+    
+    if quality.get("is_blurry", False):
+        return {
+            "success": False,
+            "is_crop": False,
+            "is_leaf": False,
+            "confidence": 0.0,
+            "error": "Uploaded image is too blurry or low quality. Please capture a clear photo of the crop or leaf."
+        }
+        
+    img_hash = get_image_hash(processed_bytes)
+    if img_hash in VALIDATION_CACHE:
+        logger.info(f"[ML] Cache hit for image hash {img_hash}")
+        return VALIDATION_CACHE[img_hash]
+        
+    prompt = (
+        "You are an agricultural image classifier.\n"
+        "Determine whether the uploaded image contains any agricultural object.\n"
+        "Agricultural objects include crops, plants, leaves, fruits attached to plants, vegetables attached to plants, stems, flowers, roots, seedlings, trees, farms, agricultural fields, nurseries, or greenhouse crops.\n"
+        "If the image belongs to agriculture, return VALID.\n"
+        "If it does not belong to agriculture, return INVALID.\n"
+        "Do not require the exact word 'crop'.\n"
+        "Treat tomato, banana, potato, onion, rice, wheat, cotton, maize, sugarcane, soybean, mango, pomegranate, chili, turmeric, groundnut, vegetables, fruits, and leaves as valid agricultural objects.\n\n"
+        "You must return the classification and metadata in the following JSON format structure:\n"
+        "{\n"
+        "  \"status\": \"VALID\" | \"INVALID\",\n"
+        "  \"labels\": [\"label1\", \"label2\", ...],\n"
+        "  \"is_leaf\": true | false,\n"
+        "  \"agriculture_score\": float\n"
+        "}\n"
+        "Return ONLY this JSON (no markdown formatting, no other text)."
+    )
+    
     api_key = (custom_key or "").strip() or get_gemini_api_key()
     if not api_key:
-        print("[ML] No Gemini API key configured. Cannot run image validation.")
+        logger.warning("[ML] No Gemini API key configured. Cannot run image validation.")
         return {"success": False, "is_crop": False, "is_leaf": False, "confidence": 0.0, "error": "Gemini API Key is missing. Please configure it in your .env file."}
+
+    result = query_gemini_raw(processed_bytes, prompt, api_key)
     
-    result = query_gemini_raw(image_bytes, prompt, api_key)
-    if result and isinstance(result, dict) and "labels" in result:
+    status = "INVALID"
+    labels = []
+    is_leaf = False
+    gemini_agri_score = 0.0
+
+    if result and isinstance(result, dict):
+        status = str(result.get("status", "INVALID")).upper().strip()
         labels = [str(l).lower().strip() for l in result.get("labels", [])]
         is_leaf = result.get("is_leaf", False)
-        agri_score = result.get("agriculture_score", 0.0)
-        
-        VALID_AGRI_KEYWORDS = {
-            "plant", "leaf", "leaves", "tomato", "potato", "onion", "rice", "wheat", "cotton",
-            "sugarcane", "soybean", "groundnut", "banana", "mango", "pomegranate", "maize",
-            "corn", "millets", "vegetable", "vegetables", "fruit", "fruits", "seedling", "seedlings",
-            "flower", "flowers", "stem", "stems", "branch", "branches", "root", "roots",
-            "agriculture", "farm", "field", "crop", "crops", "garden", "nursery", "greenhouse",
-            "herb", "shrub", "tree", "foliage", "produce", "food", "soil", "dirt", "harvest"
-        }
+        gemini_agri_score = result.get("agriculture_score", 0.0)
+    else:
+        logger.warning("[ML] Gemini returned non-JSON/invalid structure. Doing fallback analysis.")
+        if isinstance(result, str):
+            if "VALID" in result.upper():
+                status = "VALID"
+            
+    computed_score = calculate_agriculture_score(labels)
+    
+    IMMEDIATE_VALID_KEYWORDS = {
+        "plant", "leaf", "leaves", "tomato", "potato", "onion", "rice", "wheat", "cotton",
+        "sugarcane", "soybean", "groundnut", "banana", "mango", "pomegranate", "maize",
+        "corn", "millets", "millet", "vegetable", "vegetables", "fruit", "fruits", "seedling",
+        "seedlings", "flower", "flowers", "stem", "stems", "branch", "branches", "root", "roots",
+        "agriculture", "agricultural", "farm", "field", "fields", "garden", "nursery", "greenhouse",
+        "herb", "shrub", "tree", "trees", "foliage", "produce", "food", "soil", "harvest",
+        "apple", "orange", "papaya", "guava", "brinjal", "cabbage", "cauliflower", "spinach",
+        "okra", "cucumber", "pumpkin", "peas", "beans", "mustard", "sunflower", "cultivated"
+    }
+    
+    has_immediate_keyword = False
+    for label in labels:
+        if any(kw in label for kw in IMMEDIATE_VALID_KEYWORDS):
+            has_immediate_keyword = True
+            break
 
-        INVALID_KEYWORDS = {
-            "human", "person", "man", "woman", "child", "people", "face", "faces", "hand", "hands",
-            "finger", "fingers", "dog", "cat", "bird", "animal", "pet", "vehicle", "car", "motorcycle",
-            "truck", "bike", "bicycle", "house", "building", "laptop", "phone", "mobile", "computer",
-            "book", "document", "currency", "money", "furniture", "table", "chair", "sofa", "desk",
-            "qr code", "bar code", "unknown", "text", "watermark", "logo", "screen", "display"
-        }
-        
-        # Calculate semantic matching scores
-        has_valid_keyword = False
-        for label in labels:
-            if any(kw in label for kw in VALID_AGRI_KEYWORDS):
-                has_valid_keyword = True
-                break
-                
-        has_invalid_keyword = False
-        for label in labels:
-            if any(kw in label for kw in INVALID_KEYWORDS):
-                has_invalid_keyword = True
-                break
-        
-        # Semantic mapping adjustments
-        if has_valid_keyword:
-            agri_score = max(agri_score, 0.85)
+    for label in labels:
+        if "leaf" in label or "leaves" in label:
+            is_leaf = True
+            break
             
-        if has_invalid_keyword:
-            agri_score = 0.0
-            
-        print(f"[ML] Image Validation: labels={labels} | is_leaf={is_leaf} | agri_score={agri_score:.2f}")
+    REJECT_KEYWORDS = {
+        "human", "person", "man", "woman", "child", "people", "face", "faces",
+        "dog", "cat", "bird", "animal", "pet", "vehicle", "car", "motorcycle",
+        "truck", "bike", "bicycle", "house", "building", "laptop", "phone",
+        "mobile", "computer", "book", "document", "currency", "money", "furniture",
+        "table", "chair", "sofa", "desk", "unknown object", "random object",
+        "screenshot", "cartoon", "drawing"
+    }
+    
+    has_reject_keyword = False
+    for label in labels:
+        if any(kw in label for kw in REJECT_KEYWORDS):
+            has_reject_keyword = True
+            break
+
+    is_valid = False
+    confidence = max(gemini_agri_score, float(computed_score) / 100.0)
+    
+    if status == "VALID" or has_immediate_keyword or computed_score >= 60:
+        is_valid = True
         
-        if agri_score >= 0.60:
-            return {
-                "success": True,
-                "is_crop": True,
-                "is_leaf": is_leaf,
-                "confidence": agri_score
-            }
-        else:
-            return {
-                "success": False,
-                "is_crop": False,
-                "is_leaf": False,
-                "confidence": agri_score,
-                "error": "This image is not a valid crop, plant, or leaf. Please upload a clear agricultural image."
-            }
-            
-    print("[ML] Gemini validation call failed or errored.")
-    return {"success": False, "is_crop": False, "is_leaf": False, "confidence": 0.0, "error": "AI service is temporarily unavailable. Please try again later."}
+    if has_reject_keyword and computed_score < 60 and status != "VALID":
+        is_valid = False
+
+    logger.info(f"[ML] Image Validation Output: status={status} | labels={labels} | is_leaf={is_leaf} | computed_score={computed_score} | final_valid={is_valid}")
+    
+    res = {
+        "success": is_valid,
+        "is_crop": is_valid,
+        "is_leaf": is_leaf,
+        "confidence": confidence if is_valid else 0.0,
+        "error": None if is_valid else "Invalid Image — No Crop or Agricultural Object Detected. Please upload a clear image of a crop, plant, leaf, or farm."
+    }
+    
+    if len(VALIDATION_CACHE) >= MAX_CACHE_SIZE:
+        VALIDATION_CACHE.pop(next(iter(VALIDATION_CACHE)))
+    VALIDATION_CACHE[img_hash] = res
+    
+    return res
 
 
 def query_gemini_text(prompt: str, custom_key: str = None) -> dict | None:
@@ -1441,10 +1622,10 @@ def run_crop_diagnose_cv(image_bytes: bytes, crop_hint: str = None, custom_key: 
     Accepts ONLY crop/plant images.
     """
     val = validate_image_type(image_bytes, custom_key)
-    if not val or not val.get("is_crop", False) or val.get("confidence", 0.0) < 0.90:
+    if not val or not val.get("success", False):
         return {
             "success": False,
-            "error": "This is not a valid crop or plant image. Please upload a clear image of a crop, plant, fruit, stem, flower, or leaf."
+            "error": val.get("error") if (val and val.get("error")) else "This is not a valid crop or plant image. Please upload a clear image of a crop, plant, fruit, stem, flower, or leaf."
         }
 
     pred = run_cv_prediction(image_bytes, crop_hint)
