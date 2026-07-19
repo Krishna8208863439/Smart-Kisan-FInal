@@ -92,6 +92,12 @@ import urllib.request
 import urllib.error
 import mimetypes
 
+try:
+    with open('/home/Krishna3114/numpy_uninstall.log', 'w') as log_f:
+        subprocess.run(['/usr/bin/python3.10', '-m', 'pip', 'uninstall', '-y', 'numpy'], stdout=log_f, stderr=log_f)
+except Exception:
+    pass
+
 os.environ['no_proxy'] = '127.0.0.1,localhost,krishna3114.pythonanywhere.com'
 os.environ['NO_PROXY'] = '127.0.0.1,localhost,krishna3114.pythonanywhere.com'
 
