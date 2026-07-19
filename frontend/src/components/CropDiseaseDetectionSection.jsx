@@ -4,7 +4,11 @@ import axios from "axios";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
 
-const PY_API_URL = import.meta.env.VITE_PY_API_URL || "/pyapi";
+const PY_API_URL = import.meta.env.VITE_PY_API_URL || (
+  typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+    ? "/pyapi"
+    : "/api"
+);
 
 // Crop options with Hindi/Marathi labels
 const CROP_OPTIONS = [

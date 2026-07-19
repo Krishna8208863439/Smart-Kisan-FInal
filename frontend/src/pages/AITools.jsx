@@ -137,7 +137,11 @@ const AITools = () => {
     }
   };
 
-  const PY_API_BASE = import.meta.env.VITE_PY_API_URL || "/pyapi";
+  const PY_API_BASE = import.meta.env.VITE_PY_API_URL || (
+    typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+      ? "/pyapi"
+      : "/api"
+  );
 
   // Parse structured Gemini AgriExpert advice
   const parseGeminiAdvice = (adviceText) => {
@@ -423,7 +427,6 @@ const AITools = () => {
   const handleDownloadDiagnosticPDF = async () => {
     if (!diseaseResult) return;
     try {
-      const pyApiBase = localStorage.getItem("sk_py_api_base") || "http://localhost:8000/api";
       const payload = {
         crop_name: diseaseResult.crop || diseaseResult.crop_name || "Crop",
         disease_name: diseaseResult.disease || diseaseResult.disease_name || "Healthy",
@@ -438,7 +441,7 @@ const AITools = () => {
         prevention_methods: diseaseResult.prevention_methods || diseaseResult.prevention || ""
       };
 
-      const response = await fetch(`${pyApiBase}/generate-pdf`, {
+      const response = await fetch(`${PY_API_BASE}/generate-pdf`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
