@@ -4,7 +4,7 @@ import json
 import pickle
 import pandas as pd
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, List
 from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Form, status, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -20,8 +20,10 @@ except ImportError:
     pass
 
 from database import init_db, get_db, DiseaseReport, CropLog, WeatherCache, User, PushSubscription, EmergencyAlert, CommunityOfficer, CommunityWebinar, GovernmentScheme, seed_db
-from ml_model import predict_image, get_gemini_api_key, run_crop_diagnose_cv, run_leaf_disease_diagnose, run_crop_disease_detect
+from ml_model import predict_image, get_gemini_api_key, run_crop_diagnose_cv, run_leaf_disease_diagnose, run_crop_disease_detect, run_plant_identification
 from use_dataset_for_disease_detection import register_dataset_routes, get_dataset_stats, load_dataset_classes
+from pydantic import BaseModel
+from fastapi.responses import FileResponse
 
 # Global crop recommendation model data
 crop_model_data = None
@@ -88,6 +90,14 @@ def startup_event():
             print("[Server] Crop recommendation model loaded successfully.")
         except Exception as e:
             print(f"[Server] Failed to load crop model: {e}")
+            
+    # Initialize RAG system
+    try:
+        from rag_service import init_rag_system
+        init_rag_system()
+        print("[Server] RAG knowledge base indexed successfully.")
+    except Exception as rag_err:
+        print(f"[Server] Failed to initialize RAG system: {rag_err}")
 
 
 @app.get("/api/health")
@@ -420,6 +430,176 @@ async def detect_crop_disease_endpoint(
         prediction["imageUrl"] = image_url
 
     return prediction
+
+
+# --- Pydantic Schemas for Agricultural Chat & PDF Reports ---
+class ChatMessage(BaseModel):
+    sender: str
+    text: str
+
+class ChatRequest(BaseModel):
+    message: str
+    chatHistory: Optional[List[ChatMessage]] = None
+    language: Optional[str] = "en"
+
+class PDFReportRequest(BaseModel):
+    crop_name: Optional[str] = None
+    crop: Optional[str] = None
+    disease_name: Optional[str] = None
+    disease: Optional[str] = None
+    severity: Optional[str] = "medium"
+    confidence: Optional[float] = 0.95
+    problems_detected: Optional[str] = None
+    disease_description: Optional[str] = None
+    symptoms: Optional[str] = None
+    causes: Optional[str] = None
+    organic_treatment: Optional[str] = None
+    chemical_treatment: Optional[str] = None
+    treatment: Optional[str] = None
+    prevention_methods: Optional[str] = None
+    prevention: Optional[str] = None
+    fertilizer_recommendation: Optional[str] = None
+    suggested_fertilizers: Optional[str] = None
+    fertilizer_advice: Optional[str] = None
+    irrigation_advice: Optional[str] = None
+    region: Optional[str] = "India"
+
+
+# --- Plant Identification Endpoint ---
+@app.post("/api/plant-identify", status_code=status.HTTP_201_CREATED)
+async def identify_plant_endpoint(
+    image: UploadFile = File(...),
+    x_gemini_key: Optional[str] = Header(None)
+):
+    """
+    Accepts plant photo, validates it is a plant, and runs Gemini Vision Identification.
+    """
+    if not image.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File uploaded is not a valid image format.")
+    img_bytes = await image.read()
+    result = run_plant_identification(img_bytes, x_gemini_key)
+    return result
+
+
+# --- Strictly Agricultural RAG Chat Endpoint ---
+@app.post("/api/chat")
+async def agricultural_chat_endpoint(
+    req: ChatRequest,
+    x_gemini_key: Optional[str] = Header(None)
+):
+    """
+    RAG-driven chatbot endpoint. Restricts answers to agriculture.
+    """
+    query = req.message
+    lang = req.language or "en"
+    history = req.chatHistory or []
+    api_key = (x_gemini_key or "").strip() or get_gemini_api_key()
+
+    if not api_key:
+        raise HTTPException(status_code=400, detail="Gemini API Key is not configured. Set GEMINI_API_KEY in backend environment.")
+
+    # 1. Strict Agriculture Topic Guardrail check via Gemini
+    check_prompt = f"""Analyze if this user query is related to agriculture, farming, crops, plant/leaf diseases, pests, soil, fertilizers, irrigation, agricultural weather, livestock, poultry, dairy, fisheries, horticulture, agricultural government schemes, or farm equipment.
+    Return ONLY this JSON:
+    {{
+      "is_agriculture": true|false
+    }}
+    Query: "{query}" """
+
+    from ml_model import query_gemini_text
+    check_res = query_gemini_text(check_prompt, api_key)
+    
+    if not check_res or not check_res.get("is_agriculture", False):
+        return {
+            "success": False,
+            "response": "I am Kisan AI. I can only answer agriculture and farming-related questions.",
+            "source": "guardrail"
+        }
+
+    # 2. Vector search matched documents (RAG)
+    from rag_service import search_knowledge_base
+    matched_docs = search_knowledge_base(query, k=3, api_key=api_key)
+    context_str = ""
+    if matched_docs:
+        context_str = "\n\n".join([f"Source: {doc['source']}\nTitle: {doc['title']}\nContent: {doc['text']}" for doc in matched_docs])
+
+    # 3. Formulate RAG context prompt
+    system_instruction = f"""You are SmartKisanBot, a highly specialized B2B Agricultural AI Assistant for Indian farmers.
+    You can ONLY answer agriculture and farming-related questions. If a question is not related to agriculture, politely refuse.
+    Reply ONLY in the requested language (English, Hindi, or Marathi). Currently the language request is: {lang.upper()}.
+    Always format your response using clean, simple Markdown with bullet points or numbered lists. Do not write large paragraphs.
+    Use the following verified documents to guide your response (if relevant):
+    {context_str}"""
+
+    # Assemble chat history
+    contents = []
+    for msg in history[-6:]:
+        contents.append({
+            "role": "user" if msg.sender == "user" else "model",
+            "parts": [{"text": msg.text}]
+        })
+    contents.append({
+        "role": "user",
+        "parts": [{"text": query}]
+    })
+
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        payload = {
+            "contents": contents,
+            "systemInstruction": {
+                "parts": [{"text": system_instruction}]
+            },
+            "generationConfig": {
+                "temperature": 0.2,
+                "maxOutputTokens": 1200
+            }
+        }
+        resp = requests.post(url, json=payload, timeout=25)
+        if resp.status_code == 200:
+            data = resp.json()
+            response_text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])[0].get("text", "").strip()
+            return {
+                "success": True,
+                "response": response_text,
+                "source": "gemini",
+                "rag_sources": [d["title"] for d in matched_docs]
+            }
+        else:
+            raise Exception(f"Gemini API status code {resp.status_code}")
+    except Exception as err:
+        print(f"[FastAPI Chat Error] {err}")
+        if matched_docs:
+            doc = matched_docs[0]
+            fallback_text = f"Here is some relevant information from our database:\n\n* **{doc['title']}** ({doc['source']}): {doc['text']}"
+            return {
+                "success": True,
+                "response": fallback_text,
+                "source": "database_fallback",
+                "rag_sources": [d["title"] for d in matched_docs]
+            }
+        return {
+            "success": False,
+            "response": "I am Kisan AI. I can only answer agriculture and farming-related questions.",
+            "source": "guardrail"
+        }
+
+
+# --- PDF Report Download Endpoint ---
+@app.post("/api/generate-pdf")
+async def generate_pdf_endpoint(req: PDFReportRequest):
+    """
+    Accepts full diagnosis JSON, creates a ReportLab PDF, and streams it back.
+    """
+    from pdf_generator import generate_diagnostic_pdf
+    pdf_path = generate_diagnostic_pdf(req.dict())
+    filename = os.path.basename(pdf_path)
+    return FileResponse(
+        pdf_path,
+        media_type="application/pdf",
+        filename=filename,
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 
 # --- Gemini API Status Endpoint ---

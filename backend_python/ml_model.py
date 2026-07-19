@@ -1261,29 +1261,30 @@ def query_gemini_raw(image_bytes: bytes, prompt: str, custom_key: str = None) ->
 
 def validate_image_type(image_bytes: bytes, custom_key: str = None) -> dict:
     """
-    Uses Gemini Vision to validate if the image contains a crop/plant leaf/agricultural crop.
-    Returns: {"is_crop": bool, "is_leaf": bool} or {"is_crop": False, "is_leaf": False, "error": str}
+    Uses Gemini Vision to validate if the image contains an agricultural crop, plant, leaf, fruit, stem, or flower.
+    Enforces a strict confidence score checking.
     """
-    prompt = """Analyze this image. Determine if the image depicts an agricultural crop, crop field, plant, plant leaf/leaves, fruit, or vegetable.
-    You must classify:
-    1. "is_crop": true if the image contains any agricultural crop, crop plant, vegetable, fruit, or farm field. false if it contains people, animals, objects, cars, buildings, text-only, or anything unrelated to crops/agriculture.
-    2. "is_leaf": true if the image clearly shows a plant leaf or leaves. false if it does not show any leaves (e.g. only soil, only wood, only insects, or unrelated objects).
-    
-    Return ONLY this JSON structure (no markdown code blocks, no backticks, no other text):
+    prompt = """Analyze this image. Determine if it depicts a valid agricultural crop, crop plant, leaf/leaves, fruit, stem, or flower.
+    You must perform classification and return the following JSON structure:
     {
-      "is_crop": true|false,
-      "is_leaf": true|false
-    }"""
+      "is_crop": true|false,  // true if it contains a crop, crop plant, field, leaf, fruit, stem, or flower. false if it contains humans, faces, animals, birds, vehicles, mobile phones, buildings, houses, furniture, food plates, laptops, books, documents, money, QR codes, random consumer objects, or unknown things.
+      "is_leaf": true|false,  // true if it clearly depicts a plant leaf or leaves. false if it contains no leaves (e.g., only fruit, only stem, only soil, or unrelated objects).
+      "confidence": float     // A value between 0.0 and 1.0 representing your confidence that the main object is a crop, plant, leaf, fruit, stem, or flower.
+    }
+    
+    Return ONLY this JSON (no backticks, no markdown, no other text)."""
     api_key = (custom_key or "").strip() or get_gemini_api_key()
     if not api_key:
         print("[ML] No Gemini API key configured. Bypassing image validation to allow HuggingFace/Local fallbacks.")
-        return {"is_crop": True, "is_leaf": True}
+        return {"is_crop": True, "is_leaf": True, "confidence": 1.0}
     
     result = query_gemini_raw(image_bytes, prompt, api_key)
     if result and isinstance(result, dict) and "is_crop" in result and "is_leaf" in result:
+        if "confidence" not in result:
+            result["confidence"] = 1.0
         return result
     print("[ML] Gemini validation call failed or errored. Bypassing to allow HuggingFace/Local prediction.")
-    return {"is_crop": True, "is_leaf": True}
+    return {"is_crop": True, "is_leaf": True, "confidence": 1.0}
 
 
 def query_gemini_text(prompt: str, custom_key: str = None) -> dict | None:
@@ -1345,10 +1346,11 @@ def run_crop_diagnose_cv(image_bytes: bytes, crop_hint: str = None, custom_key: 
     Accepts ONLY crop/plant images.
     """
     val = validate_image_type(image_bytes, custom_key)
-    if val and "error" in val:
-        return {"success": False, "error": val["error"]}
-    if val and not val.get("is_crop", True):
-        return {"success": False, "error": "Invalid image. Please upload a clear crop image."}
+    if not val or not val.get("is_crop", False) or val.get("confidence", 0.0) < 0.90:
+        return {
+            "success": False,
+            "error": "This is not a valid crop or plant image. Please upload a clear image of a crop, plant, fruit, stem, flower, or leaf."
+        }
 
     pred = run_cv_prediction(image_bytes, crop_hint)
     if not pred:
@@ -1402,10 +1404,11 @@ def run_leaf_disease_diagnose(image_bytes: bytes, crop_hint: str = None, custom_
     Accepts ONLY leaf images.
     """
     val = validate_image_type(image_bytes, custom_key)
-    if val and "error" in val:
-        return {"success": False, "error": val["error"]}
-    if val and not val.get("is_leaf", True):
-        return {"success": False, "error": "Invalid image. Please upload a clear leaf image."}
+    if not val or not val.get("is_leaf", False) or val.get("confidence", 0.0) < 0.90:
+        return {
+            "success": False,
+            "error": "Only leaf images are supported. Please upload a clear image of a crop leaf."
+        }
 
     pred = run_cv_prediction(image_bytes, crop_hint)
     if not pred:
@@ -1460,13 +1463,14 @@ Return ONLY this JSON (no markdown outside JSON):
 def run_crop_disease_detect(image_bytes: bytes, crop_hint: str = None, custom_key: str = None) -> dict:
     """
     3. Crop Disease Detection
-    Accepts ONLY crop/plant images.
+    Accepts ONLY crop/plant/foliage images.
     """
     val = validate_image_type(image_bytes, custom_key)
-    if val and "error" in val:
-        return {"success": False, "error": val["error"]}
-    if val and not val.get("is_crop", True):
-        return {"success": False, "error": "Invalid image. Please upload a valid crop image."}
+    if not val or not val.get("is_crop", False) or val.get("confidence", 0.0) < 0.90:
+        return {
+            "success": False,
+            "error": "This is not a valid crop or plant image. Please upload a clear image of a crop, plant, fruit, stem, flower, or leaf."
+        }
 
     pred = run_cv_prediction(image_bytes, crop_hint)
     if not pred:
@@ -1518,3 +1522,48 @@ Return ONLY this JSON (no markdown outside JSON):
         "prevention_methods": "Sanitation and crop rotation.",
         "ai_model": pred.get("model", "AI Computer Vision Model")
     }
+
+
+def run_plant_identification(image_bytes: bytes, custom_key: str = None) -> dict:
+    """
+    Validates if the image contains a plant.
+    If yes, identifies it using Gemini Vision.
+    Returns: common name, scientific name, growth stage, health status, nutrient deficiency, disease risk, treatment.
+    """
+    val = validate_image_type(image_bytes, custom_key)
+    if not val or not val.get("is_crop", False) or val.get("confidence", 0.0) < 0.90:
+        return {
+            "success": False,
+            "error": "This is not a valid plant image. Please upload a clear image of a plant or crop."
+        }
+        
+    prompt = """Identify the plant depicted in this image and provide a detailed analysis.
+    Return ONLY this JSON structure (no backticks, no markdown, no other text):
+    {
+      "success": true,
+      "common_name": "Common name of the plant",
+      "scientific_name": "Scientific name of the plant (in italics/parentheses)",
+      "crop_type": "Horticulture | Cereal | Vegetable | Cash Crop | Pulses | Oilseeds",
+      "growth_stage": "Seedling | Vegetative | Flowering | Fruiting | Harvest",
+      "health_status": "Healthy | Diseased | Nutrient Deficient",
+      "nutrient_deficiency": "Specify any nutrient deficiency identified (e.g., Nitrogen deficiency, none)",
+      "disease_risk": "Specify any disease risks identified or spotted symptoms (e.g., Early Blight risk, none)",
+      "treatment": "Provide actionable agronomic treatments or fertilization recommendations"
+    }"""
+    
+    api_key = (custom_key or "").strip() or get_gemini_api_key()
+    if not api_key:
+        return {
+            "success": False,
+            "error": "Gemini API key is required for plant identification. Please configure it."
+        }
+        
+    result = query_gemini_raw(image_bytes, prompt, api_key)
+    if result and isinstance(result, dict) and "common_name" in result:
+        result["success"] = True
+        return result
+        
+    return {
+        "success": False,
+        "error": "Failed to analyze plant details. Please try with a clearer image."
+    }

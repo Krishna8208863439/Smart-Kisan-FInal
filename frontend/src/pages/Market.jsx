@@ -146,13 +146,94 @@ const Market = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [forecastResult, setForecastResult] = useState(null);
 
+  // Advanced search filters
+  const [searchState, setSearchState] = useState("");
+  const [searchDistrict, setSearchDistrict] = useState("");
+  const [searchMarket, setSearchMarket] = useState("");
+  const [searchPincode, setSearchPincode] = useState("");
+
+  const [selectedMandi, setSelectedMandi] = useState(null);
+
+  // Favorites watchlist for individual mandis
+  const [favoriteMandis, setFavoriteMandis] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("sk_fav_mandis") || "[]"); }
+    catch { return []; }
+  });
+  const [onlyFavorites, setOnlyFavorites] = useState(false);
+
+  // Price alerts
+  const [priceAlerts, setPriceAlerts] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("sk_price_alerts") || "[]"); }
+    catch { return []; }
+  });
+  const [alertTargetPrice, setAlertTargetPrice] = useState("");
+  const [alertType, setAlertType] = useState("above");
+  const [activeTriggers, setActiveTriggers] = useState([]);
+
   const fetchPrices = useCallback(async (crop = selectedCrop) => {
     setLoading(true);
     setError("");
     try {
-      const res = await api.get("/market", { params: { crop } });
+      const params = {
+        crop,
+        state: searchState,
+        district: searchDistrict,
+        market: searchMarket,
+        pincode: searchPincode
+      };
+      const res = await api.get("/market", { params });
       setData(res.data);
       setLastRefresh(new Date());
+
+      // Check alerts
+      if (res.data?.prices) {
+        try {
+          const alerts = JSON.parse(localStorage.getItem("sk_price_alerts") || "[]");
+          const cropAlerts = alerts.filter(a => a.crop.toLowerCase() === crop.toLowerCase());
+          const triggered = [];
+
+          res.data.prices.forEach(m => {
+            cropAlerts.forEach(alert => {
+              const price = m.pricePerQuintal;
+              if (alert.type === "above" && price >= alert.targetPrice) {
+                triggered.push({
+                  mandi: m.market,
+                  price,
+                  target: alert.targetPrice,
+                  type: "above"
+                });
+              } else if (alert.type === "below" && price <= alert.targetPrice) {
+                triggered.push({
+                  mandi: m.market,
+                  price,
+                  target: alert.targetPrice,
+                  type: "below"
+                });
+              }
+            });
+          });
+
+          setActiveTriggers(triggered);
+          if (triggered.length > 0 && Notification.permission === "granted") {
+            new Notification("🌾 Smart Kisan Price Alert", {
+              body: `${crop} price crossed your target! Checked ${triggered.length} mandis.`
+            });
+          }
+        } catch (alertErr) {
+          console.warn("Alert check failed:", alertErr);
+        }
+
+        // Set default mandi location map
+        if (res.data.prices.length > 0) {
+          setSelectedMandi(prev => {
+            const found = res.data.prices.find(p => p.market === prev?.market);
+            return found || res.data.prices[0];
+          });
+        } else {
+          setSelectedMandi(null);
+        }
+      }
+
       // Record in Activity History
       if (res.data?.stats) {
         addHistoryEntry({
@@ -175,7 +256,7 @@ const Market = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedCrop, addHistoryEntry]);
+  }, [selectedCrop, addHistoryEntry, searchState, searchDistrict, searchMarket, searchPincode]);
 
   useEffect(() => {
     fetchPrices(selectedCrop);
@@ -212,11 +293,97 @@ const Market = () => {
     return 0;
   });
 
-  // Mandi Price Forecast Simulator
-  const handleRunForecast = () => {
+  // Mandi Price Forecast using Gemini
+  const handleRunForecast = async () => {
     if (!data) return;
     setIsAnalyzing(true);
     setForecastResult(null);
+
+    try {
+      const geminiKey = localStorage.getItem("sk_gemini_key") || "";
+      const res = await api.post("/market/predict", {
+        crop: selectedCrop,
+        period: forecastPeriod
+      }, {
+        headers: {
+          "x-gemini-key": geminiKey
+        }
+      });
+      setForecastResult(res.data);
+    } catch (err) {
+      console.error(err);
+      alert("AI Price forecasting failed.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleAddAlert = (e) => {
+    e.preventDefault();
+    if (!alertTargetPrice) return;
+    const newAlert = {
+      id: Date.now().toString(),
+      crop: selectedCrop,
+      targetPrice: parseFloat(alertTargetPrice),
+      type: alertType
+    };
+    const nextAlerts = [...priceAlerts, newAlert];
+    setPriceAlerts(nextAlerts);
+    localStorage.setItem("sk_price_alerts", JSON.stringify(nextAlerts));
+    setAlertTargetPrice("");
+    
+    if (Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+    
+    if (data?.prices) {
+      // Re-trigger trigger check
+      const cropAlerts = nextAlerts.filter(a => a.crop.toLowerCase() === selectedCrop.toLowerCase());
+      const triggered = [];
+      data.prices.forEach(m => {
+        cropAlerts.forEach(alert => {
+          const price = m.pricePerQuintal;
+          if (alert.type === "above" && price >= alert.targetPrice) {
+            triggered.push({ mandi: m.market, price, target: alert.targetPrice, type: "above" });
+          } else if (alert.type === "below" && price <= alert.targetPrice) {
+            triggered.push({ mandi: m.market, price, target: alert.targetPrice, type: "below" });
+          }
+        });
+      });
+      setActiveTriggers(triggered);
+    }
+    alert(language === 'mr' ? "किंमत अलर्ट यशस्वीरित्या सेट केला!" : "Price alert set successfully!");
+  };
+
+  const handleRemoveAlert = (id) => {
+    const next = priceAlerts.filter(a => a.id !== id);
+    setPriceAlerts(next);
+    localStorage.setItem("sk_price_alerts", JSON.stringify(next));
+    if (data?.prices) {
+      // Recheck triggers
+      const cropAlerts = next.filter(a => a.crop.toLowerCase() === selectedCrop.toLowerCase());
+      const triggered = [];
+      data.prices.forEach(m => {
+        cropAlerts.forEach(alert => {
+          const price = m.pricePerQuintal;
+          if (alert.type === "above" && price >= alert.targetPrice) {
+            triggered.push({ mandi: m.market, price, target: alert.targetPrice, type: "above" });
+          } else if (alert.type === "below" && price <= alert.targetPrice) {
+            triggered.push({ mandi: m.market, price, target: alert.targetPrice, type: "below" });
+          }
+        });
+      });
+      setActiveTriggers(triggered);
+    }
+  };
+
+  const toggleFavorite = (mandiName) => {
+    const next = favoriteMandis.includes(mandiName)
+      ? favoriteMandis.filter(m => m !== mandiName)
+      : [...favoriteMandis, mandiName];
+    setFavoriteMandis(next);
+    localStorage.setItem("sk_fav_mandis", JSON.stringify(next));
+  };
 
     setTimeout(() => {
       const avg = data.stats.avgPrice;
@@ -447,6 +614,92 @@ const Market = () => {
             <div className="market-error">⚠️ {error}</div>
           )}
 
+          {activeTriggers.length > 0 && (
+            <div style={{
+              background: "#fee2e2",
+              border: "1px solid #fca5a5",
+              borderRadius: 12,
+              padding: 16,
+              marginBottom: 20,
+              color: "#991b1b"
+            }}>
+              <h4 style={{ margin: "0 0 6px 0", fontWeight: 800 }}>🚨 {language === 'mr' ? 'किंमत अलर्ट ट्रिगर झाले!' : 'Price Alerts Triggered!'}</h4>
+              <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13.5 }}>
+                {activeTriggers.map((t, idx) => (
+                  <li key={idx}>
+                    {selectedCrop} {language === 'mr' ? 'मध्ये' : 'in'} <strong>{t.mandi}</strong> {language === 'mr' ? 'सध्या' : 'is currently'} <strong>₹{t.price}</strong> ({language === 'mr' ? 'तुमचे लक्ष्य होते' : 'your target was'} {t.type === "above" ? ">= " : "<= "} ₹{t.target}).
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Collapsible Search Filters Row */}
+          <div className="card" style={{ marginBottom: 20, display: "flex", flexWrap: "wrap", gap: 12, padding: 16 }}>
+            <div style={{ flex: 1, minWidth: 150 }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>
+                {language === "mr" ? "राज्य शोधा" : "State"}
+              </label>
+              <input
+                type="text"
+                className="input"
+                style={{ margin: 0, padding: "8px 12px", fontSize: 13 }}
+                placeholder="e.g. Maharashtra"
+                value={searchState}
+                onChange={e => setSearchState(e.target.value)}
+              />
+            </div>
+            <div style={{ flex: 1, minWidth: 150 }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>
+                {language === "mr" ? "जिल्हा शोधा" : "District"}
+              </label>
+              <input
+                type="text"
+                className="input"
+                style={{ margin: 0, padding: "8px 12px", fontSize: 13 }}
+                placeholder="e.g. Nashik"
+                value={searchDistrict}
+                onChange={e => setSearchDistrict(e.target.value)}
+              />
+            </div>
+            <div style={{ flex: 1, minWidth: 150 }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>
+                {language === "mr" ? "बाजार समिती (मंडी)" : "Market"}
+              </label>
+              <input
+                type="text"
+                className="input"
+                style={{ margin: 0, padding: "8px 12px", fontSize: 13 }}
+                placeholder="e.g. Lasalgaon"
+                value={searchMarket}
+                onChange={e => setSearchMarket(e.target.value)}
+              />
+            </div>
+            <div style={{ flex: 1, minWidth: 120 }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>
+                {language === "mr" ? "पिन कोड" : "PIN Code"}
+              </label>
+              <input
+                type="text"
+                className="input"
+                style={{ margin: 0, padding: "8px 12px", fontSize: 13 }}
+                placeholder="e.g. 422"
+                value={searchPincode}
+                onChange={e => setSearchPincode(e.target.value)}
+              />
+            </div>
+            <div style={{ alignSelf: "flex-end" }}>
+              <button
+                type="button"
+                className="button"
+                style={{ margin: 0, padding: "9px 20px" }}
+                onClick={() => fetchPrices(selectedCrop)}
+              >
+                🔍 {language === "mr" ? "शोधा" : "Filter"}
+              </button>
+            </div>
+          </div>
+
           {data && !loading && (
             <>
               {/* Crop Hero Row */}
@@ -646,6 +899,105 @@ const Market = () => {
                 )}
               </div>
 
+              {/* Google Maps Mandi Location */}
+              {selectedMandi && selectedMandi.lat && selectedMandi.lon && (
+                <div className="card" style={{ marginBottom: 20 }}>
+                  <h3 style={{ fontWeight: 800, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+                    📍 {language === "mr" ? `नकाशावर बाजार समिती: ${selectedMandi.market}` : `Market Location: ${selectedMandi.market}`}
+                  </h3>
+                  <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: 12 }}>
+                    {selectedMandi.city}, {selectedMandi.district}, {selectedMandi.state} - PIN: {selectedMandi.pincode || 'N/A'}
+                  </p>
+                  <iframe 
+                    width="100%" 
+                    height="280" 
+                    style={{ border: 0, borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }} 
+                    src={`https://maps.google.com/maps?q=${selectedMandi.lat},${selectedMandi.lon}&z=10&output=embed`} 
+                    allowFullScreen 
+                    loading="lazy" 
+                  />
+                </div>
+              )}
+
+              {/* Set Price Alert Form */}
+              <div className="card" style={{ marginBottom: 20 }}>
+                <h3 style={{ fontWeight: 800, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+                  🔔 {language === "mr" ? "किंमत अलर्ट सेट करा" : "Set Price Alert"}
+                </h3>
+                <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: 16 }}>
+                  {language === "mr" 
+                    ? `जेव्हा ${selectedCrop} ची किंमत तुमच्या लक्ष्य किमतीपेक्षा जास्त किंवा कमी होईल, तेव्हा सूचना मिळवा.` 
+                    : `Get notified when the market price of ${selectedCrop} goes above or below your target price.`}
+                </p>
+
+                <form onSubmit={handleAddAlert} style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-muted)" }}>Target Price (₹/qtl)</span>
+                    <input
+                      type="number"
+                      className="input"
+                      style={{ padding: "8px 12px", width: 140, margin: 0 }}
+                      placeholder="e.g. 6800"
+                      value={alertTargetPrice}
+                      onChange={e => setAlertTargetPrice(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-muted)" }}>Alert Trigger</span>
+                    <select
+                      className="input"
+                      style={{ padding: "8px 12px", width: 140, margin: 0 }}
+                      value={alertType}
+                      onChange={e => setAlertType(e.target.value)}
+                    >
+                      <option value="above">{language === 'mr' ? 'पेक्षा जास्त (>=)' : 'Above (>=)'}</option>
+                      <option value="below">{language === 'mr' ? 'पेक्षा कमी (<=)' : 'Below (<=)'}</option>
+                    </select>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="button"
+                    style={{ alignSelf: "flex-end", padding: "10px 18px", margin: 0 }}
+                  >
+                    {language === 'mr' ? 'अलर्ट जतन करा' : 'Save Alert'}
+                  </button>
+                </form>
+
+                {priceAlerts.length > 0 && (
+                  <div style={{ marginTop: 16, borderTop: "1px solid var(--border-color)", paddingTop: 12 }}>
+                    <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--text-dark)", display: "block", marginBottom: 8 }}>
+                      {language === 'mr' ? 'तुमचे सक्रिय अलर्ट:' : 'Your Active Alerts:'}
+                    </span>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {priceAlerts.map(alert => (
+                        <div key={alert.id} style={{
+                          background: "var(--bg-main)",
+                          border: "1px solid var(--border-color)",
+                          borderRadius: 20,
+                          padding: "4px 12px",
+                          fontSize: 12,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8
+                        }}>
+                          <span>🔔 {alert.crop} {alert.type === 'above' ? '≥' : '≤'} ₹{alert.targetPrice}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAlert(alert.id)}
+                            style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", fontWeight: 700, padding: 0 }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Price Chart */}
               <div className="card" style={{ marginBottom: 20 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -670,22 +1022,42 @@ const Market = () => {
 
               {/* Mandi Prices Table */}
               <div className="card" style={{ marginBottom: 20 }}>
-                <div className="market-table-header">
+                <div className="market-table-header" style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "space-between", alignItems: "center" }}>
                   <h3 style={{ fontWeight: 800 }}>🏪 {t("mandiPriceSpread")}</h3>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
-                      {language === "mr" ? "क्रमवारी लावा:" : "Sort By:"}
-                    </label>
-                    <select
-                      className="market-sort-select"
-                      value={sortBy}
-                      onChange={e => setSortBy(e.target.value)}
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => setOnlyFavorites(prev => !prev)}
+                      style={{
+                        background: onlyFavorites ? "var(--primary)" : "none",
+                        color: onlyFavorites ? "white" : "var(--primary)",
+                        border: "1px solid var(--primary)",
+                        borderRadius: 20,
+                        padding: "4px 12px",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        margin: 0
+                      }}
                     >
-                      <option value="price-asc">{language === "mr" ? "किंमत: कमी → जास्त" : "Price: Low → High"}</option>
-                      <option value="price-desc">{language === "mr" ? "किंमत: जास्त → कमी" : "Price: High → Low"}</option>
-                      <option value="arrival">{language === "mr" ? "जास्त आवक" : "Highest Arrival"}</option>
-                      <option value="change">{language === "mr" ? "उत्तम बदल" : "Best Change"}</option>
-                    </select>
+                      ⭐ {language === 'mr' ? 'आवडते' : 'Only Favorites'}
+                    </button>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
+                        {language === "mr" ? "क्रमवारी:" : "Sort By:"}
+                      </label>
+                      <select
+                        className="market-sort-select"
+                        value={sortBy}
+                        onChange={e => setSortBy(e.target.value)}
+                      >
+                        <option value="price-asc">{language === "mr" ? "किंमत: कमी → जास्त" : "Price: Low → High"}</option>
+                        <option value="price-desc">{language === "mr" ? "किंमत: जास्त → कमी" : "Price: High → Low"}</option>
+                        <option value="arrival">{language === "mr" ? "जास्त आवक" : "Highest Arrival"}</option>
+                        <option value="change">{language === "mr" ? "उत्तम बदल" : "Best Change"}</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
@@ -705,11 +1077,31 @@ const Market = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedPrices.map((p, i) => (
-                        <tr key={i} className={i === 0 && sortBy === "price-asc" ? "market-tr-best" : ""}>
+                      {sortedPrices.filter(p => !onlyFavorites || favoriteMandis.includes(p.market)).map((p, i) => (
+                        <tr 
+                          key={i} 
+                          className={i === 0 && sortBy === "price-asc" ? "market-tr-best" : ""}
+                          onClick={() => setSelectedMandi(p)}
+                          style={{
+                            cursor: "pointer",
+                            background: selectedMandi?.market === p.market ? "rgba(21, 128, 61, 0.08)" : "none"
+                          }}
+                        >
                           <td>
-                            <div style={{ fontWeight: 700, fontSize: 13.5 }}>{p.market}</div>
-                            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{p.city}</div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); toggleFavorite(p.market); }}
+                                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 14 }}
+                                title={favoriteMandis.includes(p.market) ? "Remove Favorite" : "Add Favorite"}
+                              >
+                                {favoriteMandis.includes(p.market) ? "⭐" : "☆"}
+                              </button>
+                              <div>
+                                <div style={{ fontWeight: 700, fontSize: 13.5 }}>{p.market}</div>
+                                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{p.city} (PIN: {p.pincode})</div>
+                              </div>
+                            </div>
                           </td>
                           <td style={{ fontSize: 12.5, color: "var(--text-muted)" }}>{p.state}</td>
                           <td style={{ fontWeight: 600, color: "#dc2626" }}>₹{p.minPrice}</td>
@@ -746,12 +1138,29 @@ const Market = () => {
 
                 {/* Mobile Card View */}
                 <div className="market-mobile-cards">
-                  {sortedPrices.map((p, i) => (
-                    <div key={i} className={`market-mobile-card ${i === 0 && sortBy === "price-asc" ? "market-mobile-card-best" : ""}`}>
+                  {sortedPrices.filter(p => !onlyFavorites || favoriteMandis.includes(p.market)).map((p, i) => (
+                    <div 
+                      key={i} 
+                      className={`market-mobile-card ${i === 0 && sortBy === "price-asc" ? "market-mobile-card-best" : ""}`}
+                      onClick={() => setSelectedMandi(p)}
+                      style={{
+                        cursor: "pointer",
+                        border: selectedMandi?.market === p.market ? "1.5px solid var(--primary)" : "1px solid var(--border-color)"
+                      }}
+                    >
                       <div className="market-mobile-card-header">
                         <div>
-                          <div style={{ fontWeight: 800, fontSize: 14 }}>{p.market}</div>
-                          <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{p.city}, {p.state}</div>
+                          <div style={{ fontWeight: 800, fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); toggleFavorite(p.market); }}
+                              style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                            >
+                              {favoriteMandis.includes(p.market) ? "⭐" : "☆"}
+                            </button>
+                            <span>{p.market}</span>
+                          </div>
+                          <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{p.city}, {p.state} (PIN: {p.pincode})</div>
                         </div>
                         <span style={{
                           fontWeight: 700,

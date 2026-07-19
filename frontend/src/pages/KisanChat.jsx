@@ -175,6 +175,56 @@ const KisanChat = () => {
   // Active language text dictionary
   const ui = UI_TRANSLATIONS[language] || UI_TRANSLATIONS.en;
 
+  const [isListening, setIsListening] = useState(false);
+
+  const handleVoiceInput = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition not supported in this browser.");
+      return;
+    }
+    const rec = new SpeechRecognition();
+    rec.lang = language === "mr" ? "mr-IN" : language === "hi" ? "hi-IN" : "en-IN";
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+
+    rec.onstart = () => {
+      setIsListening(true);
+    };
+
+    rec.onresult = (e) => {
+      const transcript = e.results[0][0].transcript;
+      setInputText(transcript);
+    };
+
+    rec.onerror = (e) => {
+      console.warn("Speech recognition error:", e.error);
+      setIsListening(false);
+    };
+
+    rec.onend = () => {
+      setIsListening(false);
+    };
+
+    if (isListening) {
+      rec.stop();
+    } else {
+      rec.start();
+    }
+  };
+
+  const handleVoiceSpeak = (text) => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    
+    // Clean markdown characters from text before speaking
+    const cleanText = text.replace(/[*#`_\-]/g, '').replace(/\[.*?\]\(.*?\)/g, '');
+    
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = language === "mr" ? "mr-IN" : language === "hi" ? "hi-IN" : "en-US";
+    window.speechSynthesis.speak(utterance);
+  };
+
   // Auto-detect Geolocation and fetch Weather details on mount
   useEffect(() => {
     if (navigator.geolocation) {
@@ -753,8 +803,35 @@ const KisanChat = () => {
                   </div>
                 )}
                 
-                {/* Parsed and formatted message */}
-                {renderMessageContent(m.text)}
+                {/* Parsed and formatted message with Speaker Button */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                  <div style={{ flex: 1 }}>{renderMessageContent(m.text)}</div>
+                  {m.sender !== "user" && (
+                    <button
+                      type="button"
+                      onClick={() => handleVoiceSpeak(m.text)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: 16,
+                        padding: "4px",
+                        opacity: 0.7,
+                        borderRadius: "50%",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        transition: "all 0.2s"
+                      }}
+                      title="Speak response"
+                      className="chat-voice-speak"
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = 0.7}
+                    >
+                      🔊
+                    </button>
+                  )}
+                </div>
 
                 {m.source && (
                   <div style={{ fontSize: 9, opacity: 0.65, textAlign: "right", marginTop: 6 }}>
@@ -831,6 +908,28 @@ const KisanChat = () => {
               </>
             )}
 
+            <button
+              type="button"
+              onClick={handleVoiceInput}
+              style={{
+                background: isListening ? "#ef4444" : "var(--bg-card)",
+                color: isListening ? "white" : "inherit",
+                border: "1px solid var(--border-color)",
+                borderRadius: 8,
+                padding: "10px 14px",
+                marginRight: 6,
+                fontSize: 14,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                margin: 0
+              }}
+              title="Voice Input (STT)"
+            >
+              🎤 {isListening ? (language === 'mr' ? 'ऐकत आहे...' : 'Listening...') : (language === 'mr' ? 'बोला' : 'Speak')}
+            </button>
+            
             <input
               type="text"
               className="input"

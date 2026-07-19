@@ -3,7 +3,7 @@ import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
 import { useHistory } from "../context/HistoryContext";
 
-const TABS = ["Disease Detection", "Irrigation", "Fertilizer / NPK", "Smart Calendar"];
+const TABS = ["Disease Detection", "Plant Identification", "Irrigation", "Fertilizer / NPK", "Smart Calendar"];
 
 const CROP_NPK_TARGETS = {
   Tomato: { n: 120, p: 60, k: 60, ph: "6.0 - 7.0", name: "Tomato" },
@@ -67,6 +67,7 @@ const AITools = () => {
 
   const displayTabName = (tab) => {
     if (tab === "Disease Detection") return t("leafDiagnostics");
+    if (tab === "Plant Identification") return language === 'mr' ? 'झाड / रोप ओळख' : 'Plant Identification';
     if (tab === "Irrigation") return language === 'mr' ? 'सिंचन वेळापत्रक' : 'Irrigation';
     if (tab === "Fertilizer / NPK") return language === 'mr' ? 'खत / NPK' : 'Fertilizer / NPK';
     if (tab === "Smart Calendar") return language === 'mr' ? 'स्मार्ट कॅलेंडर' : 'Smart Calendar';
@@ -123,6 +124,14 @@ const AITools = () => {
   ]);
   const [leafTreatmentTab, setLeafTreatmentTab] = useState("organic"); // organic | chemical | prevention
   const fileInputRef = useRef(null);
+
+  // Plant Identification states
+  const [plantFile, setPlantFile] = useState(null);
+  const [plantImagePreview, setPlantImagePreview] = useState("");
+  const [plantResult, setPlantResult] = useState(null);
+  const [plantLoading, setPlantLoading] = useState(false);
+  const [plantError, setPlantError] = useState("");
+  const plantFileInputRef = useRef(null);
 
   // Gemini API key save handler
   const saveGeminiKey = () => {
@@ -427,6 +436,155 @@ const AITools = () => {
       </html>
     `);
     printWindow.document.close();
+  };
+
+  const handleDownloadDiagnosticPDF = async () => {
+    if (!diseaseResult) return;
+    try {
+      const pyApiBase = localStorage.getItem("sk_py_api_base") || "http://localhost:8000/api";
+      const payload = {
+        crop_name: diseaseResult.crop || diseaseResult.crop_name || "Crop",
+        disease_name: diseaseResult.disease || diseaseResult.disease_name || "Healthy",
+        severity: diseaseResult.severity || "medium",
+        confidence: diseaseResult.confidence || 0.95,
+        problems_detected: diseaseResult.symptoms || diseaseResult.problems_detected || "Foliage analysis completed.",
+        causes: diseaseResult.causes || "N/A",
+        organic_treatment: diseaseResult.organic_treatment || diseaseResult.treatment || "Apply organic neem formulation.",
+        chemical_treatment: diseaseResult.chemical_treatment || diseaseResult.treatment || "Apply target fungicide.",
+        fertilizer_recommendation: diseaseResult.suggested_fertilizers || diseaseResult.fertilizer_recommendation || "",
+        irrigation_advice: diseaseResult.irrigation_advice || "",
+        prevention_methods: diseaseResult.prevention_methods || diseaseResult.prevention || ""
+      };
+
+      const response = await fetch(`${pyApiBase}/generate-pdf`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `disease_report_${(diseaseResult.crop || "crop").replace(/\s+/g, '_')}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        alert("Failed to generate report PDF.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error exporting PDF.");
+    }
+  };
+
+  const handlePlantFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPlantFile(file);
+      setPlantImagePreview(URL.createObjectURL(file));
+      setPlantResult(null);
+      setPlantError("");
+    }
+  };
+
+  const handlePlantIdentify = async () => {
+    if (!plantFile) return;
+    setPlantLoading(true);
+    setPlantError("");
+    setPlantResult(null);
+
+    const formData = new FormData();
+    formData.append("image", plantFile);
+
+    try {
+      const geminiKey = localStorage.getItem("sk_gemini_key") || "";
+      const pyApiBase = localStorage.getItem("sk_py_api_base") || "http://localhost:8000/api";
+      
+      const res = await fetch(`${pyApiBase}/plant-identify`, {
+        method: "POST",
+        headers: {
+          "x-gemini-key": geminiKey
+        },
+        body: formData
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPlantResult(data);
+        addHistoryEntry({
+          id: Date.now().toString(),
+          type: "plant_id",
+          timestamp: new Date().toISOString(),
+          title: data.common_name,
+          icon: "🌿",
+          summary: `${data.common_name} (${data.scientific_name}) — Stage: ${data.growth_stage}, Health: ${data.health_status}`,
+          data: {
+            common_name: data.common_name,
+            scientific_name: data.scientific_name,
+            crop_type: data.crop_type,
+            growth_stage: data.growth_stage,
+            health_status: data.health_status,
+            nutrient_deficiency: data.nutrient_deficiency,
+            disease_risk: data.disease_risk,
+            treatment: data.treatment
+          }
+        });
+      } else {
+        setPlantError(data.error || (language === "mr" ? "वनस्पती ओळखण्यात त्रुटी आली. कृपया स्पष्ट फोटो अपलोड करा." : "Failed to identify plant. Please upload a clear plant photo."));
+      }
+    } catch (err) {
+      console.error(err);
+      setPlantError(language === "mr" ? "सर्व्हरशी संपर्क साधता आला नाही." : "Server connection failed.");
+    } finally {
+      setPlantLoading(false);
+    }
+  };
+
+  const handleDownloadPlantPDF = async () => {
+    if (!plantResult) return;
+    try {
+      const pyApiBase = localStorage.getItem("sk_py_api_base") || "http://localhost:8000/api";
+      const response = await fetch(`${pyApiBase}/generate-pdf`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          crop_name: plantResult.common_name,
+          disease_name: "Plant Identification",
+          severity: "low",
+          confidence: 0.98,
+          problems_detected: `Identification details for ${plantResult.common_name} (${plantResult.scientific_name}).`,
+          causes: `Crop Type: ${plantResult.crop_type} | Growth Stage: ${plantResult.growth_stage} | Health Status: ${plantResult.health_status}`,
+          organic_treatment: plantResult.treatment,
+          chemical_treatment: "N/A",
+          fertilizer_recommendation: plantResult.nutrient_deficiency !== "none" ? plantResult.nutrient_deficiency : "No major deficiencies spotted.",
+          irrigation_advice: "Follow standard watering frequency based on growth stage.",
+          prevention_methods: plantResult.disease_risk !== "none" ? `Risk: ${plantResult.disease_risk}` : "No major diseases spotted."
+        })
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `plant_id_report_${plantResult.common_name.replace(/\s+/g, '_')}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        alert("Failed to generate report PDF.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error exporting PDF.");
+    }
   };
 
   // --- Handlers: Irrigation ---
@@ -1115,23 +1273,47 @@ const AITools = () => {
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
-                  {/* AI Model Badge */}
-                  <div style={{
-                    background: "linear-gradient(135deg, #dbeafe, #eff6ff)",
-                    border: "1px solid #93c5fd",
-                    borderRadius: 8,
-                    padding: "6px 12px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    fontSize: 12
-                  }}>
-                    <span>✨</span>
-                    <span style={{ color: "#1d4ed8", fontWeight: 600 }}>
-                      {diseaseSubTab === "leaf_diag" 
-                        ? (diseaseResult?.ai_model || "AI Computer Vision Model")
-                        : "Google Gemini 1.5 Flash (AgriExpert AI)"}
-                    </span>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+                    {/* AI Model Badge */}
+                    <div style={{
+                      background: "linear-gradient(135deg, #dbeafe, #eff6ff)",
+                      border: "1px solid #93c5fd",
+                      borderRadius: 8,
+                      padding: "6px 12px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      fontSize: 12
+                    }}>
+                      <span>✨</span>
+                      <span style={{ color: "#1d4ed8", fontWeight: 600 }}>
+                        {diseaseSubTab === "leaf_diag" 
+                          ? (diseaseResult?.ai_model || "AI Computer Vision Model")
+                          : "Google Gemini 1.5 Flash (AgriExpert AI)"}
+                      </span>
+                    </div>
+
+                    {/* Download PDF button */}
+                    <button
+                      type="button"
+                      onClick={handleDownloadDiagnosticPDF}
+                      style={{
+                        background: "linear-gradient(135deg, #15803d, #16a34a)",
+                        color: "white",
+                        border: "none",
+                        borderRadius: 8,
+                        padding: "6px 12px",
+                        fontSize: 12,
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6
+                      }}
+                    >
+                      <span>📥</span>
+                      {language === 'mr' ? 'अहवाल (PDF)' : 'Report (PDF)'}
+                    </button>
                   </div>
 
                   {/* --- CASE 1: CROP DIAGNOSTICS (CV) --- */}
@@ -1374,6 +1556,201 @@ const AITools = () => {
           </div>
         </div>
       )}
+
+        {/* --- PLANT IDENTIFICATION TAB --- */}
+        {activeTab === "Plant Identification" && (
+          <div className="grid-2">
+            {/* Upload & Identification Card */}
+            <div className="card">
+              <h3>{language === 'mr' ? 'झाड / रोप ओळख' : language === 'hi' ? 'पौधा पहचान' : 'Plant Identification'}</h3>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
+                {language === 'mr' 
+                  ? 'कोणत्याही वनस्पतीचे किंवा पिकाचे छायाचित्र अपलोड करा. आमची कृत्रिम बुद्धिमत्ता वनस्पतीचे नाव, वाढीची अवस्था, आरोग्याची स्थिती आणि पोषक द्रव्यांची कमतरता ओळखेल.'
+                  : language === 'hi'
+                  ? 'किसी भी पौधे या फसल का चित्र अपलोड करें। हमारा एआई पौधे का नाम, विकास चरण, स्वास्थ्य स्थिति और पोषक तत्वों की कमी की पहचान करेगा।'
+                  : 'Upload a clear photo of any plant or crop. The AI will identify the species, growth stage, health status, and nutrient deficiencies.'}
+              </p>
+
+              <div 
+                className="upload-box"
+                style={{
+                  border: "2px dashed var(--border-color)",
+                  borderRadius: 12,
+                  padding: 30,
+                  textAlign: "center",
+                  background: "var(--bg-main)",
+                  cursor: "pointer",
+                  marginBottom: 16,
+                  position: "relative"
+                }}
+                onClick={() => plantFileInputRef.current?.click()}
+              >
+                <input 
+                  type="file"
+                  ref={plantFileInputRef}
+                  style={{ display: "none" }}
+                  accept="image/*"
+                  onChange={handlePlantFileChange}
+                />
+
+                {plantImagePreview ? (
+                  <div>
+                    <img 
+                      src={plantImagePreview} 
+                      alt="Plant Preview" 
+                      style={{ maxWidth: "100%", maxHeight: 200, borderRadius: 8, objectFit: "contain" }} 
+                    />
+                    <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>
+                      {language === 'mr' ? 'दुसरा फोटो निवडण्यासाठी क्लिक करा' : 'Click to select another photo'}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 40, marginBottom: 8 }}>🌱</div>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text-dark)", marginBottom: 4 }}>
+                      {language === 'mr' ? 'झाड किंवा रोपाचा फोटो अपलोड करा' : 'Upload Plant Photo'}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                      {language === 'mr' ? 'जेपीईजी, पीएनजी किंवा वेबपी स्वीकारले जातात' : 'Supports JPEG, PNG, WEBP'}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {plantError && (
+                <div style={{ 
+                  background: "#fef2f2", 
+                  border: "1px solid #fee2e2", 
+                  borderRadius: 8, 
+                  padding: 12, 
+                  color: "#991b1b", 
+                  fontSize: 13, 
+                  marginBottom: 16 
+                }}>
+                  ⚠️ {plantError}
+                </div>
+              )}
+
+              <button 
+                type="button" 
+                className="button"
+                style={{ width: "100%", margin: 0 }}
+                onClick={handlePlantIdentify}
+                disabled={plantLoading || !plantFile}
+              >
+                {plantLoading ? (language === 'mr' ? 'स्कॅनिंग आणि ओळखत आहे...' : 'Identifying Plant...') : (language === 'mr' ? 'वनस्पती ओळखा 🔍' : 'Identify Plant 🔍')}
+              </button>
+            </div>
+
+            {/* Results Details Card */}
+            <div className="card">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <h3>{language === 'mr' ? 'ओळखलेले तपशील' : 'Identification Details'}</h3>
+                {plantResult && (
+                  <button
+                    type="button"
+                    onClick={handleDownloadPlantPDF}
+                    style={{
+                      background: "linear-gradient(135deg, #15803d, #16a34a)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: 8,
+                      padding: "6px 12px",
+                      fontSize: 12,
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6
+                    }}
+                  >
+                    <span>📥</span>
+                    {language === 'mr' ? 'पीडीएफ अहवाल' : 'Download PDF'}
+                  </button>
+                )}
+              </div>
+
+              {plantLoading ? (
+                <div style={{ padding: "60px 0", textAlign: "center" }}>
+                  <div className="scanning-loader" style={{
+                    width: 50,
+                    height: 50,
+                    border: "4px solid #f3f3f3",
+                    borderTop: "4px solid var(--primary)",
+                    borderRadius: "50%",
+                    margin: "0 auto 16px auto",
+                    animation: "spin 1s linear infinite"
+                  }} />
+                  <p style={{ color: "var(--text-muted)", fontSize: 14 }}>
+                    {language === 'mr' ? 'वनस्पतीचे पान, खोड आणि स्वरूप स्कॅन करत आहे...' : 'Scanning leaves, stem and growth traits...'}
+                  </p>
+                </div>
+              ) : !plantResult ? (
+                <div style={{ padding: "60px 0", textAlign: "center", color: "var(--text-muted)" }}>
+                  <span style={{ fontSize: 48 }}>🌿</span>
+                  <p style={{ marginTop: 12, fontSize: 14 }}>
+                    {language === 'mr' ? 'वनस्पती ओळख सुरू करण्यासाठी फोटो सबमिट करा.' : 'Upload a plant photo to begin identification.'}
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {/* Common & Scientific Names */}
+                  <div style={{ display: "flex", gap: 12, alignItems: "center", background: "var(--bg-main)", padding: 12, borderRadius: 8 }}>
+                    <div style={{ fontSize: 32 }}>🌱</div>
+                    <div>
+                      <strong style={{ display: "block", fontSize: 13, color: "var(--text-muted)" }}>
+                        {language === 'mr' ? 'सामान्य नाव / प्रजाती' : 'Common Name'}
+                      </strong>
+                      <span style={{ fontSize: 16, fontWeight: 700, color: "var(--primary)" }}>{plantResult.common_name}</span>
+                      <em style={{ display: "block", fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>{plantResult.scientific_name}</em>
+                    </div>
+                  </div>
+
+                  {/* Badges Grid */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <div style={{ background: "#f8fafc", padding: 10, borderRadius: 8, border: "1px solid var(--border-color)" }}>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)", display: "block" }}>{language === 'mr' ? 'पिकाचा प्रकार' : 'Crop Type'}</span>
+                      <strong style={{ fontSize: 13, color: "var(--text-dark)" }}>{plantResult.crop_type}</strong>
+                    </div>
+                    <div style={{ background: "#f8fafc", padding: 10, borderRadius: 8, border: "1px solid var(--border-color)" }}>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)", display: "block" }}>{language === 'mr' ? 'वाढीचा टप्पा' : 'Growth Stage'}</span>
+                      <strong style={{ fontSize: 13, color: "var(--text-dark)" }}>{plantResult.growth_stage}</strong>
+                    </div>
+                    <div style={{ background: "#f8fafc", padding: 10, borderRadius: 8, border: "1px solid var(--border-color)" }}>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)", display: "block" }}>{language === 'mr' ? 'आरोग्य स्थिती' : 'Health Status'}</span>
+                      <strong style={{ 
+                        fontSize: 13, 
+                        color: plantResult.health_status.toLowerCase().includes("healthy") ? "#166534" : "#991b1b"
+                      }}>{plantResult.health_status}</strong>
+                    </div>
+                    <div style={{ background: "#f8fafc", padding: 10, borderRadius: 8, border: "1px solid var(--border-color)" }}>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)", display: "block" }}>{language === 'mr' ? 'पोषक द्रव्यांची कमतरता' : 'Nutrient Deficiency'}</span>
+                      <strong style={{ fontSize: 13, color: "var(--text-dark)" }}>{plantResult.nutrient_deficiency}</strong>
+                    </div>
+                  </div>
+
+                  {/* Disease Risk Warning */}
+                  {plantResult.disease_risk && plantResult.disease_risk !== "none" && (
+                    <div style={{ background: "#fffbeb", border: "1px solid #fef3c7", borderRadius: 8, padding: 12 }}>
+                      <strong style={{ fontSize: 12, color: "#b45309", display: "block", marginBottom: 4 }}>
+                        ⚠️ {language === 'mr' ? 'रोगाचा संभाव्य धोका:' : 'Disease Risk Spotted:'}
+                      </strong>
+                      <p style={{ fontSize: 13, color: "#92400e", margin: 0, lineHeight: 1.5 }}>{plantResult.disease_risk}</p>
+                    </div>
+                  )}
+
+                  {/* Treatment / advisory */}
+                  <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: 12 }}>
+                    <strong style={{ fontSize: 12, color: "#166534", display: "block", marginBottom: 4 }}>
+                      🚜 {language === 'mr' ? 'कृषी सल्ला आणि उपाय:' : 'Agronomic Sowing & Treatment Advice:'}
+                    </strong>
+                    <p style={{ fontSize: 13, color: "#15803d", margin: 0, lineHeight: 1.5 }}>{plantResult.treatment}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* --- IRRIGATION TAB --- */}
         {activeTab === "Irrigation" && (

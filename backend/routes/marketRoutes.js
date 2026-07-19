@@ -39,21 +39,21 @@ const COMMODITY_DATA = {
 
 // ─── Major Indian Mandis with states ───
 const MANDIS = [
-  { name: "Azadpur Mandi", city: "Delhi", state: "Delhi", type: "APMC" },
-  { name: "Kashi Mandi", city: "Varanasi", state: "Uttar Pradesh", type: "APMC" },
-  { name: "Lasalgaon Mandi", city: "Nashik", state: "Maharashtra", type: "APMC" },
-  { name: "Gultekdi Market", city: "Pune", state: "Maharashtra", type: "APMC" },
-  { name: "Bowenpally Mandi", city: "Hyderabad", state: "Telangana", type: "APMC" },
-  { name: "Koyambedu Market", city: "Chennai", state: "Tamil Nadu", type: "APMC" },
-  { name: "Yeshwanthpur APMC", city: "Bengaluru", state: "Karnataka", type: "APMC" },
-  { name: "Khanna Grain Market", city: "Ludhiana", state: "Punjab", type: "APMC" },
-  { name: "Unjha APMC", city: "Mehsana", state: "Gujarat", type: "APMC" },
-  { name: "Neemuch APMC", city: "Neemuch", state: "Madhya Pradesh", type: "APMC" },
-  { name: "Hapur Mandi", city: "Hapur", state: "Uttar Pradesh", type: "APMC" },
-  { name: "Jaipur APMC", city: "Jaipur", state: "Rajasthan", type: "APMC" },
-  { name: "Patna Sabzi Mandi", city: "Patna", state: "Bihar", type: "APMC" },
-  { name: "Kolkata APMC", city: "Kolkata", state: "West Bengal", type: "APMC" },
-  { name: "Bhopal APMC", city: "Bhopal", state: "Madhya Pradesh", type: "APMC" },
+  { name: "Azadpur Mandi", city: "Delhi", state: "Delhi", type: "APMC", lat: 28.7161, lon: 77.1711, district: "North Delhi", pincode: "110033" },
+  { name: "Kashi Mandi", city: "Varanasi", state: "Uttar Pradesh", type: "APMC", lat: 25.3176, lon: 82.9739, district: "Varanasi", pincode: "221001" },
+  { name: "Lasalgaon Mandi", city: "Nashik", state: "Maharashtra", type: "APMC", lat: 20.1444, lon: 74.2250, district: "Nashik", pincode: "422306" },
+  { name: "Gultekdi Market", city: "Pune", state: "Maharashtra", type: "APMC", lat: 18.4975, lon: 73.8569, district: "Pune", pincode: "411037" },
+  { name: "Bowenpally Mandi", city: "Hyderabad", state: "Telangana", type: "APMC", lat: 17.4772, lon: 78.4839, district: "Hyderabad", pincode: "500011" },
+  { name: "Koyambedu Market", city: "Chennai", state: "Tamil Nadu", type: "APMC", lat: 13.0694, lon: 80.1914, district: "Chennai", pincode: "600107" },
+  { name: "Yeshwanthpur APMC", city: "Bengaluru", state: "Karnataka", type: "APMC", lat: 13.0235, lon: 77.5562, district: "Bengaluru", pincode: "560022" },
+  { name: "Khanna Grain Market", city: "Ludhiana", state: "Punjab", type: "APMC", lat: 30.7042, lon: 76.2222, district: "Ludhiana", pincode: "141401" },
+  { name: "Unjha APMC", city: "Mehsana", state: "Gujarat", type: "APMC", lat: 23.8051, lon: 72.3900, district: "Mehsana", pincode: "384170" },
+  { name: "Neemuch APMC", city: "Neemuch", state: "Madhya Pradesh", type: "APMC", lat: 24.4478, lon: 74.8739, district: "Neemuch", pincode: "458441" },
+  { name: "Hapur Mandi", city: "Hapur", state: "Uttar Pradesh", type: "APMC", lat: 28.7247, lon: 77.7780, district: "Hapur", pincode: "245101" },
+  { name: "Jaipur APMC", city: "Jaipur", state: "Rajasthan", type: "APMC", lat: 26.9124, lon: 75.7873, district: "Jaipur", pincode: "302003" },
+  { name: "Patna Sabzi Mandi", city: "Patna", state: "Bihar", type: "APMC", lat: 25.5941, lon: 85.1376, district: "Patna", pincode: "800001" },
+  { name: "Kolkata APMC", city: "Kolkata", state: "West Bengal", type: "APMC", lat: 22.5726, lon: 88.3639, district: "Kolkata", pincode: "700015" },
+  { name: "Bhopal APMC", city: "Bhopal", state: "Madhya Pradesh", type: "APMC", lat: 23.2599, lon: 77.4126, district: "Bhopal", pincode: "462001" }
 ];
 
 // ─── Live price simulation with realistic market fluctuation ───
@@ -99,10 +99,10 @@ function getTrendSignal(prices) {
   };
 }
 
-// GET /api/market?crop=Wheat&state=Punjab
+// GET /api/market?crop=Wheat&state=Punjab&district=...&market=...&pincode=...
 router.get("/", protect, async (req, res) => {
   try {
-    const { crop, state } = req.query;
+    const { crop, state, district, market, pincode } = req.query;
     const commodity = crop || "Wheat";
     const info = COMMODITY_DATA[commodity];
 
@@ -115,10 +115,21 @@ router.get("/", protect, async (req, res) => {
       });
     }
 
-    // Filter mandis by state if provided
-    let selectedMandis = state
-      ? MANDIS.filter(m => m.state.toLowerCase().includes(state.toLowerCase()))
-      : MANDIS.slice(0, 10);
+    // Filter mandis based on all query params
+    let selectedMandis = MANDIS;
+
+    if (state && state.trim()) {
+      selectedMandis = selectedMandis.filter(m => m.state.toLowerCase().includes(state.toLowerCase().trim()));
+    }
+    if (district && district.trim()) {
+      selectedMandis = selectedMandis.filter(m => m.district.toLowerCase().includes(district.toLowerCase().trim()));
+    }
+    if (market && market.trim()) {
+      selectedMandis = selectedMandis.filter(m => m.name.toLowerCase().includes(market.toLowerCase().trim()));
+    }
+    if (pincode && pincode.trim()) {
+      selectedMandis = selectedMandis.filter(m => m.pincode.startsWith(pincode.trim()));
+    }
 
     if (selectedMandis.length === 0) selectedMandis = MANDIS.slice(0, 8);
 
@@ -133,6 +144,10 @@ router.get("/", protect, async (req, res) => {
         market: mandi.name,
         city: mandi.city,
         state: mandi.state,
+        district: mandi.district,
+        pincode: mandi.pincode,
+        lat: mandi.lat,
+        lon: mandi.lon,
         type: mandi.type,
         pricePerQuintal: price,
         minPrice,
@@ -220,5 +235,89 @@ function generateSellRecommendation(trend, msp, avgPrice) {
   }
   return { action: "HOLD", color: "info", reason: `Price is stable at ₹${avgPrice}. Monitor daily and sell when trend turns upward.` };
 }
+
+// POST /api/market/predict — Gemini AI market price prediction
+router.post("/predict", protect, async (req, res) => {
+  const { crop, period } = req.body;
+  const commodity = crop || "Wheat";
+  const info = COMMODITY_DATA[commodity];
+  const days = parseInt(period) || 7;
+
+  if (!info) {
+    return res.status(400).json({ error: "Invalid crop specified." });
+  }
+
+  const apiKey = req.headers["x-gemini-key"] || process.env.GEMINI_API_KEY || "";
+  if (!apiKey || apiKey.trim().length < 10 || apiKey === "YOUR_GEMINI_API_KEY") {
+    const change = Math.sin(days) * 0.05 + 0.02;
+    const base = info.basePrice;
+    const expectedMin = Math.round(base * (1 + change - 0.03));
+    const expectedMax = Math.round(base * (1 + change + 0.04));
+    const sentiment = change > 0.01 ? "Bullish" : change < -0.01 ? "Bearish" : "Neutral";
+    
+    return res.json({
+      success: true,
+      expectedMin,
+      expectedMax,
+      sentiment,
+      advisoryEn: `Prices are expected to remain stable with minor fluctuations (±3%). Plan your sales accordingly.`,
+      advisoryMr: `अल्पशा बदलांसह बाजार भाव स्थिर राहण्याची शक्यता आहे (±३%). आपल्या गरजेनुसार विक्रीचे नियोजन करा.`
+    });
+  }
+
+  try {
+    const prompt = `As an agricultural market economist, predict the market price trend of "${commodity}" (current base price ₹${info.basePrice} per ${info.unit}) in Indian APMC mandis for the next ${days} days.
+    Analyze potential demand/supply factors, monsoon impacts, and historical arrivals.
+    Return ONLY this JSON (no markdown outside JSON):
+    {
+      "expectedMin": number,  // Expected minimum modal price in Rupees
+      "expectedMax": number,  // Expected maximum modal price in Rupees
+      "sentiment": "Bullish" | "Bearish" | "Neutral",
+      "advisoryEn": " agronomic selling advice in English ",
+      "advisoryMr": " agronomic selling advice in Marathi "
+    }`;
+
+    const contents = [{ parts: [{ text: prompt }] }];
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents, generationConfig: { temperature: 0.2, responseMimeType: "application/json" } })
+      }
+    );
+
+    const data = await response.json();
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (raw) {
+      let clean = raw.trim();
+      if (clean.includes("```")) {
+        clean = clean.split("```")[1];
+        if (clean.startsWith("json")) {
+          clean = clean.substring(4);
+        }
+        clean = clean.trim().split("```")[0].trim();
+      }
+      const predResult = JSON.parse(clean);
+      return res.json({
+        success: true,
+        ...predResult
+      });
+    }
+  } catch (err) {
+    console.error("Gemini Market Prediction error:", err);
+  }
+
+  const change = Math.sin(days) * 0.05 + 0.02;
+  const base = info.basePrice;
+  return res.json({
+    success: true,
+    expectedMin: Math.round(base * (1 + change - 0.02)),
+    expectedMax: Math.round(base * (1 + change + 0.03)),
+    sentiment: "Neutral",
+    advisoryEn: "Market is stable. Watch for localized mandi arrival quantities before offloading stock.",
+    advisoryMr: "बाजार स्थिर आहे. साठा विक्री करण्यापूर्वी स्थानिक मंड्यांमधील आवक तपासा."
+  });
+});
 
 export default router;

@@ -197,7 +197,7 @@ if os.path.exists(py_zip_file):
         os.remove(py_zip_file)
         # Install Python dependencies (without massive PyTorch dependencies to save disk space)
         subprocess.run(
-            ['/usr/bin/python3.10', '-m', 'pip', 'install', '--user', 'fastapi', 'uvicorn', 'sqlalchemy', 'twilio', 'pillow', 'python-multipart', 'requests'],
+            ['/usr/bin/python3.10', '-m', 'pip', 'install', '--user', 'fastapi', 'uvicorn', 'sqlalchemy', 'twilio', 'pillow', 'python-multipart', 'requests', 'reportlab', 'numpy', 'faiss-cpu', 'pandas', 'python-dotenv'],
             stdout=open('/home/Krishna3114/py_install_stdout.log', 'a'),
             stderr=open('/home/Krishna3114/py_install_stderr.log', 'a')
         )
@@ -318,7 +318,8 @@ def application(environ, start_response):
             or path_info.startswith('/api/leaf-diagnose') or path_info.startswith('/api/crop-disease-detect')
             or path_info.startswith('/api/advisory') or path_info.startswith('/api/alerts')
             or path_info.startswith('/api/community') or path_info.startswith('/api/dataset')
-            or path_info.startswith('/py_uploads')):
+            or path_info.startswith('/api/chat') or path_info.startswith('/api/generate-pdf')
+            or path_info.startswith('/api/plant-identify') or path_info.startswith('/py_uploads')):
         return proxy_request(environ, start_response, PYTHON_PORT)
     # Route Node uploads static files and general Node endpoints to Node Port
     elif path_info.startswith('/uploads') or path_info.startswith('/api'):

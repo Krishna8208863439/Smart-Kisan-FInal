@@ -1,4 +1,5 @@
 import express from "express";
+import fs from "fs";
 import { protect } from "../middleware/authMiddleware.js";
 import Product from "../models/Product.js";
 import { analyzeWithHuggingFace, smartLocalFallback } from "./cropDiseaseRoutes.js";
@@ -492,6 +493,45 @@ Query: "${message}"`
       }
     } catch (err) {
       console.error("Query guardrail check error:", err);
+    }
+  }
+
+  // Forward to Python FastAPI RAG chatbot
+  if (isGeminiKey) {
+    try {
+      const pythonUrl = getPythonUrl();
+      const chatPayload = {
+        message: message,
+        chatHistory: chatHistory ? chatHistory.map(item => ({
+          sender: item.sender,
+          text: item.text
+        })) : [],
+        language: activeLang
+      };
+
+      console.log(`[Node] Forwarding chat query to Python RAG: ${pythonUrl}/api/chat`);
+      const pyResp = await fetch(`${pythonUrl}/api/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-gemini-key": apiKey
+        },
+        body: JSON.stringify(chatPayload)
+      });
+
+      if (pyResp.ok) {
+        const pyData = await pyResp.json();
+        return res.json({
+          success: pyData.success,
+          response: pyData.response,
+          source: pyData.source || "gemini",
+          rag_sources: pyData.rag_sources
+        });
+      } else {
+        console.warn(`[Node] Python chat backend returned status ${pyResp.status}. Trying direct Gemini fallback.`);
+      }
+    } catch (err) {
+      console.error("[Node] Python RAG chat forward failed, falling back to direct query:", err);
     }
   }
 
