@@ -110,8 +110,13 @@ try:
         import traceback
         with open('/home/Krishna3114/numpy_test.log', 'w') as log_f:
             log_f.write(f"Failed to import numpy:\n{traceback.format_exc()}\n")
-except Exception:
-    pass
+            
+    # Copy system web app error log to home for download
+    import shutil
+    shutil.copy('/var/log/krishna3114_pythonanywhere_com_error_log.txt', '/home/Krishna3114/remote_error_log.txt')
+except Exception as e:
+    with open('/home/Krishna3114/wsgi_debug.log', 'w') as f:
+        f.write(str(e))
 
 os.environ['no_proxy'] = '127.0.0.1,localhost,krishna3114.pythonanywhere.com'
 os.environ['NO_PROXY'] = '127.0.0.1,localhost,krishna3114.pythonanywhere.com'
