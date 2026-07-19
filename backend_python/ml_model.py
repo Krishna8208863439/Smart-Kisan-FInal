@@ -1235,27 +1235,44 @@ def query_gemini_raw(image_bytes: bytes, prompt: str, custom_key: str = None) ->
             ]
         }
 
-        resp = requests.post(url, json=payload, timeout=35)
-        if resp.status_code != 200:
-            print(f"[Gemini] Error status {resp.status_code}: {resp.text[:400]}")
-            return None
-
-        data = resp.json()
-        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
-        if not parts:
-            return None
-
-        raw = parts[0].get("text", "").strip()
-        if "```" in raw:
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-            raw = raw.strip().rstrip("`").strip()
-
-        return json.loads(raw)
-
+        # Timeout and Retry logic with exponential backoff
+        import time
+        max_retries = 3
+        backoff = 1.5
+        for attempt in range(max_retries):
+            try:
+                resp = requests.post(url, json=payload, timeout=35)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+                    if not parts:
+                        return None
+                    raw = parts[0].get("text", "").strip()
+                    if "```" in raw:
+                        raw = raw.split("```")[1]
+                        if raw.startswith("json"):
+                            raw = raw[4:]
+                        raw = raw.strip().rstrip("`").strip()
+                    return json.loads(raw)
+                elif resp.status_code == 429:
+                    print(f"[Gemini-Raw] Rate limited (429). Retrying in {backoff}s... (Attempt {attempt+1}/{max_retries})")
+                    time.sleep(backoff)
+                    backoff *= 2
+                else:
+                    print(f"[Gemini-Raw] HTTP Error status {resp.status_code} on attempt {attempt+1}")
+                    if attempt == max_retries - 1:
+                        return None
+            except requests.exceptions.Timeout:
+                print(f"[Gemini-Raw] Timeout. Retrying in {backoff}s... (Attempt {attempt+1}/{max_retries})")
+                time.sleep(backoff)
+                backoff *= 2
+            except Exception as e:
+                print(f"[Gemini-Raw] Request failed: {e} on attempt {attempt+1}")
+                if attempt == max_retries - 1:
+                    return None
+        return None
     except Exception as e:
-        print(f"[Gemini] query_gemini_raw failed: {e}")
+        print(f"[Gemini] query_gemini_raw overall failure: {e}")
         return None
 
 
@@ -1275,16 +1292,29 @@ def validate_image_type(image_bytes: bytes, custom_key: str = None) -> dict:
     Return ONLY this JSON (no backticks, no markdown, no other text)."""
     api_key = (custom_key or "").strip() or get_gemini_api_key()
     if not api_key:
-        print("[ML] No Gemini API key configured. Bypassing image validation to allow HuggingFace/Local fallbacks.")
-        return {"is_crop": True, "is_leaf": True, "confidence": 1.0}
+        print("[ML] No Gemini API key configured. Cannot run image validation.")
+        return {"success": False, "is_crop": False, "is_leaf": False, "confidence": 0.0, "error": "Gemini API Key is missing. Please configure it in your .env file."}
     
     result = query_gemini_raw(image_bytes, prompt, api_key)
     if result and isinstance(result, dict) and "is_crop" in result and "is_leaf" in result:
-        if "confidence" not in result:
-            result["confidence"] = 1.0
-        return result
-    print("[ML] Gemini validation call failed or errored. Bypassing to allow HuggingFace/Local prediction.")
-    return {"is_crop": True, "is_leaf": True, "confidence": 1.0}
+        confidence = result.get("confidence", 0.0)
+        is_crop = result.get("is_crop", False)
+        if not is_crop or confidence < 0.90:
+            return {
+                "success": False,
+                "is_crop": False,
+                "is_leaf": False,
+                "confidence": confidence,
+                "error": "This image is not a valid crop, plant, or leaf. Please upload a clear agricultural image."
+            }
+        return {
+            "success": True,
+            "is_crop": True,
+            "is_leaf": result.get("is_leaf", False),
+            "confidence": confidence
+        }
+    print("[ML] Gemini validation call failed or errored.")
+    return {"success": False, "is_crop": False, "is_leaf": False, "confidence": 0.0, "error": "AI service is temporarily unavailable. Please try again later."}
 
 
 def query_gemini_text(prompt: str, custom_key: str = None) -> dict | None:
@@ -1306,20 +1336,42 @@ def query_gemini_text(prompt: str, custom_key: str = None) -> dict | None:
                 "responseMimeType": "application/json"
             }
         }
-        resp = requests.post(url, json=payload, timeout=25)
-        if resp.status_code != 200:
-            print(f"[Gemini-Text] HTTP Error: {resp.status_code}")
-            return None
-        data = resp.json()
-        raw = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])[0].get("text", "").strip()
-        if "```" in raw:
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-            raw = raw.strip().rstrip("`").strip()
-        return json.loads(raw)
+        
+        # Timeout and Retry logic with exponential backoff
+        import time
+        max_retries = 3
+        backoff = 1.5
+        for attempt in range(max_retries):
+            try:
+                resp = requests.post(url, json=payload, timeout=25)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    raw = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])[0].get("text", "").strip()
+                    if "```" in raw:
+                        raw = raw.split("```")[1]
+                        if raw.startswith("json"):
+                            raw = raw[4:]
+                        raw = raw.strip().rstrip("`").strip()
+                    return json.loads(raw)
+                elif resp.status_code == 429:
+                    print(f"[Gemini-Text] Rate limited (429). Retrying in {backoff}s... (Attempt {attempt+1}/{max_retries})")
+                    time.sleep(backoff)
+                    backoff *= 2
+                else:
+                    print(f"[Gemini-Text] HTTP Error status {resp.status_code} on attempt {attempt+1}")
+                    if attempt == max_retries - 1:
+                        return None
+            except requests.exceptions.Timeout:
+                print(f"[Gemini-Text] Timeout. Retrying in {backoff}s... (Attempt {attempt+1}/{max_retries})")
+                time.sleep(backoff)
+                backoff *= 2
+            except Exception as e:
+                print(f"[Gemini-Text] Request failed: {e} on attempt {attempt+1}")
+                if attempt == max_retries - 1:
+                    return None
+        return None
     except Exception as e:
-        print(f"[Gemini-Text] Request failed: {e}")
+        print(f"[Gemini-Text] query_gemini_text overall failure: {e}")
         return None
 
 
@@ -1404,10 +1456,15 @@ def run_leaf_disease_diagnose(image_bytes: bytes, crop_hint: str = None, custom_
     Accepts ONLY leaf images.
     """
     val = validate_image_type(image_bytes, custom_key)
-    if not val or not val.get("is_leaf", False) or val.get("confidence", 0.0) < 0.90:
+    if not val or not val.get("success", False):
         return {
             "success": False,
-            "error": "Only leaf images are supported. Please upload a clear image of a crop leaf."
+            "error": val.get("error") if val else "AI validation service is temporarily unavailable. Please try again later."
+        }
+    if not val.get("is_leaf", False) or val.get("confidence", 0.0) < 0.90:
+        return {
+            "success": False,
+            "error": "Only crop leaf images are accepted."
         }
 
     pred = run_cv_prediction(image_bytes, crop_hint)
@@ -1466,10 +1523,15 @@ def run_crop_disease_detect(image_bytes: bytes, crop_hint: str = None, custom_ke
     Accepts ONLY crop/plant/foliage images.
     """
     val = validate_image_type(image_bytes, custom_key)
-    if not val or not val.get("is_crop", False) or val.get("confidence", 0.0) < 0.90:
+    if not val or not val.get("success", False):
         return {
             "success": False,
-            "error": "This is not a valid crop or plant image. Please upload a clear image of a crop, plant, fruit, stem, flower, or leaf."
+            "error": val.get("error") if val else "AI validation service is temporarily unavailable. Please try again later."
+        }
+    if not val.get("is_crop", False) or val.get("confidence", 0.0) < 0.90:
+        return {
+            "success": False,
+            "error": "This image is not a valid crop, plant, or leaf. Please upload a clear agricultural image."
         }
 
     pred = run_cv_prediction(image_bytes, crop_hint)
@@ -1531,7 +1593,12 @@ def run_plant_identification(image_bytes: bytes, custom_key: str = None) -> dict
     Returns: common name, scientific name, growth stage, health status, nutrient deficiency, disease risk, treatment.
     """
     val = validate_image_type(image_bytes, custom_key)
-    if not val or not val.get("is_crop", False) or val.get("confidence", 0.0) < 0.90:
+    if not val or not val.get("success", False):
+        return {
+            "success": False,
+            "error": val.get("error") if val else "AI validation service is temporarily unavailable. Please try again later."
+        }
+    if not val.get("is_crop", False) or val.get("confidence", 0.0) < 0.90:
         return {
             "success": False,
             "error": "This is not a valid plant image. Please upload a clear image of a plant or crop."

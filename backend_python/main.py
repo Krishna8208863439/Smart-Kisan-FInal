@@ -60,6 +60,23 @@ def startup_event():
     seed_db()
     print("[Server] Database initialized successfully and seeded.")
     
+    # Validate Gemini API key on startup
+    from ml_model import get_gemini_api_key, query_gemini_text
+    gemini_key = get_gemini_api_key()
+    if not gemini_key or gemini_key == "YOUR_GEMINI_API_KEY":
+        print("[WARNING] [Gemini] GEMINI_API_KEY is missing or not configured in your .env file.")
+        print("[WARNING] [Gemini] Crop diagnosis and chat functionalities will fall back to local rule-based systems.")
+    else:
+        try:
+            print("[Gemini] Validating API key connection on startup...")
+            res = query_gemini_text("Hello. Reply with only JSON: {\"status\": \"ok\"}", custom_key=gemini_key)
+            if res and isinstance(res, dict) and res.get("status") == "ok":
+                print("[Gemini] API connection validated successfully. Gemini Flash is active.")
+            else:
+                print("[WARNING] [Gemini] API key connection test failed or returned unexpected response.")
+        except Exception as e:
+            print(f"[WARNING] [Gemini] API connection error on startup: {e}")
+    
     # Register dataset routes for PlantVillage disease data
     register_dataset_routes(app)
     
