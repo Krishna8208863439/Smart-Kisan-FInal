@@ -1693,7 +1693,7 @@ const Marketplace = () => {
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 24 }}>💳</span>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: 18, color: "white", fontWeight: 800 }}>billdesk</h3>
+                  <h3 style={{ margin: 0, fontSize: 18, color: "white", fontWeight: 800 }}>BillDesk</h3>
                   <span style={{ fontSize: 10, opacity: 0.8, textTransform: "uppercase", letterSpacing: 0.5 }}>All Payments Secured</span>
                 </div>
               </div>

@@ -457,10 +457,6 @@ const Weather = () => {
 
 
 
-          {/* Data Source Notice */}
-          <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 12, marginTop: 8, marginBottom: 16 }}>
-            📡 Live data from <strong>Open-Meteo</strong> · Updated every 15 minutes · Free & open weather API
-          </div>
         </>
       )}
 
