@@ -399,6 +399,7 @@ async def diagnose_crop_cv_endpoint(
 
 
 # --- MODULE A3: Leaf Disease Diagnosis ---
+@app.post("/api/leaf-diagnostics", status_code=status.HTTP_201_CREATED)
 @app.post("/api/leaf-diagnose", status_code=status.HTTP_201_CREATED)
 @app.post("/api/leaf-disease", status_code=status.HTTP_201_CREATED)
 async def diagnose_leaf_disease(

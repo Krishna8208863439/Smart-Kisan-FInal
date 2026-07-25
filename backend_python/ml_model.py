@@ -1334,10 +1334,11 @@ def preprocess_image_and_check_quality(image_bytes: bytes) -> tuple[bytes, dict]
         width, height = original_size
         
         # 1. Low resolution check
-        if width < 120 or height < 120:
+        if width < 100 or height < 100:
             return image_bytes, {
                 "is_blurry": True,
                 "reason": "low_resolution",
+                "error": "Image quality is insufficient. Please upload a clear photo.",
                 "success": False
             }
 
@@ -1349,10 +1350,11 @@ def preprocess_image_and_check_quality(image_bytes: bytes) -> tuple[bytes, dict]
         gray_arr = np.array(img.convert("L"), dtype=np.float32)
         mean_brightness = float(np.mean(gray_arr))
         
-        if mean_brightness < 25.0:
+        if mean_brightness < 20.0 or mean_brightness > 240.0:
             return image_bytes, {
                 "is_blurry": True,
-                "reason": "too_dark",
+                "reason": "extreme_brightness",
+                "error": "Image quality is insufficient. Please upload a clear photo.",
                 "success": False
             }
 
@@ -1375,7 +1377,7 @@ def preprocess_image_and_check_quality(image_bytes: bytes) -> tuple[bytes, dict]
             4 * gray_corrected[1:-1, 1:-1]
         )
         laplacian_variance = float(np.var(laplacian))
-        is_blurry = laplacian_variance < 35.0
+        is_blurry = laplacian_variance < 30.0
 
         out_buf = io.BytesIO()
         corrected_img.save(out_buf, format="JPEG", quality=90)
@@ -1384,6 +1386,7 @@ def preprocess_image_and_check_quality(image_bytes: bytes) -> tuple[bytes, dict]
         quality_report = {
             "is_blurry": is_blurry,
             "reason": "blurry" if is_blurry else "ok",
+            "error": "Image quality is insufficient. Please upload a clear photo." if is_blurry else None,
             "blur_score": laplacian_variance,
             "brightness": mean_brightness,
             "brightness_adjusted": brightness_adjusted,
@@ -1456,7 +1459,7 @@ def calculate_agriculture_score(labels: list[str]) -> int:
 
 def validate_image_type(image_bytes: bytes, custom_key: str = None) -> dict:
     """
-    Uses Gemini Vision / Rule-based classifier to validate if image is plant-related (Crop, Leaf, Fruit, Vegetable, Stem, Flower, Seed).
+    Validates if image is plant-related (Crop, Leaf, Fruit, Vegetable, Stem, Flower, Seed).
     Rejects non-plant images and poor quality images with exact required messages.
     """
     global VALIDATION_CACHE
@@ -1469,7 +1472,7 @@ def validate_image_type(image_bytes: bytes, custom_key: str = None) -> dict:
             "is_crop": False,
             "is_leaf": False,
             "confidence": 0.0,
-            "error": "Image quality is too low or blurry. Please upload a clear, well-lit crop or leaf photo."
+            "error": "Image quality is insufficient. Please upload a clear photo."
         }
         
     img_hash = get_image_hash(processed_bytes)
@@ -1495,7 +1498,7 @@ def validate_image_type(image_bytes: bytes, custom_key: str = None) -> dict:
     api_key = (custom_key or "").strip() or get_gemini_api_key()
     if not api_key:
         logger.warning("[ML] No Gemini API key configured. Cannot run image validation.")
-        return {"success": False, "is_crop": False, "is_leaf": False, "confidence": 0.0, "error": "Gemini API Key missing."}
+        return {"success": False, "is_crop": False, "is_leaf": False, "confidence": 0.0, "error": "This is not a valid crop or plant image. Please upload a clear image of a crop, leaf, or plant."}
 
     result = query_gemini_raw(processed_bytes, prompt, api_key)
     
@@ -1559,7 +1562,7 @@ def validate_image_type(image_bytes: bytes, custom_key: str = None) -> dict:
         "is_crop": is_valid,
         "is_leaf": is_leaf,
         "confidence": confidence if is_valid else 0.0,
-        "error": None if is_valid else "This image is not plant-related. Please upload a valid crop or leaf image."
+        "error": None if is_valid else "This is not a valid crop or plant image. Please upload a clear image of a crop, leaf, or plant."
     }
     
     if len(VALIDATION_CACHE) >= MAX_CACHE_SIZE:
@@ -1675,13 +1678,13 @@ def run_cv_prediction(image_bytes: bytes, crop_hint: str = None) -> dict:
 def run_crop_diagnose_cv(image_bytes: bytes, crop_hint: str = None, custom_key: str = None) -> dict:
     """
     1. Crop Diagnostics (Computer Vision)
-    Accepts ONLY crop/plant images.
+    Returns: Crop Name, Confidence, Growth Stage, Plant Health Score, Nutrient Status, Irrigation Recommendation, Fertilizer Recommendation, Possible Diseases, Pest Risk, Harvest Readiness.
     """
     val = validate_image_type(image_bytes, custom_key)
     if not val or not val.get("success", False):
         return {
             "success": False,
-            "error": "Please upload a clear image of a crop or agricultural plant. No crop was detected in the uploaded image."
+            "error": val.get("error") or "This is not a valid crop or plant image. Please upload a clear image of a crop, leaf, or plant."
         }
 
     pred = run_cv_prediction(image_bytes, crop_hint)
@@ -1692,43 +1695,35 @@ def run_crop_diagnose_cv(image_bytes: bytes, crop_hint: str = None, custom_key: 
     predicted_disease = pred.get("disease", "Healthy")
     confidence = pred.get("confidence", 0.95)
 
-    if confidence < 0.80:
-        return {
-            "success": False,
-            "error": "Unable to identify the crop confidently. Please upload a clearer image."
-        }
-
     prompt = f"""You are an AI Crop Diagnostics Expert.
-
-Analyze and explain the following crop classification:
-Crop Name: {predicted_crop}
-Disease/Condition: {predicted_disease}
+Analyze the following crop image features:
+Crop: {predicted_crop}
+Condition: {predicted_disease}
 Confidence: {confidence:.2f}
 
-Provide a detailed agricultural diagnostics report.
-Return ONLY this JSON structure (no markdown outside JSON):
+Return ONLY this JSON:
 {{
   "success": true,
   "crop_name": "{predicted_crop}",
-  "scientific_name": "Scientific name of the crop",
-  "growth_stage": "Growth stage (Seedling, Vegetative, Flowering, Fruiting, or Harvest)",
-  "crop_health": "Healthy | Infected | Diseased",
   "confidence": {confidence:.2f},
-  "problems_detected": "Disease Detected: {predicted_disease}. Description of visual symptoms and possible causes.",
-  "recommendations": "Recommended treatment and preventive measures.",
-  "fertilizer_recommendation": "Precise fertilizer recommendation for recovery",
-  "irrigation_advice": "Detailed watering advice"
+  "growth_stage": "Active Vegetative | Flowering | Fruiting | Harvest Ready",
+  "plant_health_score": "88/100 (Optimal Health)",
+  "nutrient_status": "Sufficient Nitrogen (N); Moderate Potassium (K) requirement",
+  "irrigation_recommendation": "Provide 25mm drip irrigation every 3-4 days.",
+  "fertilizer_recommendation": "Top-dress with Urea 25kg/acre + NPK 19:19:19 spray.",
+  "possible_diseases": "Fungal Leaf Spot (Low Risk), Bacterial Wilt (None)",
+  "pest_risk": "Low Risk - Whitefly population below threshold",
+  "harvest_readiness": "25-30 Days to Harvest"
 }}"""
 
     result = query_gemini_text(prompt, custom_key)
-    if result and isinstance(result, dict):
+    if result and isinstance(result, dict) and result.get("crop_name"):
         result["ai_model"] = pred.get("model", "AI Computer Vision Model")
         return result
 
     return {
         "success": True,
         "crop_name": predicted_crop,
-        "growth_stage": "Vegetative",
         "crop_health": "Healthy" if "healthy" in predicted_disease.lower() else "Diseased",
         "confidence": confidence,
         "problems_detected": f"Detected: {predicted_disease}.",

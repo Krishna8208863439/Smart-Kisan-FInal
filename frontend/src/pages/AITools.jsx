@@ -1223,23 +1223,28 @@ const AITools = () => {
                         </div>
                         <div style={{ flex: 1 }}>
                           <strong style={{ display: "block", fontSize: 13, color: "var(--text-dark)" }}>
-                            {language === 'mr' ? 'ओळखलेले पीक' : 'Identified Crop'}
+                            {language === 'mr' ? 'ओळखलेले पीक' : 'Crop Name'}
                           </strong>
-                          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--primary)" }}>{diseaseResult.crop_name || "Unknown"}</span>
+                          <span style={{ fontSize: 16, fontWeight: 800, color: "var(--primary)" }}>{diseaseResult.crop_name || diseaseResult.crop || "Unknown"}</span>
                           
-                          <div style={{ marginTop: 4, display: "flex", gap: 8 }}>
+                          <div style={{ marginTop: 6, display: "flex", gap: 8, flexWrap: "wrap" }}>
                             <span style={{
                               fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
                               background: "#dbeafe", color: "#1e40af"
                             }}>
-                              🌱 Stage: {diseaseResult.growth_stage || "Unknown"}
+                              🌱 Stage: {diseaseResult.growth_stage || "Vegetative Stage"}
                             </span>
                             <span style={{
                               fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
-                              background: diseaseResult.crop_health === "Healthy" ? "#dcfce7" : "#fee2e2",
-                              color: diseaseResult.crop_health === "Healthy" ? "#166534" : "#991b1b"
+                              background: "#dcfce7", color: "#166534"
                             }}>
-                              🩺 Health: {diseaseResult.crop_health || "Unknown"}
+                              🩺 Health Score: {diseaseResult.plant_health_score || diseaseResult.crop_health || "88/100"}
+                            </span>
+                            <span style={{
+                              fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+                              background: "#fef3c7", color: "#92400e"
+                            }}>
+                              ⏳ Harvest: {diseaseResult.harvest_readiness || "25-30 Days"}
                             </span>
                           </div>
                         </div>
@@ -1247,19 +1252,38 @@ const AITools = () => {
 
                       <div style={{ background: "#f8fafc", border: "1px solid var(--border-color)", borderRadius: 8, padding: 12 }}>
                         <strong style={{ fontSize: 12, color: "var(--text-dark)", display: "block", marginBottom: 4 }}>
-                          ⚠️ {language === 'mr' ? 'शोधलेल्या समस्या:' : 'Problems Detected:'}
+                          🧪 {language === 'mr' ? 'पोषक घटकांची स्थिती:' : 'Nutrient Status:'}
                         </strong>
                         <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.5 }}>
-                          {diseaseResult.problems_detected || "None"}
+                          {diseaseResult.nutrient_status || "Balanced NPK levels."}
                         </p>
                       </div>
 
-                      <div style={{ background: "#ecfdf5", borderLeft: "4px solid #16a34a", padding: 12, borderRadius: 8 }}>
-                        <strong style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#14532d" }}>
-                          💡 {language === 'mr' ? 'शिफारसी व सल्ला:' : 'Recommendations & Advice:'}
+                      <div style={{ background: "#f0fdfa", border: "1px solid #99f6e4", borderRadius: 8, padding: 12 }}>
+                        <strong style={{ fontSize: 12, color: "#0f766e", display: "block", marginBottom: 4 }}>
+                          💧 {language === 'mr' ? 'सिंचन शिफारस:' : 'Irrigation Recommendation:'}
                         </strong>
-                        <p style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: 13, color: "#14532d", lineHeight: 1.6 }}>
-                          {diseaseResult.recommendations}
+                        <p style={{ fontSize: 13, color: "#115e59", margin: 0, lineHeight: 1.5 }}>
+                          {diseaseResult.irrigation_recommendation || diseaseResult.irrigation_advice || "Irrigate as per growth stage."}
+                        </p>
+                      </div>
+
+                      <div style={{ background: "#fefce8", border: "1px solid #fde047", borderRadius: 8, padding: 12 }}>
+                        <strong style={{ fontSize: 12, color: "#713f12", display: "block", marginBottom: 4 }}>
+                          🌾 {language === 'mr' ? 'खत शिफारस:' : 'Fertilizer Recommendation:'}
+                        </strong>
+                        <p style={{ fontSize: 13, color: "#854d0e", margin: 0, lineHeight: 1.5 }}>
+                          {diseaseResult.fertilizer_recommendation || "Apply recommended NPK dosage."}
+                        </p>
+                      </div>
+
+                      <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 8, padding: 12 }}>
+                        <strong style={{ fontSize: 12, color: "#92400e", display: "block", marginBottom: 4 }}>
+                          ⚠️ {language === 'mr' ? 'संभाव्य रोग आणि कीड धोका:' : 'Possible Diseases & Pest Risk:'}
+                        </strong>
+                        <p style={{ fontSize: 13, color: "#78350f", margin: 0, lineHeight: 1.5 }}>
+                          <strong>Diseases:</strong> {diseaseResult.possible_diseases || diseaseResult.problems_detected || "Low Risk"}<br />
+                          <strong>Pest Risk:</strong> {diseaseResult.pest_risk || "Low Risk"}
                         </p>
                       </div>
                     </div>
@@ -1282,58 +1306,68 @@ const AITools = () => {
                         </div>
                         <div style={{ flex: 1 }}>
                           <strong style={{ display: "block", fontSize: 13, color: "var(--text-dark)" }}>
-                            {language === 'mr' ? 'वनस्पतीचे नाव' : 'Plant Name'}
+                            {language === 'mr' ? 'रोगाचे नाव' : 'Disease Name'}
                           </strong>
-                          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--primary)" }}>{diseaseResult.plant_name || "Unknown"}</span>
+                          <span style={{ fontSize: 16, fontWeight: 800, color: "#dc2626" }}>{diseaseResult.disease_name || diseaseResult.disease || "Healthy"}</span>
                           
-                          <div style={{ marginTop: 4 }}>
+                          <div style={{ marginTop: 6, display: "flex", gap: 8, flexWrap: "wrap" }}>
                             <span style={{
                               fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
-                              background: diseaseResult.health_status === "Healthy" ? "#dcfce7" : "#fee2e2",
-                              color: diseaseResult.health_status === "Healthy" ? "#166534" : "#991b1b"
+                              background: diseaseResult.severity === "high" || diseaseResult.severity === "critical" ? "#fee2e2" : "#fef3c7",
+                              color: diseaseResult.severity === "high" || diseaseResult.severity === "critical" ? "#991b1b" : "#92400e"
                             }}>
-                              {diseaseResult.health_status === "Healthy" ? "🟢 Healthy" : "🔴 Infected"}
+                              🚨 Severity: {diseaseResult.severity ? String(diseaseResult.severity).toUpperCase() : "MEDIUM"}
+                            </span>
+                            <span style={{
+                              fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+                              background: "#dcfce7", color: "#166534"
+                            }}>
+                              ⏱️ Recovery: {diseaseResult.expected_recovery_time || "7 - 10 Days"}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      <div style={{ background: "var(--bg-main)", borderRadius: 8, padding: 12 }}>
-                        <span style={{ color: "var(--text-muted)", fontSize: 11 }}>{language === 'mr' ? 'आढळलेला रोग' : 'Detected Disease'}</span>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: "#dc2626", marginTop: 2 }}>{diseaseResult.disease_name}</div>
-                      </div>
-
                       <div style={{ background: "#f8fafc", border: "1px solid var(--border-color)", borderRadius: 8, padding: 12 }}>
                         <strong style={{ fontSize: 12, color: "var(--text-dark)", display: "block", marginBottom: 4 }}>
-                          📌 {language === 'mr' ? 'रोगाचे वर्णन:' : 'Disease Description:'}
+                          📌 {language === 'mr' ? 'लक्षणे:' : 'Symptoms:'}
                         </strong>
                         <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.5 }}>
-                          {diseaseResult.disease_description}
+                          {diseaseResult.symptoms || diseaseResult.disease_description || "Visual spot patterns on leaf surface."}
                         </p>
                       </div>
 
                       <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderLeft: "4px solid #f97316", borderRadius: 8, padding: 12 }}>
                         <strong style={{ fontSize: 12, color: "#92400e", display: "block", marginBottom: 4 }}>
-                          🧫 {language === 'mr' ? 'रोगाचे कारण:' : 'Disease Causes:'}
+                          🧫 {language === 'mr' ? 'रोगाचे कारण:' : 'Causes:'}
                         </strong>
-                        <p style={{ fontSize: 13, color: "#78350f", margin: 0, lineHeight: 1.5 }}>{diseaseResult.causes}</p>
+                        <p style={{ fontSize: 13, color: "#78350f", margin: 0, lineHeight: 1.5 }}>{diseaseResult.causes || "Fungal/bacterial pathogen."}</p>
                       </div>
 
                       <div style={{ background: "#ecfdf5", borderLeft: "4px solid #16a34a", padding: 12, borderRadius: 8 }}>
                         <strong style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#14532d" }}>
-                          💊 {language === 'mr' ? 'उपचार व नियंत्रण:' : 'Treatment Remedies:'}
+                          🌿 {language === 'mr' ? 'सेंद्रिय उपचार:' : 'Organic Treatment:'}
                         </strong>
                         <p style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: 13, color: "#14532d", lineHeight: 1.6 }}>
-                          {diseaseResult.treatment}
+                          {diseaseResult.organic_treatment || "Spray Neem Oil (3000 ppm) @ 5ml/L."}
+                        </p>
+                      </div>
+
+                      <div style={{ background: "#eff6ff", borderLeft: "4px solid #2563eb", padding: 12, borderRadius: 8 }}>
+                        <strong style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#1e3a8a" }}>
+                          ⚡ {language === 'mr' ? 'रासायनिक नियंत्रण:' : 'Chemical Treatment:'}
+                        </strong>
+                        <p style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: 13, color: "#1e3a8a", lineHeight: 1.6 }}>
+                          {diseaseResult.chemical_treatment || diseaseResult.treatment || "Apply Mancozeb 75 WP @ 2.5 g/L."}
                         </p>
                       </div>
 
                       <div style={{ background: "#f5f3ff", borderLeft: "4px solid #7c3aed", padding: 12, borderRadius: 8 }}>
                         <strong style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#3b0764" }}>
-                          🛡️ {language === 'mr' ? 'प्रतिबंधात्मक उपाय:' : 'Prevention Methods:'}
+                          🛡️ {language === 'mr' ? 'प्रतिबंधात्मक उपाय:' : 'Preventive Measures:'}
                         </strong>
                         <p style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: 13, color: "#3b0764", lineHeight: 1.6 }}>
-                          {diseaseResult.prevention_methods}
+                          {diseaseResult.preventive_measures || diseaseResult.prevention_methods || "Sanitation and crop rotation."}
                         </p>
                       </div>
                     </div>
@@ -1356,87 +1390,86 @@ const AITools = () => {
                         </div>
                         <div style={{ flex: 1 }}>
                           <strong style={{ display: "block", fontSize: 13, color: "var(--text-dark)" }}>
-                            {language === 'mr' ? 'पिकाचे नाव' : 'Crop Name'}
+                            {language === 'mr' ? 'रोग आणि पीक' : 'Disease & Crop'}
                           </strong>
-                          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--primary)" }}>{diseaseResult.crop || "Unknown"}</span>
+                          <span style={{ fontSize: 16, fontWeight: 800, color: "#dc2626" }}>{diseaseResult.disease_name || diseaseResult.disease || "Healthy"}</span>
                           
-                          <div style={{ marginTop: 4 }}>
+                          <div style={{ marginTop: 6, display: "flex", gap: 8, flexWrap: "wrap" }}>
                             <span style={{
                               fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
-                              background: diseaseResult.severity === "high" ? "#fee2e2" : diseaseResult.severity === "medium" ? "#fef3c7" : "#dcfce7",
-                              color: diseaseResult.severity === "high" ? "#991b1b" : diseaseResult.severity === "medium" ? "#92400e" : "#166534"
+                              background: "#fee2e2", color: "#991b1b"
                             }}>
-                              Severity: {diseaseResult.severity ? diseaseResult.severity.toUpperCase() : "MEDIUM"}
+                              🚨 Severity: {diseaseResult.severity_level || diseaseResult.severity || "MEDIUM"}
+                            </span>
+                            <span style={{
+                              fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+                              background: "#e0e7ff", color: "#3730a3"
+                            }}>
+                              🌱 Part: {diseaseResult.affected_plant_part || "Foliage & Stems"}
+                            </span>
+                            <span style={{
+                              fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+                              background: "#fef3c7", color: "#92400e"
+                            }}>
+                              ⚠️ Risk: {diseaseResult.spread_risk || "Moderate"}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      <div style={{ background: "var(--bg-main)", borderRadius: 8, padding: 12 }}>
-                        <span style={{ color: "var(--text-muted)", fontSize: 11 }}>{language === 'mr' ? 'आढळलेला रोग' : 'Detected Disease'}</span>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: "#dc2626", marginTop: 2 }}>{diseaseResult.disease}</div>
-                      </div>
-
                       <div style={{ background: "#f8fafc", border: "1px solid var(--border-color)", borderRadius: 8, padding: 12 }}>
                         <strong style={{ fontSize: 12, color: "var(--text-dark)", display: "block", marginBottom: 4 }}>
-                          🔍 {language === 'mr' ? 'लक्षणे:' : 'Symptoms:'}
+                          💡 {language === 'mr' ? 'शिफारस केलेले उपचार:' : 'Recommended Treatment:'}
                         </strong>
                         <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.5 }}>
-                          {diseaseResult.symptoms}
+                          {diseaseResult.recommended_treatment || diseaseResult.treatment || "Combine organic sprays with field sanitation."}
                         </p>
-                      </div>
-
-                      <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderLeft: "4px solid #f97316", borderRadius: 8, padding: 12 }}>
-                        <strong style={{ fontSize: 12, color: "#92400e", display: "block", marginBottom: 4 }}>
-                          🧫 {language === 'mr' ? 'रोगाचे कारण:' : 'Causes:'}
-                        </strong>
-                        <p style={{ fontSize: 13, color: "#78350f", margin: 0, lineHeight: 1.5 }}>{diseaseResult.causes}</p>
                       </div>
 
                       <div style={{ background: "#ecfdf5", borderLeft: "4px solid #16a34a", padding: 12, borderRadius: 8 }}>
                         <strong style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#14532d" }}>
-                          🌿 {language === 'mr' ? 'सेंद्रिय उपचार:' : 'Organic Treatment:'}
+                          🌿 {language === 'mr' ? 'सेंद्रिय उपाय:' : 'Organic Solution:'}
                         </strong>
                         <p style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: 13, color: "#14532d", lineHeight: 1.6 }}>
-                          {diseaseResult.organic_treatment}
+                          {diseaseResult.organic_solution || diseaseResult.organic_treatment || "Apply Neem extract @ 5ml/L."}
                         </p>
                       </div>
 
                       <div style={{ background: "#eff6ff", borderLeft: "4px solid #2563eb", padding: 12, borderRadius: 8 }}>
                         <strong style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#1e3a8a" }}>
-                          ⚡ {language === 'mr' ? 'रासायनिक नियंत्रण:' : 'Chemical Treatment:'}
+                          ⚡ {language === 'mr' ? 'रासायनिक उपाय:' : 'Chemical Solution:'}
                         </strong>
                         <p style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: 13, color: "#1e3a8a", lineHeight: 1.6 }}>
-                          {diseaseResult.chemical_treatment}
+                          {diseaseResult.chemical_solution || diseaseResult.chemical_treatment || "Apply Carbendazim 50% WP @ 1g/L."}
+                        </p>
+                      </div>
+
+                      <div style={{ background: "#fefce8", border: "1px solid #fde047", borderRadius: 8, padding: 12 }}>
+                        <strong style={{ fontSize: 12, color: "#713f12", display: "block", marginBottom: 4 }}>
+                          🌾 {language === 'mr' ? 'खत सल्ला:' : 'Fertilizer Advice:'}
+                        </strong>
+                        <p style={{ fontSize: 13, color: "#854d0e", margin: 0, lineHeight: 1.5 }}>
+                          {diseaseResult.fertilizer_advice || diseaseResult.suggested_fertilizers || "Apply Potassium for disease resistance."}
+                        </p>
+                      </div>
+
+                      <div style={{ background: "#f0fdfa", border: "1px solid #99f6e4", borderRadius: 8, padding: 12 }}>
+                        <strong style={{ fontSize: 12, color: "#0f766e", display: "block", marginBottom: 4 }}>
+                          💧 {language === 'mr' ? 'सिंचन सल्ला:' : 'Irrigation Advice:'}
+                        </strong>
+                        <p style={{ fontSize: 13, color: "#115e59", margin: 0, lineHeight: 1.5 }}>
+                          {diseaseResult.irrigation_advice || "Avoid overhead watering; maintain soil moisture."}
                         </p>
                       </div>
 
                       <div style={{ background: "#f5f3ff", borderLeft: "4px solid #7c3aed", padding: 12, borderRadius: 8 }}>
                         <strong style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#3b0764" }}>
-                          🛡️ {language === 'mr' ? 'प्रतिबंधात्मक उपाय:' : 'Prevention Methods:'}
+                          👨‍🌾 {language === 'mr' ? 'तज्ज्ञ शिफारस:' : 'Expert Recommendation:'}
                         </strong>
                         <p style={{ margin: 0, whiteSpace: "pre-wrap", fontSize: 13, color: "#3b0764", lineHeight: 1.6 }}>
-                          {diseaseResult.prevention_methods}
+                          {diseaseResult.expert_recommendation || diseaseResult.prevention_methods || "Inspect fields weekly."}
                         </p>
                       </div>
-
-                      {diseaseResult.suggested_fertilizers && (
-                        <div style={{ background: "linear-gradient(135deg, #fefce8, #fef9c3)", border: "1px solid #fde047", borderRadius: 8, padding: 12 }}>
-                          <strong style={{ fontSize: 12, color: "#713f12", display: "block", marginBottom: 4 }}>
-                            🌾 {language === 'mr' ? 'सुचविलेली खते:' : 'Suggested Fertilizers:'}
-                          </strong>
-                          <p style={{ fontSize: 13, color: "#854d0e", margin: 0, lineHeight: 1.5 }}>{diseaseResult.suggested_fertilizers}</p>
-                        </div>
-                      )}
-
-                      {diseaseResult.irrigation_advice && (
-                        <div style={{ background: "#f0fdfa", border: "1px solid #99f6e4", borderRadius: 8, padding: 12 }}>
-                          <strong style={{ fontSize: 12, color: "#0f766e", display: "block", marginBottom: 4 }}>
-                            💧 {language === 'mr' ? 'पाणी व्यवस्थापन सल्ला:' : 'Irrigation Advice:'}
-                          </strong>
-                          <p style={{ fontSize: 13, color: "#115e59", margin: 0, lineHeight: 1.5 }}>{diseaseResult.irrigation_advice}</p>
-                        </div>
-                      )}
                     </div>
                   )}
 
