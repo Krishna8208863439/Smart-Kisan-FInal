@@ -209,7 +209,7 @@ const Login = () => {
                 )}
 
                 <button className="button" style={{ width: "100%", padding: 12 }} disabled={loading}>
-                  {loading ? "Verifying Credentials..." : "Log In Securely 🚀"}
+                  {loading ? "Verifying Credentials..." : "Login"}
                 </button>
               </form>
 
