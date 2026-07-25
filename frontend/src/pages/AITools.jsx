@@ -999,7 +999,7 @@ const AITools = () => {
                     onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#15803d"}
                     onMouseOut={(e) => e.currentTarget.style.backgroundColor = "#16a34a"}
                   >
-                    📷 {diseaseSubTab === "crop_cv" 
+                    {diseaseSubTab === "crop_cv" 
                         ? (language === 'mr' ? 'फोटो अपलोड करा' : 'Upload Image') 
                         : diseaseSubTab === "leaf_diag" 
                         ? (language === 'mr' ? 'पानाचा फोटो अपलोड' : 'Upload Leaf Image') 

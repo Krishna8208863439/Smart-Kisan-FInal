@@ -437,7 +437,7 @@ const CropDiseaseDetectionSection = () => {
                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#15803d"}
                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = "#16a34a"}
               >
-                📷 {language === 'mr' ? 'फोटो अपलोड करा' : 'Upload Crop Image'}
+                {language === 'mr' ? 'फोटो अपलोड करा' : 'Upload Crop Image'}
               </button>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
