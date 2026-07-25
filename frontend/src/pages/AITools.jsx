@@ -10,15 +10,23 @@ const CROP_NPK_TARGETS = {
   Paddy: { n: 100, p: 40, k: 40, ph: "5.5 - 6.5", name: "Paddy / Rice" },
 };
 
-// Extended targets for Irrigation and Fertilizer tabs (more crops)
+// Extended targets for Irrigation, Fertilizer, and Smart Calendar tabs (all crops)
 const CROP_NPK_TARGETS_EXTENDED = {
-  Tomato: { n: 120, p: 60, k: 60, ph: "6.0 - 7.0", name: "Tomato" },
-  Paddy: { n: 100, p: 40, k: 40, ph: "5.5 - 6.5", name: "Paddy / Rice" },
+  Rice: { n: 100, p: 40, k: 40, ph: "5.5 - 6.5", name: "Rice (Paddy)" },
   Wheat: { n: 120, p: 60, k: 40, ph: "6.0 - 7.0", name: "Wheat" },
+  Cotton: { n: 120, p: 60, k: 60, ph: "6.0 - 7.5", name: "Cotton" },
+  Sugarcane: { n: 250, p: 115, k: 115, ph: "6.0 - 7.5", name: "Sugarcane" },
+  Maize: { n: 120, p: 60, k: 50, ph: "5.8 - 7.0", name: "Maize (Corn)" },
+  Soybean: { n: 30, p: 60, k: 40, ph: "6.0 - 7.5", name: "Soybean" },
+  Groundnut: { n: 25, p: 50, k: 40, ph: "6.0 - 6.8", name: "Groundnut" },
+  Onion: { n: 100, p: 50, k: 50, ph: "6.0 - 7.0", name: "Onion" },
+  Tomato: { n: 120, p: 60, k: 60, ph: "6.0 - 7.0", name: "Tomato" },
   Potato: { n: 150, p: 80, k: 120, ph: "5.2 - 6.4", name: "Potato" },
-  Mustard: { n: 80, p: 40, k: 40, ph: "6.0 - 7.5", name: "Mustard" },
   Chilli: { n: 100, p: 60, k: 60, ph: "6.0 - 7.0", name: "Chilli" },
-  Cotton: { n: 120, p: 60, k: 60, ph: "6.0 - 7.5", name: "Cotton" }
+  Banana: { n: 200, p: 60, k: 300, ph: "6.0 - 7.5", name: "Banana" },
+  Mango: { n: 100, p: 50, k: 100, ph: "5.5 - 7.5", name: "Mango" },
+  Grapes: { n: 100, p: 80, k: 120, ph: "6.0 - 7.5", name: "Grapes" },
+  Mustard: { n: 80, p: 40, k: 40, ph: "6.0 - 7.5", name: "Mustard" }
 };
 
 const SOIL_DRY_DRAIN = {
