@@ -4,23 +4,23 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import api from "../api";
 const getFallbackImage = (product) => {
-  if (!product) return "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=300&q=80";
+  if (!product) return "https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?auto=format&fit=crop&w=300&q=80";
   const name = (product.name || "").toLowerCase();
   const cat = (product.category || "").toLowerCase();
   if (name.includes("tomato")) return "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=300&q=80";
   if (name.includes("wheat")) return "https://images.unsplash.com/photo-1506619216599-9d16d0903dfd?auto=format&fit=crop&w=300&q=80";
   if (name.includes("potato")) return "https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=300&q=80";
-  if (name.includes("rice")) return "https://images.unsplash.com/photo-1536304997881-a372c179924b?auto=format&fit=crop&w=300&q=80";
+  if (name.includes("rice")) return "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=300&q=80";
   if (name.includes("mustard")) return "https://images.unsplash.com/photo-1528825871115-3581a5387919?auto=format&fit=crop&w=300&q=80";
   if (name.includes("chilli") || name.includes("chili")) return "https://images.unsplash.com/photo-1596797038530-2c107229654b?auto=format&fit=crop&w=300&q=80";
-  if (name.includes("cotton")) return "https://images.unsplash.com/photo-1604928141064-207ec6f57e42?auto=format&fit=crop&w=300&q=80";
+  if (name.includes("cotton")) return "https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?auto=format&fit=crop&w=300&q=80";
   
   if (cat === "seeds") return "https://images.unsplash.com/photo-1523301343968-6a6ebf63c672?auto=format&fit=crop&w=300&q=80";
   if (cat === "fertilizers") return "https://images.unsplash.com/photo-1628352081506-83c43123ed6d?auto=format&fit=crop&w=300&q=80";
   if (cat === "tools" || cat === "equipment") return "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&w=300&q=80";
   if (cat === "pesticides") return "https://images.unsplash.com/photo-1599599810769-bcde5a160d32?auto=format&fit=crop&w=300&q=80";
   
-  return "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=300&q=80";
+  return "https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?auto=format&fit=crop&w=300&q=80";
 };
 
 const getProductImageUrl = (url) => {

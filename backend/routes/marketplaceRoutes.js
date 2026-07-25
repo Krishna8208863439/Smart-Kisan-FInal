@@ -101,7 +101,7 @@ const SEED_PRODUCTS = [
     price: 950,
     unit: "/kg",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1530026405186-ed1ea0ac7a63?auto=format&fit=crop&w=600&q=80",
+    image: "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=600&q=80",
     description: "Premium hybrid corn seeds optimized for dry-land cultivation. Early maturing variety. [Germination Rate: 94%] [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
@@ -125,7 +125,7 @@ const SEED_PRODUCTS = [
     price: 2200,
     unit: "/unit",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1599685315640-9ce50450d03b?auto=format&fit=crop&w=600&q=80",
+    image: "https://images.unsplash.com/photo-1599599810769-bcde5a160d32?auto=format&fit=crop&w=600&q=80",
     description: "Ergonomic 16-liter manual knapsack sprayer with adjustable brass nozzles and heavy-duty battery backup. [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
@@ -149,7 +149,7 @@ const SEED_PRODUCTS = [
     price: 1100,
     unit: "/kg",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1604928141064-207ec6f57e42?auto=format&fit=crop&w=600&q=80",
+    image: "https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?auto=format&fit=crop&w=600&q=80",
     description: "High-yield cotton seeds for rainfed farming. Highly resistant to bollworm. [Germination Rate: 98%] [Live Link: https://krishna3114.pythonanywhere.com/]"
   },
   {
@@ -173,7 +173,7 @@ const SEED_PRODUCTS = [
     price: 1800,
     unit: "/unit",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?auto=format&fit=crop&w=600&q=80",
+    image: "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&w=600&q=80",
     description: "3-in-1 soil tester for measuring pH level, moisture percentage, and ambient sunlight intensity."
   },
   {
@@ -185,7 +185,7 @@ const SEED_PRODUCTS = [
     price: 3200,
     unit: "/unit",
     stock: "In Stock",
-    image: "https://images.unsplash.com/photo-1508780709619-79562169bc31?auto=format&fit=crop&w=600&q=80",
+    image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=80",
     description: "Automated solar-powered insect trap with UV light attraction sensor. Extremely effective for crop orchards."
   },
   {
@@ -317,9 +317,9 @@ router.post("/", protect, async (req, res) => {
       "Tools": "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&w=600&q=80",
       "Equipment": "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?auto=format&fit=crop&w=600&q=80",
       "Pesticides": "https://images.unsplash.com/photo-1599599810769-bcde5a160d32?auto=format&fit=crop&w=600&q=80",
-      "Produce": "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=600&q=80"
+      "Produce": "https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?auto=format&fit=crop&w=600&q=80"
     };
-    const defaultImage = (image && image.trim()) ? image : (CATEGORY_DEFAULT_IMAGES[category] || "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=600&q=80");
+    const defaultImage = (image && image.trim()) ? image : (CATEGORY_DEFAULT_IMAGES[category] || "https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?auto=format&fit=crop&w=600&q=80");
 
     const product = await Product.create({
       name,

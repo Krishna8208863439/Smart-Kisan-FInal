@@ -39,7 +39,7 @@ const SOIL_DRY_DRAIN = {
 
 const REFERENCE_HEALTHY_LEAVES = {
   Tomato: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=300&q=80",
-  Paddy: "https://images.unsplash.com/photo-1536304997881-a372c179924b?auto=format&fit=crop&w=300&q=80"
+  Paddy: "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=300&q=80"
 };
 
 const DIAGNOSTIC_CROPS = [
