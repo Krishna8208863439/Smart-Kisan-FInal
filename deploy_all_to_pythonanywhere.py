@@ -23,13 +23,28 @@ def zip_directory(folder_path, zip_path, exclude_dir=None):
     print(f"[zip] Zipping {folder_path} to {zip_path}...")
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
         for root, dirs, files in os.walk(folder_path):
-            if exclude_dir and exclude_dir in dirs:
-                dirs.remove(exclude_dir)
+            if exclude_dir:
+                if isinstance(exclude_dir, (list, tuple)):
+                    for ed in exclude_dir:
+                        if ed in dirs:
+                            dirs.remove(ed)
+                else:
+                    if exclude_dir in dirs:
+                        dirs.remove(exclude_dir)
             for file in files:
                 file_path = os.path.join(root, file)
                 arcname = os.path.relpath(file_path, folder_path)
                 zipf.write(file_path, arcname)
     print(f"[zip] Zipping complete: {zip_path}")
+
+def delete_remote_file(remote_path, username, api_token):
+    url = f"https://www.pythonanywhere.com/api/v0/user/{username}/files/path/home/{username}/{remote_path}"
+    headers = {"Authorization": f"Token {api_token}"}
+    try:
+        res = requests.delete(url, headers=headers)
+        print(f"[clean] Remote delete {remote_path}: {res.status_code}")
+    except Exception as e:
+        print(f"[warn] Remote delete {remote_path} error: {e}")
 
 def upload_file(local_path, remote_path, username, api_token):
     print(f"[api] Uploading {os.path.basename(local_path)} to /home/{username}/{remote_path}...")
@@ -49,6 +64,11 @@ def main():
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
+    # 0. Clean old temporary files on remote PA server
+    print("\n[clean] Cleaning up remote temp zips and logs on PythonAnywhere...")
+    for f in ["dist.zip", "backend.zip", "backend_python.zip", "node_stdout.log", "node_stderr.log", "py_stdout.log", "py_stderr.log"]:
+        delete_remote_file(f, username, api_token)
+
     # 1. Build frontend
     frontend_dir = os.path.join(script_dir, "frontend")
     print("\n[build] Running frontend build (npm run build)...")
@@ -64,22 +84,17 @@ def main():
     upload_file(dist_zip, "dist.zip", username, api_token)
     safe_remove(dist_zip)
 
-    # 3. Package and upload Node backend — include node_modules so PA never needs npm
+    # 3. Package and upload Node backend (exclude node_modules to fit within PA storage quota)
     backend_dir = os.path.join(script_dir, "backend")
-    print("\n[build] Installing Node backend production dependencies on Windows...")
-    npm_res = subprocess.run("npm install --production", shell=True, cwd=backend_dir)
-    if npm_res.returncode != 0:
-        print("[warn] Backend npm install failed — bundling whatever node_modules exists.")
     backend_zip = os.path.join(script_dir, "backend.zip")
-    # Include node_modules in zip (no exclude_dir)
-    zip_directory(backend_dir, backend_zip)
+    zip_directory(backend_dir, backend_zip, exclude_dir=["node_modules"])
     upload_file(backend_zip, "backend.zip", username, api_token)
     safe_remove(backend_zip)
 
     # 4. Package and upload Python backend
     py_backend_dir = os.path.join(script_dir, "backend_python")
     py_zip = os.path.join(script_dir, "backend_python.zip")
-    zip_directory(py_backend_dir, py_zip, exclude_dir="__pycache__")
+    zip_directory(py_backend_dir, py_zip, exclude_dir=["__pycache__"])
     upload_file(py_zip, "backend_python.zip", username, api_token)
     safe_remove(py_zip)
 
