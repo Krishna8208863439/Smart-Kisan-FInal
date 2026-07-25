@@ -1041,6 +1041,7 @@ class YieldPredictionRequest(BaseModel):
     district: Optional[str] = "Pune"
 
 @app.post("/api/yield-predict")
+@app.post("/api/yield/predict")
 def predict_crop_yield_ml(req: YieldPredictionRequest):
     """
     ML Model Engine for Crop Yield Prediction based on XGBoost / Random Forest ensemble principles.
