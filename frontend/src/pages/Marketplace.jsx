@@ -1776,8 +1776,23 @@ const Marketplace = () => {
                           style={{ marginBottom: 12 }}
                         />
                         <div style={{ textAlign: "center", background: "#f8fafc", padding: 12, borderRadius: 8, border: "1px dashed #cbd5e1", marginBottom: 12 }}>
-                          <span style={{ fontSize: 12, color: "#475569", display: "block" }}>OR Scan BHIM UPI QR Code</span>
-                          <div style={{ fontSize: 48, margin: "6px 0" }}>🔳</div>
+                          <span style={{ fontSize: 12, color: "#475569", display: "block", fontWeight: 600, marginBottom: 8 }}>OR Scan BHIM UPI QR Code</span>
+                          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", margin: "8px 0" }}>
+                            <img
+                              src="/upi_qr_code.png"
+                              alt="BHIM UPI QR Code"
+                              style={{
+                                width: "160px",
+                                height: "160px",
+                                borderRadius: "8px",
+                                border: "1px solid #cbd5e1",
+                                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                                objectFit: "contain",
+                                background: "white",
+                                padding: "4px"
+                              }}
+                            />
+                          </div>
                           <span style={{ fontSize: 10, color: "#64748b" }}>Universal Dynamic QR Code generated securely</span>
                         </div>
                       </div>
