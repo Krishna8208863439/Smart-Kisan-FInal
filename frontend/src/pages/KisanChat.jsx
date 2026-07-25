@@ -772,9 +772,10 @@ const KisanChat = () => {
         <main className="chat-main">
           <header className="chat-header" style={{ background: "linear-gradient(135deg, #0d9488 0%, #15803d 100%)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ fontSize: 28 }}>🤖</div>
               <div>
-                <h3 style={{ fontSize: 16, color: "white", margin: 0 }}>AgriExpert</h3>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: "white", margin: 0 }}>
+                  {language === 'mr' ? 'चॅटबॉट' : language === 'hi' ? 'चैटबॉट' : 'Chatbot'}
+                </h3>
                 <p style={{ fontSize: 11, color: "rgba(255,255,255,0.85)", margin: 0 }}>
                   {language === 'mr' ? 'अचूक आणि जलद कृषी सल्लागार' : language === 'hi' ? 'सटीक और कुशल कृषि सलाहकार' : 'Elite Agricultural Specialist & Advisor'}
                 </p>

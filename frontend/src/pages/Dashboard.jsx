@@ -799,7 +799,7 @@ const Dashboard = () => {
           <div>
             <div style={{ fontSize: 32, marginBottom: 10 }}>🤖</div>
             <h3 style={{ fontSize: 17, fontWeight: 700, margin: "0 0 6px 0" }}>
-              {language === "mr" ? "किसान एआय चॅटबॉट" : "Kisan AI Chatbot"}
+              {language === "mr" ? "चॅटबॉट" : "Chatbot"}
             </h3>
             <p style={{ color: "var(--text-muted)", fontSize: 13, lineHeight: 1.5, margin: 0 }}>
               {language === "mr"

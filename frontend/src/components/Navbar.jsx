@@ -55,7 +55,7 @@ const Navbar = () => {
             {user && (
               <>
                 <NavLink to="/dashboard" className={navLinkClass}>🏠 {t('dashboard')}</NavLink>
-                <NavLink to="/chat" className={navLinkClass}>🤖 {t('chat')}</NavLink>
+                <NavLink to="/chat" className={navLinkClass}>{t('chat')}</NavLink>
                 <NavLink to="/recommendations" className={navLinkClass}>🌱 {t('recommendations')}</NavLink>
                 <NavLink to="/ai-tools?tab=calendar" className={navLinkClass}>📅 {language === 'mr' ? 'पेरणी दिनदर्शिका' : 'Calendar'}</NavLink>
                 <NavLink to="/weather" className={navLinkClass}>☀️ {t('weather')}</NavLink>
@@ -197,7 +197,7 @@ const Navbar = () => {
             {user && (
               <>
                 <NavLink to="/dashboard" className={navLinkClass}>🏠 {t('dashboard')}</NavLink>
-                <NavLink to="/chat" className={navLinkClass}>🤖 {t('chat')}</NavLink>
+                <NavLink to="/chat" className={navLinkClass}>{t('chat')}</NavLink>
                 <NavLink to="/recommendations" className={navLinkClass}>🌱 {t('recommendations')}</NavLink>
                 <NavLink to="/ai-tools?tab=calendar" className={navLinkClass}>📅 {language === 'mr' ? 'पेरणी दिनदर्शिका' : 'Sowing Calendar'}</NavLink>
                 <NavLink to="/weather" className={navLinkClass}>☀️ {t('weather')}</NavLink>

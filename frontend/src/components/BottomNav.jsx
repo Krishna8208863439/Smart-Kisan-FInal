@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 
 const NAV_ITEMS = [
   { to: '/dashboard', icon: '📊', label: 'Dashboard', authRequired: true },
-  { to: '/chat', icon: '🤖', label: 'Chat', authRequired: true },
+  { to: '/chat', label: 'Chatbot', authRequired: true },
   { to: '/ai-tools', icon: '🛠️', label: 'AI', authRequired: true },
   { to: '/marketplace', icon: '🛒', label: 'Market', authRequired: true },
   { to: '/history', icon: '🕘', label: 'History', authRequired: true },
