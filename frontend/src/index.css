@@ -1101,6 +1101,64 @@ a {
   margin-top: 20px;
 }
 
+/* ── Agri Advisory Suite Grid Layout ── */
+.agri-suite-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-top: 14px;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 1024px) {
+  .agri-suite-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .agri-suite-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.agri-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 28px;
+  margin-bottom: 4px;
+  border-bottom: 2px solid var(--primary-light, #e8f5e9);
+  padding-bottom: 8px;
+}
+
+.agri-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin: 0;
+}
+
+.agri-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  min-height: 220px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.agri-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.14);
+  border-color: #16a34a;
+}
+
 /* ── Buttons ── */
 .button {
   background: var(--primary);

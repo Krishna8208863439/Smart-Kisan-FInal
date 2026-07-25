@@ -54,15 +54,19 @@ const Navbar = () => {
           <div className="nav-links nav-links-desktop">
             {user && (
               <>
-                <NavLink to="/dashboard" className={navLinkClass}>{t('dashboard')}</NavLink>
-                <NavLink to="/chat" className={navLinkClass}>{t('chat')}</NavLink>
-                <NavLink to="/ai-tools" className={navLinkClass}>{t('aiCenter')}</NavLink>
-                <NavLink to="/predictive-yield" className={navLinkClass}>{language === 'mr' ? 'उत्पादन अंदाज' : 'Predictive Yield'}</NavLink>
-                <NavLink to="/marketplace" className={navLinkClass}>{t('bazaar')}</NavLink>
-                <NavLink to="/weather" className={navLinkClass}>{t('weather')}</NavLink>
-                <NavLink to="/market" className={navLinkClass}>{t('mandiPrices')}</NavLink>
-                <NavLink to="/forum" className={navLinkClass}>{language === 'mr' ? '🏛️ शासकीय योजना' : '🏛️ Govt Scheme'}</NavLink>
-                <NavLink to="/recommendations" className={navLinkClass}>{t('recommendations')}</NavLink>
+                <NavLink to="/dashboard" className={navLinkClass}>🏠 {t('dashboard')}</NavLink>
+                <NavLink to="/chat" className={navLinkClass}>🤖 {t('chat')}</NavLink>
+                <NavLink to="/recommendations" className={navLinkClass}>🌱 {t('recommendations')}</NavLink>
+                <NavLink to="/ai-tools?tab=calendar" className={navLinkClass}>📅 {language === 'mr' ? 'पेरणी दिनदर्शिका' : 'Calendar'}</NavLink>
+                <NavLink to="/weather" className={navLinkClass}>☀️ {t('weather')}</NavLink>
+                <NavLink to="/market" className={navLinkClass}>📈 {t('mandiPrices')}</NavLink>
+                <NavLink to="/ai-tools?tab=npk" className={navLinkClass}>🧪 {language === 'mr' ? 'NPK सल्लागार' : 'NPK Advisor'}</NavLink>
+                <NavLink to="/ai-tools?tab=disease&subtab=crop_cv" className={navLinkClass}>🌾 {language === 'mr' ? 'पीक निदान' : 'Crop Diagnostics'}</NavLink>
+                <NavLink to="/ai-tools?tab=disease&subtab=leaf_diag" className={navLinkClass}>🍃 {language === 'mr' ? 'पान रोग निदान' : 'Leaf Disease'}</NavLink>
+                <NavLink to="/ai-tools?tab=disease&subtab=crop_disease" className={navLinkClass}>🔬 {language === 'mr' ? 'रोग ओळख' : 'Disease Detect'}</NavLink>
+                <NavLink to="/predictive-yield" className={navLinkClass}>📊 {language === 'mr' ? 'उत्पादन अंदाज' : 'Predictive Yield'}</NavLink>
+                <NavLink to="/marketplace" className={navLinkClass}>🛒 {t('bazaar')}</NavLink>
+                <NavLink to="/forum" className={navLinkClass}>🏛️ {language === 'mr' ? 'शासकीय योजना' : 'Govt Schemes'}</NavLink>
               </>
             )}
             {!user && (
@@ -192,15 +196,19 @@ const Navbar = () => {
           <nav className="nav-drawer-links">
             {user && (
               <>
-                <NavLink to="/dashboard" className={navLinkClass}>📊 {t('dashboard')}</NavLink>
-                <NavLink to="/chat" className={navLinkClass}>{t('chat')}</NavLink>
-                <NavLink to="/ai-tools" className={navLinkClass}>{t('aiCenter')}</NavLink>
-                <NavLink to="/predictive-yield" className={navLinkClass}>📈 {language === 'mr' ? 'उत्पादन अंदाज' : 'Predictive Yield'}</NavLink>
-                <NavLink to="/marketplace" className={navLinkClass}>{t('bazaar')}</NavLink>
-                <NavLink to="/forum" className={navLinkClass}>{language === 'mr' ? '🏛️ शासकीय योजना' : '🏛️ Govt Scheme'}</NavLink>
-                <NavLink to="/weather" className={navLinkClass}>{t('weather')}</NavLink>
-                <NavLink to="/market" className={navLinkClass}>{t('mandiPrices')}</NavLink>
-                <NavLink to="/recommendations" className={navLinkClass}>{t('recommendations')}</NavLink>
+                <NavLink to="/dashboard" className={navLinkClass}>🏠 {t('dashboard')}</NavLink>
+                <NavLink to="/chat" className={navLinkClass}>🤖 {t('chat')}</NavLink>
+                <NavLink to="/recommendations" className={navLinkClass}>🌱 {t('recommendations')}</NavLink>
+                <NavLink to="/ai-tools?tab=calendar" className={navLinkClass}>📅 {language === 'mr' ? 'पेरणी दिनदर्शिका' : 'Sowing Calendar'}</NavLink>
+                <NavLink to="/weather" className={navLinkClass}>☀️ {t('weather')}</NavLink>
+                <NavLink to="/market" className={navLinkClass}>📈 {t('mandiPrices')}</NavLink>
+                <NavLink to="/ai-tools?tab=npk" className={navLinkClass}>🧪 {language === 'mr' ? 'NPK खत सल्लागार' : 'NPK Advisor'}</NavLink>
+                <NavLink to="/ai-tools?tab=disease&subtab=crop_cv" className={navLinkClass}>🌾 {language === 'mr' ? 'पीक निदान (CV)' : 'Crop Diagnostics'}</NavLink>
+                <NavLink to="/ai-tools?tab=disease&subtab=leaf_diag" className={navLinkClass}>🍃 {language === 'mr' ? 'पान रोग निदान' : 'Leaf Disease'}</NavLink>
+                <NavLink to="/ai-tools?tab=disease&subtab=crop_disease" className={navLinkClass}>🔬 {language === 'mr' ? 'पीक रोग ओळख' : 'Disease Detection'}</NavLink>
+                <NavLink to="/predictive-yield" className={navLinkClass}>📊 {language === 'mr' ? 'उत्पादन अंदाज' : 'Predictive Yield'}</NavLink>
+                <NavLink to="/marketplace" className={navLinkClass}>🛒 {t('bazaar')}</NavLink>
+                <NavLink to="/forum" className={navLinkClass}>🏛️ {language === 'mr' ? 'शासकीय योजना' : 'Government Schemes'}</NavLink>
                 <NavLink to="/history" className={navLinkClass}>🕘 {language === 'mr' ? 'इतिहास' : 'History'}</NavLink>
               </>
             )}

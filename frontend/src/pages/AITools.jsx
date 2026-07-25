@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
 import { useHistory } from "../context/HistoryContext";
@@ -110,7 +111,25 @@ const AITools = () => {
   };
 
   // State: Disease Detection
-  const [diseaseSubTab, setDiseaseSubTab] = useState("crop_cv"); // "crop_cv" | "leaf_diag" | "crop_detect"
+  const location = useLocation();
+  const [diseaseSubTab, setDiseaseSubTab] = useState("crop_cv"); // "crop_cv" | "leaf_diag" | "crop_disease"
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get("tab");
+    const subtabParam = params.get("subtab");
+
+    if (tabParam === "calendar") {
+      setActiveTab("Smart Calendar");
+    } else if (tabParam === "npk") {
+      setActiveTab("Fertilizer / NPK");
+    } else if (tabParam === "disease") {
+      setActiveTab("Disease Detection");
+      if (subtabParam) {
+        setDiseaseSubTab(subtabParam);
+      }
+    }
+  }, [location.search]);
   const [diseaseFile, setDiseaseFile] = useState(null);
   const [diseasePreview, setDiseasePreview] = useState("");
   const [diseaseCropHint, setDiseaseCropHint] = useState("Tomato");
