@@ -946,137 +946,107 @@ const AITools = () => {
                 </div>
               )}
 
-              <div
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  if (!diseasePreview) {
-                    handleDiseaseFileSelected(e.dataTransfer.files?.[0]);
-                  }
-                }}
-                onClick={() => {
-                  if (!diseasePreview) {
-                    fileInputRef.current?.click();
-                  }
-                }}
-                style={{
-                  border: diseasePreview ? "1px solid var(--border-color)" : "2px dashed var(--border-color)",
-                  borderRadius: 12,
-                  padding: diseasePreview ? 0 : 24,
-                  textAlign: "center",
-                  background: "var(--bg-main)",
-                  cursor: diseasePreview ? "default" : "pointer",
-                  marginBottom: 16,
-                  position: "relative",
-                  overflow: "hidden",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  minHeight: 200
-                }}
-              >
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={fileInputRef}
-                  style={{ display: "none" }}
-                  onChange={(e) => handleDiseaseFileSelected(e.target.files?.[0])}
-                />
-                
-                {diseaseLoading && <div className="scan-line" />}
+              <input
+                type="file"
+                accept="image/jpeg,image/jpg,image/png"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                onChange={(e) => handleDiseaseFileSelected(e.target.files?.[0])}
+              />
 
-                {diseasePreview ? (
-                  <div style={{ position: "relative", width: "100%", height: "200px" }}>
-                    <img
-                      src={diseasePreview}
-                      alt="Leaf preview"
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover"
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        clearDiseaseImage();
-                      }}
-                      style={{
-                        position: "absolute",
-                        top: 8,
-                        right: 8,
-                        background: "rgba(220, 38, 38, 0.9)",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "50%",
-                        width: 28,
-                        height: 28,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 14,
-                        fontWeight: "bold",
-                        zIndex: 10,
-                        boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
-                      }}
-                      title="Clear Image"
-                    >
-                      ✕
-                    </button>
-                  </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", margin: "20px 0", gap: 16 }}>
+                {!diseasePreview ? (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      background: "#16a34a",
+                      color: "#ffffff",
+                      borderRadius: "10px",
+                      height: "48px",
+                      width: "200px",
+                      fontSize: "16px",
+                      fontWeight: 600,
+                      border: "none",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                      transition: "background-color 0.2s ease",
+                      margin: "0 auto",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#15803d"}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = "#16a34a"}
+                  >
+                    📷 {diseaseSubTab === "crop_cv" 
+                        ? (language === 'mr' ? 'फोटो अपलोड करा' : 'Upload Image') 
+                        : diseaseSubTab === "leaf_diag" 
+                        ? (language === 'mr' ? 'पानाचा फोटो अपलोड' : 'Upload Leaf Image') 
+                        : (language === 'mr' ? 'पिकाचा फोटो अपलोड' : 'Upload Crop Image')}
+                  </button>
                 ) : (
-                  <>
-                    <div style={{ fontSize: 36, marginBottom: 8 }}>
-                      {diseaseSubTab === "crop_cv" ? "🌾" : diseaseSubTab === "leaf_diag" ? "🍃" : "🔬"}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+                    <div style={{ position: "relative", width: "250px", maxHeight: "250px", borderRadius: "10px", overflow: "hidden", border: "1px solid var(--border-color)", background: "#f8fafc" }}>
+                      <img
+                        src={diseasePreview}
+                        alt="Selected Preview"
+                        style={{
+                          width: "250px",
+                          maxHeight: "250px",
+                          borderRadius: "10px",
+                          objectFit: "contain",
+                          display: "block"
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          clearDiseaseImage();
+                        }}
+                        style={{
+                          position: "absolute",
+                          top: 8,
+                          right: 8,
+                          background: "rgba(220, 38, 38, 0.9)",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "50%",
+                          width: 28,
+                          height: 28,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 14,
+                          fontWeight: "bold",
+                          zIndex: 10,
+                          boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
+                        }}
+                        title="Clear Image"
+                      >
+                        ✕
+                      </button>
                     </div>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text-dark)", marginBottom: 4 }}>
-                      {t("dragDropPhoto")}
-                    </div>
-                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 12 }}>
-                      {t("supportsFormats")}
-                    </div>
-                    <button
-                      type="button"
-                      className="button"
-                      style={{
-                        padding: "6px 14px",
-                        fontSize: 12,
-                        margin: 0,
-                        background: "var(--primary)",
-                        color: "white",
-                        border: "none",
-                        borderRadius: 6,
-                        cursor: "pointer",
-                        fontWeight: 600
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        fileInputRef.current?.click();
-                      }}
-                    >
-                      {language === 'mr' ? 'फोटो निवडा' : 'Choose Photo'}
-                    </button>
-                    <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
-                      {diseaseSubTab === "crop_cv" ? (language === 'mr' ? '⚠️ फक्त पिकाचे/झाडाचे फोटो स्वीकारले जातात' : '⚠️ Only crop & plant photos are accepted') :
-                       diseaseSubTab === "leaf_diag" ? (language === 'mr' ? '⚠️ फक्त पानाचे स्पष्ट फोटो स्वीकारले जातात' : '⚠️ Only clear plant leaf photos are accepted') :
-                       (language === 'mr' ? '⚠️ फक्त पिकाचे फोटो स्वीकारले जातात' : '⚠️ Only crop images are accepted')}
-                    </p>
-                  </>
+                  </div>
                 )}
               </div>
 
-
-
               <button
                 className="button"
-                style={{ width: "100%" }}
+                style={{ width: "100%", marginTop: 8 }}
                 onClick={handleAnalyzeDisease}
                 disabled={diseaseLoading || !diseaseFile}
               >
-                {diseaseLoading ? (language === 'mr' ? 'तपासत आहे...' : 'Running Diagnostics...') : t("analyzeImageBtn")}
+                {diseaseLoading 
+                  ? (language === 'mr' ? 'तपासत आहे...' : 'Running Diagnostics...') 
+                  : diseaseSubTab === "crop_cv" 
+                  ? (language === 'mr' ? 'पीक विश्लेषण करा' : 'Analyze Crop') 
+                  : diseaseSubTab === "leaf_diag" 
+                  ? (language === 'mr' ? 'पानाचे विश्लेषण करा' : 'Analyze Leaf') 
+                  : (language === 'mr' ? 'रोग ओळख करा' : 'Detect Disease')}
               </button>
               
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>

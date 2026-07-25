@@ -403,115 +403,92 @@ const CropDiseaseDetectionSection = () => {
             )}
           </div>
 
-          {/* Drop zone */}
-          <div
-            onDrop={(e) => {
-              e.preventDefault();
-              if (!previewUrl) handleDrop(e);
-            }}
-            onDragOver={(e) => e.preventDefault()}
-            onClick={() => {
-              if (!previewUrl) fileInputRef.current?.click();
-            }}
-            style={{
-              border: previewUrl ? "1px solid #e5e7eb" : "2px dashed #cbd5e1", 
-              borderRadius: 12, 
-              padding: previewUrl ? 0 : 24,
-              textAlign: "center", 
-              background: "#f8fafc", 
-              cursor: previewUrl ? "default" : "pointer", 
-              marginBottom: 16,
-              position: "relative",
-              overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              minHeight: 200
-            }}
-          >
-            <input
-              type="file" accept="image/*" ref={fileInputRef}
-              style={{ display: "none" }} onChange={handleFileInputChange}
-            />
-            
-            {previewUrl ? (
-              <div style={{ position: "relative", width: "100%", height: "200px" }}>
-                <img
-                  src={previewUrl}
-                  alt={language === "mr" ? "निवडलेले पान" : "Selected leaf"}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover"
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setFile(null); 
-                    setFileName(""); 
-                    setPreviewUrl(""); 
-                    setResult(null);
-                    setStatus(defaultStatus);
-                    if (fileInputRef.current) fileInputRef.current.value = "";
-                  }}
-                  style={{
-                    position: "absolute", 
-                    top: 8, 
-                    right: 8,
-                    background: "rgba(220,38,38,0.9)", 
-                    color: "white",
-                    border: "none", 
-                    borderRadius: "50%", 
-                    width: 28, 
-                    height: 28,
-                    cursor: "pointer", 
-                    display: "flex", 
-                    alignItems: "center",
-                    justifyContent: "center", 
-                    fontSize: 14, 
-                    fontWeight: "bold", 
-                    zIndex: 10,
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
-                  }}
-                  title="Clear Image"
-                >
-                  ✕
-                </button>
-              </div>
+          <input
+            type="file" 
+            accept="image/jpeg,image/jpg,image/png" 
+            ref={fileInputRef}
+            style={{ display: "none" }} 
+            onChange={handleFileInputChange}
+          />
+
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", margin: "20px 0", gap: 16 }}>
+            {!previewUrl ? (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  background: "#16a34a",
+                  color: "#ffffff",
+                  borderRadius: "10px",
+                  height: "48px",
+                  width: "200px",
+                  fontSize: "16px",
+                  fontWeight: 600,
+                  border: "none",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  transition: "background-color 0.2s ease",
+                  margin: "0 auto",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+                }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#15803d"}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = "#16a34a"}
+              >
+                📷 {language === 'mr' ? 'फोटो अपलोड करा' : 'Upload Crop Image'}
+              </button>
             ) : (
-              <>
-                <div style={{ fontSize: 32, marginBottom: 8 }}>📷</div>
-                <div style={{ fontWeight: 600, marginBottom: 6 }}>
-                  {language === "mr" ? "फोटो निवडण्यासाठी येथे क्लिक करा किंवा ड्रॅग करा" : "Click here or drag & drop an image"}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+                <div style={{ position: "relative", width: "250px", maxHeight: "250px", borderRadius: "10px", overflow: "hidden", border: "1px solid #e2e8f0", background: "#f8fafc" }}>
+                  <img
+                    src={previewUrl}
+                    alt={language === "mr" ? "निवडलेले पान" : "Selected crop image"}
+                    style={{
+                      width: "250px",
+                      maxHeight: "250px",
+                      borderRadius: "10px",
+                      objectFit: "contain",
+                      display: "block"
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFile(null); 
+                      setFileName(""); 
+                      setPreviewUrl(""); 
+                      setResult(null);
+                      setStatus(defaultStatus);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
+                    style={{
+                      position: "absolute", 
+                      top: 8, 
+                      right: 8,
+                      background: "rgba(220,38,38,0.9)", 
+                      color: "white",
+                      border: "none", 
+                      borderRadius: "50%", 
+                      width: 28, 
+                      height: 28,
+                      cursor: "pointer", 
+                      display: "flex", 
+                      alignItems: "center",
+                      justifyContent: "center", 
+                      fontSize: 14, 
+                      fontWeight: "bold", 
+                      zIndex: 10,
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
+                    }}
+                    title="Clear Image"
+                  >
+                    ✕
+                  </button>
                 </div>
-                <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 12 }}>
-                  {language === "mr" ? "समर्थित फॉरमॅट्स: JPG, JPEG, PNG (कमाल ~५MB)." : "Supported formats: JPG, JPEG, PNG (max ~5MB)."}
-                </div>
-                <button
-                  type="button"
-                  className="button"
-                  style={{
-                    padding: "6px 14px",
-                    fontSize: 12,
-                    margin: 0,
-                    background: "var(--primary)",
-                    color: "white",
-                    border: "none",
-                    borderRadius: 6,
-                    cursor: "pointer",
-                    fontWeight: 600
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    fileInputRef.current?.click();
-                  }}
-                >
-                  {language === 'mr' ? 'फोटो निवडा' : 'Choose Photo'}
-                </button>
-              </>
+              </div>
             )}
           </div>
 
@@ -523,7 +500,7 @@ const CropDiseaseDetectionSection = () => {
           >
             {loading
               ? (language === "mr" ? "तपासणी सुरू आहे... ⏳" : "Analyzing... ⏳")
-              : (language === "mr" ? "तपासा आणि निदान करा" : "Analyze Image")}
+              : (language === "mr" ? "तपासा आणि निदान करा" : "Detect Disease")}
           </button>
 
           {status && <p style={{ fontSize: 13, color: "#6b7280", marginTop: 8 }}>{status}</p>}
