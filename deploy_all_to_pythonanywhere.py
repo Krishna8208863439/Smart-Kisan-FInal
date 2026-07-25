@@ -212,20 +212,22 @@ if os.path.exists(backend_zip):
             )
     except Exception as e:
         with open('/home/Krishna3114/node_stderr.log', 'a') as log_f:
-            log_f.write(f"Backend extract error: {str(e)}\\n")
-
-# Extract dist.zip if it exists
+            log_f.write(f"Backend extract error: {str(e)}\\n")# Extract dist.zip if it exists
 frontend_zip = '/home/Krishna3114/dist.zip'
 if os.path.exists(frontend_zip):
     try:
         import zipfile
-        os.makedirs('/home/Krishna3114/smart-kisan-frontend', exist_ok=True)
+        import shutil
+        target_fe = '/home/Krishna3114/smart-kisan-frontend'
+        if os.path.exists(target_fe):
+            shutil.rmtree(target_fe)
+        os.makedirs(target_fe, exist_ok=True)
         with zipfile.ZipFile(frontend_zip, 'r') as zip_ref:
-            zip_ref.extractall('/home/Krishna3114/smart-kisan-frontend')
+            zip_ref.extractall(target_fe)
         os.remove(frontend_zip)
     except Exception as e:
         with open('/home/Krishna3114/node_stderr.log', 'a') as log_f:
-            log_f.write(f"Frontend extract error: {str(e)}\\n")
+            log_f.write(f"Frontend extract error: {str(e)}\n")
 
 # Extract backend_python.zip if it exists
 py_zip_file = '/home/Krishna3114/backend_python.zip'
@@ -244,7 +246,7 @@ if os.path.exists(py_zip_file):
         )
     except Exception as e:
         with open('/home/Krishna3114/py_stderr.log', 'a') as log_f:
-            log_f.write(f"Python backend extract error: {str(e)}\\n")
+            log_f.write(f"Python backend extract error: {str(e)}\n")
 
 # Kill existing node and python uvicorn servers
 subprocess.run(['pkill', '-f', 'node server.js'])
@@ -341,7 +343,13 @@ def serve_index_html(environ, start_response):
         with open(index_path, 'rb') as f:
             body = f.read()
         status = '200 OK'
-        headers = [('Content-Type', 'text/html'), ('Content-Length', str(len(body)))]
+        headers = [
+            ('Content-Type', 'text/html'),
+            ('Content-Length', str(len(body))),
+            ('Cache-Control', 'no-cache, no-store, must-revalidate'),
+            ('Pragma', 'no-cache'),
+            ('Expires', '0')
+        ]
         start_response(status, headers)
         return [body]
     except Exception as e:
@@ -379,7 +387,11 @@ def application(environ, start_response):
             with open(file_path, 'rb') as f:
                 body = f.read()
             status = '200 OK'
-            headers = [('Content-Type', mime_type), ('Content-Length', str(len(body)))]
+            headers = [
+                ('Content-Type', mime_type),
+                ('Content-Length', str(len(body))),
+                ('Cache-Control', 'no-cache' if clean_path.endswith('.html') or clean_path.endswith('.js') else 'public, max-age=31536000')
+            ]
             start_response(status, headers)
             return [body]
         except:
