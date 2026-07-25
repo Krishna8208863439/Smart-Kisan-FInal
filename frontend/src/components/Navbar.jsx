@@ -13,14 +13,18 @@ const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const profileRef = useRef(null);
+  const toolsRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Close menu on route change
-  useEffect(() => setMenuOpen(false), [location]);
-  // Close profile dropdown on route change
-  useEffect(() => setProfileOpen(false), [location]);
+  // Close menus on route change
+  useEffect(() => {
+    setMenuOpen(false);
+    setProfileOpen(false);
+    setToolsOpen(false);
+  }, [location]);
 
   // Detect scroll for glass effect
   useEffect(() => {
@@ -29,11 +33,14 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Close profile dropdown on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
     const handler = (e) => {
       if (profileRef.current && !profileRef.current.contains(e.target)) {
         setProfileOpen(false);
+      }
+      if (toolsRef.current && !toolsRef.current.contains(e.target)) {
+        setToolsOpen(false);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -41,6 +48,7 @@ const Navbar = () => {
   }, []);
 
   const navLinkClass = ({ isActive }) => `nav-link ${isActive ? 'nav-link-active' : ''}`;
+  const isAiToolsActive = location.pathname.includes('/ai-tools') || location.pathname.includes('/predictive-yield');
 
   return (
     <>
@@ -57,14 +65,73 @@ const Navbar = () => {
                 <NavLink to="/dashboard" className={navLinkClass}>🏠 {t('dashboard')}</NavLink>
                 <NavLink to="/chat" className={navLinkClass}>{t('chat')}</NavLink>
                 <NavLink to="/recommendations" className={navLinkClass}>🌱 {t('recommendations')}</NavLink>
-                <NavLink to="/ai-tools?tab=calendar" className={navLinkClass}>📅 {language === 'mr' ? 'पेरणी दिनदर्शिका' : 'Calendar'}</NavLink>
                 <NavLink to="/weather" className={navLinkClass}>☀️ {t('weather')}</NavLink>
                 <NavLink to="/market" className={navLinkClass}>📈 {t('mandiPrices')}</NavLink>
-                <NavLink to="/ai-tools?tab=npk" className={navLinkClass}>🧪 {language === 'mr' ? 'NPK सल्लागार' : 'NPK Advisor'}</NavLink>
-                <NavLink to="/ai-tools?tab=disease&subtab=crop_cv" className={navLinkClass}>🌾 {language === 'mr' ? 'पीक निदान' : 'Crop Diagnostics'}</NavLink>
-                <NavLink to="/ai-tools?tab=disease&subtab=leaf_diag" className={navLinkClass}>🍃 {language === 'mr' ? 'पान रोग निदान' : 'Leaf Disease'}</NavLink>
-                <NavLink to="/ai-tools?tab=disease&subtab=crop_disease" className={navLinkClass}>🔬 {language === 'mr' ? 'रोग ओळख' : 'Disease Detect'}</NavLink>
-                <NavLink to="/predictive-yield" className={navLinkClass}>📊 {language === 'mr' ? 'उत्पादन अंदाज' : 'Predictive Yield'}</NavLink>
+
+                {/* AI Tools Dropdown */}
+                <div className="nav-tools-wrapper" ref={toolsRef}>
+                  <button
+                    className={`nav-link nav-tools-btn ${isAiToolsActive ? 'nav-link-active' : ''}`}
+                    onClick={() => setToolsOpen(!toolsOpen)}
+                    aria-haspopup="true"
+                    aria-expanded={toolsOpen}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                  >
+                    <span>✨ {language === 'mr' ? 'एआय साधने' : 'AI Tools'}</span>
+                    <span style={{ fontSize: 10 }}>{toolsOpen ? '▲' : '▾'}</span>
+                  </button>
+
+                  {toolsOpen && (
+                    <div className="nav-tools-dropdown">
+                      <div className="nav-tools-dropdown-header">
+                        ✨ {language === 'mr' ? 'स्मार्ट एआय शेती साधने' : 'Smart AI Farming Tools'}
+                      </div>
+                      <NavLink to="/ai-tools?tab=calendar" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
+                        <span className="nav-tools-item-icon">📅</span>
+                        <div>
+                          <div className="nav-tools-item-title">{language === 'mr' ? 'पेरणी दिनदर्शिका' : 'Sowing Calendar'}</div>
+                          <div className="nav-tools-item-desc">{language === 'mr' ? 'हवामानानुसार पेरणीचे वेळापत्रक' : 'Weather-based crop schedules'}</div>
+                        </div>
+                      </NavLink>
+                      <NavLink to="/ai-tools?tab=npk" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
+                        <span className="nav-tools-item-icon">🧪</span>
+                        <div>
+                          <div className="nav-tools-item-title">{language === 'mr' ? 'NPK खत सल्लागार' : 'NPK Fertilizer Advisor'}</div>
+                          <div className="nav-tools-item-desc">{language === 'mr' ? 'जमिनीच्या पोषणाचा अचूक अंदाज' : 'Soil nutrient optimization'}</div>
+                        </div>
+                      </NavLink>
+                      <NavLink to="/ai-tools?tab=disease&subtab=crop_cv" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
+                        <span className="nav-tools-item-icon">🌾</span>
+                        <div>
+                          <div className="nav-tools-item-title">{language === 'mr' ? 'पीक निदान' : 'Crop Diagnostics'}</div>
+                          <div className="nav-tools-item-desc">{language === 'mr' ? 'पिकांच्या आरोग्याची AI तपासणी' : 'AI crop health scan'}</div>
+                        </div>
+                      </NavLink>
+                      <NavLink to="/ai-tools?tab=disease&subtab=leaf_diag" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
+                        <span className="nav-tools-item-icon">🍃</span>
+                        <div>
+                          <div className="nav-tools-item-title">{language === 'mr' ? 'पान रोग निदान' : 'Leaf Disease'}</div>
+                          <div className="nav-tools-item-desc">{language === 'mr' ? 'पानावरील रोगांचा त्वरित शोध' : 'Foliage disease scan'}</div>
+                        </div>
+                      </NavLink>
+                      <NavLink to="/ai-tools?tab=disease&subtab=crop_disease" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
+                        <span className="nav-tools-item-icon">🔬</span>
+                        <div>
+                          <div className="nav-tools-item-title">{language === 'mr' ? 'रोग ओळख' : 'Disease Detection'}</div>
+                          <div className="nav-tools-item-desc">{language === 'mr' ? 'कीड व रोगांवर उपाय' : 'Pest & disease remedies'}</div>
+                        </div>
+                      </NavLink>
+                      <NavLink to="/predictive-yield" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
+                        <span className="nav-tools-item-icon">📊</span>
+                        <div>
+                          <div className="nav-tools-item-title">{language === 'mr' ? 'उत्पादन अंदाज' : 'Predictive Yield'}</div>
+                          <div className="nav-tools-item-desc">{language === 'mr' ? 'हंगामातील उत्पादनाची आकडेवारी' : 'AI yield forecast'}</div>
+                        </div>
+                      </NavLink>
+                    </div>
+                  )}
+                </div>
+
                 <NavLink to="/marketplace" className={navLinkClass}>🛒 {t('bazaar')}</NavLink>
                 <NavLink to="/forum" className={navLinkClass}>🏛️ {language === 'mr' ? 'शासकीय योजना' : 'Govt Schemes'}</NavLink>
               </>
