@@ -954,7 +954,7 @@ const AITools = () => {
                 onChange={(e) => handleDiseaseFileSelected(e.target.files?.[0])}
               />
 
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", margin: "20px 0", gap: 16 }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", margin: "20px 0", gap: 16, textAlign: "center" }}>
                 {!diseasePreview ? (
                   <button
                     type="button"

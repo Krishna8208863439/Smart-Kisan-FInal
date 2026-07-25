@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import api from "../api";
 const getFallbackImage = (product) => {
   if (!product) return "https://images.unsplash.com/photo-1592982537447-7440770cbfc8?auto=format&fit=crop&w=300&q=80";
