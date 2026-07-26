@@ -2737,3 +2737,169 @@ label {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* ============================================================
+   Agri Advisory Suite — Premium 8-Card Grid System
+   ============================================================ */
+.agri-suite-wrapper {
+  background: rgba(240, 253, 244, 0.5);
+  border-radius: 20px;
+  padding: 12px 4px 24px 4px;
+  margin-bottom: 32px;
+}
+
+[data-theme="dark"] .agri-suite-wrapper {
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.agri-suite-header-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding: 0 4px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.agri-suite-title-main {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f2b1d;
+  letter-spacing: -0.4px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Outfit', 'Inter', sans-serif;
+}
+
+[data-theme="dark"] .agri-suite-title-main {
+  color: #f1f5f9;
+}
+
+.agri-suite-grid-4x2 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 1200px) {
+  .agri-suite-grid-4x2 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .agri-suite-grid-4x2 {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+.agri-suite-card {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 230px;
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .agri-suite-card {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.agri-suite-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+  border-color: rgba(21, 128, 61, 0.3);
+}
+
+.agri-suite-card-top {
+  display: flex;
+  flex-direction: column;
+}
+
+.agri-suite-icon {
+  font-size: 32px;
+  margin-bottom: 14px;
+  display: inline-block;
+  line-height: 1;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+[data-theme="dark"] .agri-suite-icon {
+  background: #334155;
+}
+
+.agri-suite-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px 0;
+  line-height: 1.3;
+  font-family: 'Outfit', 'Inter', sans-serif;
+}
+
+[data-theme="dark"] .agri-suite-card-title {
+  color: #f9fafb;
+}
+
+.agri-suite-card-desc {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+  margin: 0 0 20px 0;
+}
+
+[data-theme="dark"] .agri-suite-card-desc {
+  color: #94a3b8;
+}
+
+.agri-suite-btn {
+  width: 100%;
+  padding: 11px 16px;
+  background: #15803d;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(21, 128, 61, 0.15);
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.agri-suite-btn:hover {
+  background: #166534;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(21, 128, 61, 0.25);
+  color: #ffffff;
+}
+
+.agri-suite-btn:active {
+  transform: translateY(0);
+}
+

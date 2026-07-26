@@ -777,305 +777,254 @@ const Dashboard = () => {
       {/* Live Weather Widget */}
       <WeatherWidget />
 
-      {/* Agri Advisory Suite Title */}
-      <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--text-dark)", marginTop: 24, marginBottom: 4 }}>
-        🌾 {language === "mr" ? "कृषी सल्लागार संच" : "Agri Advisory Suite"}
-      </h2>
-      <p style={{ color: "var(--text-muted)", fontSize: 13.5, marginBottom: 16 }}>
-        {language === "mr" 
-          ? "शेतकऱ्यांसाठी टप्प्याटप्प्याने सुव्यवस्थित कृषी मार्गदर्शक आणि एआय साधने."
-          : "Logical step-by-step agricultural workflow and smart AI tools for modern farming."}
-      </p>
+      {/* ===== Agri Advisory Suite — Modern 4x2 Grid (Matches Image Design) ===== */}
+      <div style={{ marginTop: 24, marginBottom: 32 }}>
+        <h1 className="agri-suite-title-main" style={{ marginBottom: 20 }}>
+          {language === "mr" ? "कृषी सल्लागार संच" : "Agri Advisory Suite"}
+        </h1>
 
-      {/* Section 1 – AI Assistance */}
-      <div className="agri-section-header">
-        <h3 className="agri-section-title">
-          🤖 {language === "mr" ? "विभाग १ – एआय सहाय्य" : "Section 1 – AI Assistance"}
+        <div className="agri-suite-grid-4x2">
+          {/* Card 1: Kisan AI Chatbot */}
+          <div className="agri-suite-card">
+            <div className="agri-suite-card-top">
+              <div className="agri-suite-icon">🤖</div>
+              <h3 className="agri-suite-card-title">
+                {language === "mr" ? "किसान AI चॅटबॉट" : "Kisan AI Chatbot"}
+              </h3>
+              <p className="agri-suite-card-desc">
+                {language === "mr"
+                  ? "पिकांवरील कीड ओळखण्यासाठी किंवा पीक सल्ला मिळवण्यासाठी बहुभाषिक कृषी एआय सहाय्यकाशी चर्चा करा."
+                  : "Chat with a multilingual agronomy assistant to diagnose pests or get crop prescriptions."}
+              </p>
+            </div>
+            <Link to="/chat" style={{ textDecoration: "none" }}>
+              <button className="agri-suite-btn">
+                {language === "mr" ? "चॅट उघडा 💬" : "Open Chat 💬"}
+              </button>
+            </Link>
+          </div>
+
+          {/* Card 2: Sowing Task Calendar */}
+          <div className="agri-suite-card">
+            <div className="agri-suite-card-top">
+              <div className="agri-suite-icon">📅</div>
+              <h3 className="agri-suite-card-title">
+                {language === "mr" ? "पेरणी कार्य दिनदर्शिका" : "Sowing Task Calendar"}
+              </h3>
+              <p className="agri-suite-card-desc">
+                {language === "mr"
+                  ? "रोपवाटिकेपासून काढणीपर्यंतच्या दैनंदिन कामांची नोंद ठेवा आणि पूर्ण झालेली कामे चिन्हांकित करा."
+                  : "Track day-by-day actions from nursery to harvest, and mark tasks as completed."}
+              </p>
+            </div>
+            <Link to="/ai-tools?tab=calendar" style={{ textDecoration: "none" }}>
+              <button className="agri-suite-btn">
+                {language === "mr" ? "नियोजक उघडा 🗓️" : "Open Planner 🗓️"}
+              </button>
+            </Link>
+          </div>
+
+          {/* Card 3: NPK Nutrient Advisor */}
+          <div className="agri-suite-card">
+            <div className="agri-suite-card-top">
+              <div className="agri-suite-icon">🧪</div>
+              <h3 className="agri-suite-card-title">
+                {language === "mr" ? "NPK खत सल्लागार" : "NPK Nutrient Advisor"}
+              </h3>
+              <p className="agri-suite-card-desc">
+                {language === "mr"
+                  ? "मातीतील NPK चाचणीचे घटक टाकून आवश्यक युरिया, डीएपी आणि एमओपी खताच्या गोण्यांची संख्या मोजा."
+                  : "Input soil NPK test metrics to calculate target Urea, DAP, and MOP bag dosages."}
+              </p>
+            </div>
+            <Link to="/ai-tools?tab=npk" style={{ textDecoration: "none" }}>
+              <button className="agri-suite-btn">
+                {language === "mr" ? "NPK मोजा 🧪" : "Calculate NPK 🧪"}
+              </button>
+            </Link>
+          </div>
+
+          {/* Card 4: Farmers Bazaar & Store */}
+          <div className="agri-suite-card">
+            <div className="agri-suite-card-top">
+              <div className="agri-suite-icon">🛒</div>
+              <h3 className="agri-suite-card-title">
+                {language === "mr" ? "शेतकरी बाजार आणि दुकान" : "Farmers Bazaar & Store"}
+              </h3>
+              <p className="agri-suite-card-desc">
+                {language === "mr"
+                  ? "उत्कृष्ट बियाणे आणि अवजारे खरेदी करा, किंवा तुमचे काढणी झालेले पीक विक्रीसाठी बाजारात नोंदवा."
+                  : "Buy high-grade seeds and equipment, or list your harvest crop surplus for sale."}
+              </p>
+            </div>
+            <Link to="/marketplace" style={{ textDecoration: "none" }}>
+              <button className="agri-suite-btn">
+                {language === "mr" ? "बाजार पहा 🛒" : "Visit Bazaar 🛒"}
+              </button>
+            </Link>
+          </div>
+
+          {/* Card 5: Weather Insights */}
+          <div className="agri-suite-card">
+            <div className="agri-suite-card-top">
+              <div className="agri-suite-icon">☀️</div>
+              <h3 className="agri-suite-card-title">
+                {language === "mr" ? "हवामान अंदाज" : "Weather Insights"}
+              </h3>
+              <p className="agri-suite-card-desc">
+                {language === "mr"
+                  ? "पेरणी आणि सिंचनाच्या अचूक नियोजनासाठी पुढील ३ दिवसांचा हवामान अंदाज पहा."
+                  : "See a 3-day regional weather forecast to optimize sowing and watering schedules."}
+              </p>
+            </div>
+            <Link to="/weather" style={{ textDecoration: "none" }}>
+              <button className="agri-suite-btn">
+                {language === "mr" ? "अंदाज पहा ☀️" : "View Forecast ☀️"}
+              </button>
+            </Link>
+          </div>
+
+          {/* Card 6: Mandi Market Prices */}
+          <div className="agri-suite-card">
+            <div className="agri-suite-card-top">
+              <div className="agri-suite-icon">📈</div>
+              <h3 className="agri-suite-card-title">
+                {language === "mr" ? "मंडी बाजार भाव" : "Mandi Market Prices"}
+              </h3>
+              <p className="agri-suite-card-desc">
+                {language === "mr"
+                  ? "नफ्यात विक्री करण्यासाठी स्थानिक कृषी बाजार समित्यांमधील चालू बाजार भाव तपासा."
+                  : "Track local agricultural mandi prices to make informed crop sale arrangements."}
+              </p>
+            </div>
+            <Link to="/market" style={{ textDecoration: "none" }}>
+              <button className="agri-suite-btn">
+                {language === "mr" ? "भाव तपासा 📈" : "Check Prices 📈"}
+              </button>
+            </Link>
+          </div>
+
+          {/* Card 7: AI Crop Recommendations */}
+          <div className="agri-suite-card">
+            <div className="agri-suite-card-top">
+              <div className="agri-suite-icon">🌱</div>
+              <h3 className="agri-suite-card-title">
+                {language === "mr" ? "AI पीक शिफारसी" : "AI Crop Recommendations"}
+              </h3>
+              <p className="agri-suite-card-desc">
+                {language === "mr"
+                  ? "तुमच्या जमिनीचा प्रकार आणि हवामानाची माहिती देऊन योग्य पीक आणि संसाधनांचे नियोजन करा."
+                  : "Predict optimal crop varieties and get fertilizer schedules based on soil chemistry."}
+              </p>
+            </div>
+            <Link to="/recommendations" style={{ textDecoration: "none" }}>
+              <button className="agri-suite-btn">
+                {language === "mr" ? "सल्लागार उघडा 🌾" : "Open Advisor 🌾"}
+              </button>
+            </Link>
+          </div>
+
+          {/* Card 8: Predictive Yield Engine */}
+          <div className="agri-suite-card">
+            <div className="agri-suite-card-top">
+              <div className="agri-suite-icon">📊</div>
+              <h3 className="agri-suite-card-title">
+                {language === "mr" ? "उत्पादन अंदाज इंजिन" : "Predictive Yield Engine"}
+              </h3>
+              <p className="agri-suite-card-desc">
+                {language === "mr"
+                  ? "हवामान आणि जमिनीनुसार पिकाचे उत्पादन, एकूण नफा आणि सिंचन वेळापत्रक निश्चित करा."
+                  : "Forecast crop yields, estimate net profits, and generate smart resource application plans."}
+              </p>
+            </div>
+            <Link to="/predictive-yield" style={{ textDecoration: "none" }}>
+              <button className="agri-suite-btn">
+                {language === "mr" ? "अंदाज मिळवा 📊" : "Forecast Yield 📊"}
+              </button>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* ===== Additional Crop Diagnostics & Government Support ===== */}
+      <div style={{ marginTop: 12, marginBottom: 24 }}>
+        <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-dark)", marginBottom: 14 }}>
+          🌿 {language === "mr" ? "अतिरिक्त कृषी निदान आणि योजना" : "Additional Plant Health Diagnostics & Schemes"}
         </h3>
-      </div>
-      <div className="agri-suite-grid">
-        {/* Card 1: Kisan AI Chatbot */}
-        <div className="agri-card">
-          <div>
-            <div style={{ fontSize: 32, marginBottom: 10 }}>🤖</div>
-            <h3 style={{ fontSize: 17, fontWeight: 700, margin: "0 0 6px 0" }}>
-              {language === "mr" ? "चॅटबॉट" : "Chatbot"}
-            </h3>
-            <p style={{ color: "var(--text-muted)", fontSize: 13, lineHeight: 1.5, margin: 0 }}>
-              {language === "mr"
-                ? "पिकांवरील कीड ओळखण्यासाठी किंवा पीक सल्ला मिळवण्यासाठी बहुभाषिक कृषी एआय सहाय्यकाशी चर्चा करा."
-                : "Chat with a multilingual agronomy assistant to diagnose pests or get crop prescriptions."}
-            </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
+          {/* Diagnostic 1: Crop CV */}
+          <div className="card" style={{ margin: 0, padding: 18, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+            <div>
+              <div style={{ fontSize: 24, marginBottom: 8 }}>🌾</div>
+              <strong style={{ fontSize: 15, color: "var(--text-dark)" }}>
+                {language === "mr" ? "पीक वाढ निदान (CV)" : "Crop Vision Diagnostics"}
+              </strong>
+              <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 4 }}>
+                {language === "mr" ? "पिकाच्या वाढीचे टप्पे विश्लेषण करा." : "Upload plant photos for AI computer vision stage diagnosis."}
+              </p>
+            </div>
+            <Link to="/ai-tools?tab=disease&subtab=crop_cv" style={{ marginTop: 12 }}>
+              <button className="button" style={{ width: "100%", padding: "8px 12px", fontSize: 12.5 }}>
+                {language === "mr" ? "पीक निदान करा 🌾" : "Diagnose Crop 🌾"}
+              </button>
+            </Link>
           </div>
-          <Link to="/chat" style={{ marginTop: 16 }}>
-            <button className="button" style={{ width: "100%" }}>
-              {language === "mr" ? "गप्पा सुरू करा 💬" : "Open Chat 💬"}
-            </button>
-          </Link>
-        </div>
 
-        {/* Card 2: AI Crop Recommendations */}
-        <div className="agri-card">
-          <div>
-            <div style={{ fontSize: 32, marginBottom: 10 }}>🌱</div>
-            <h3 style={{ fontSize: 17, fontWeight: 700, margin: "0 0 6px 0" }}>
-              {language === "mr" ? "AI पीक शिफारसी" : "AI Crop Recommendations"}
-            </h3>
-            <p style={{ color: "var(--text-muted)", fontSize: 13, lineHeight: 1.5, margin: 0 }}>
-              {language === "mr"
-                ? "तुमच्या जमिनीचा प्रकार आणि हवामानाची माहिती देऊन योग्य पीक आणि संसाधनांचे नियोजन करा."
-                : "Predict optimal crop varieties and get fertilizer schedules based on soil chemistry."}
-            </p>
+          {/* Diagnostic 2: Leaf Diagnostics */}
+          <div className="card" style={{ margin: 0, padding: 18, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+            <div>
+              <div style={{ fontSize: 24, marginBottom: 8 }}>🍃</div>
+              <strong style={{ fontSize: 15, color: "var(--text-dark)" }}>
+                {language === "mr" ? "पान रोग निदान" : "Leaf Disease Scanner"}
+              </strong>
+              <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 4 }}>
+                {language === "mr" ? "पानावरील बुरशीजन्य संसर्ग आणि डाग स्कॅन करा." : "Scan crop leaf symptoms to diagnose fungal infections and spots."}
+              </p>
+            </div>
+            <Link to="/ai-tools?tab=disease&subtab=leaf_diag" style={{ marginTop: 12 }}>
+              <button className="button" style={{ width: "100%", padding: "8px 12px", fontSize: 12.5 }}>
+                {language === "mr" ? "पान विश्लेषण करा 🍃" : "Analyze Leaf 🍃"}
+              </button>
+            </Link>
           </div>
-          <Link to="/recommendations" style={{ marginTop: 16 }}>
-            <button className="button" style={{ width: "100%" }}>
-              {language === "mr" ? "सल्लागार उघडा 🌾" : "Open Advisor 🌾"}
-            </button>
-          </Link>
-        </div>
-      </div>
 
-      {/* Section 2 – Planning */}
-      <div className="agri-section-header">
-        <h3 className="agri-section-title">
-          📅 {language === "mr" ? "विभाग २ – नियोजन" : "Section 2 – Planning"}
-        </h3>
-      </div>
-      <div className="agri-suite-grid">
-        {/* Card 3: Sowing Task Calendar */}
-        <div className="agri-card">
-          <div>
-            <div style={{ fontSize: 32, marginBottom: 10 }}>📅</div>
-            <h3 style={{ fontSize: 17, fontWeight: 700, margin: "0 0 6px 0" }}>
-              {language === "mr" ? "पेरणी कार्य दिनदर्शिका" : "Sowing Task Calendar"}
-            </h3>
-            <p style={{ color: "var(--text-muted)", fontSize: 13, lineHeight: 1.5, margin: 0 }}>
-              {language === "mr"
-                ? "रोपवाटिकेपासून काढणीपर्यंतच्या दैनंदिन कामांची नोंद ठेवा आणि पूर्ण झालेली कामे चिन्हांकित करा."
-                : "Track day-by-day actions from nursery to harvest, and mark tasks as completed."}
-            </p>
+          {/* Diagnostic 3: Disease Detection */}
+          <div className="card" style={{ margin: 0, padding: 18, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+            <div>
+              <div style={{ fontSize: 24, marginBottom: 8 }}>🔬</div>
+              <strong style={{ fontSize: 15, color: "var(--text-dark)" }}>
+                {language === "mr" ? "पीक रोग ओळख" : "Disease Detection"}
+              </strong>
+              <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 4 }}>
+                {language === "mr" ? "मशीन लर्निंगने रोग ओळखा आणि उपाय मिळवा." : "Detect plant health issues with ML model precision."}
+              </p>
+            </div>
+            <Link to="/ai-tools?tab=disease&subtab=crop_disease" style={{ marginTop: 12 }}>
+              <button className="button" style={{ width: "100%", padding: "8px 12px", fontSize: 12.5 }}>
+                {language === "mr" ? "रोग ओळख करा 🔬" : "Detect Disease 🔬"}
+              </button>
+            </Link>
           </div>
-          <Link to="/ai-tools?tab=calendar" style={{ marginTop: 16 }}>
-            <button className="button" style={{ width: "100%" }}>
-              {language === "mr" ? "नियोजक उघडा 📅" : "Open Planner 📅"}
-            </button>
-          </Link>
-        </div>
 
-        {/* Card 4: Weather Insights */}
-        <div className="agri-card">
-          <div>
-            <div style={{ fontSize: 32, marginBottom: 10 }}>☀️</div>
-            <h3 style={{ fontSize: 17, fontWeight: 700, margin: "0 0 6px 0" }}>
-              {language === "mr" ? "हवामान अंदाज" : "Weather Insights"}
-            </h3>
-            <p style={{ color: "var(--text-muted)", fontSize: 13, lineHeight: 1.5, margin: 0 }}>
-              {language === "mr"
-                ? "पेरणी आणि सिंचनाच्या अचूक नियोजनासाठी पुढील ३ दिवसांचा हवामान अंदाज पहा."
-                : "See a 3-day regional weather forecast to optimize sowing and watering schedules."}
-            </p>
+          {/* Scheme 4: Government Support */}
+          <div className="card" style={{ margin: 0, padding: 18, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+            <div>
+              <div style={{ fontSize: 24, marginBottom: 8 }}>🏛️</div>
+              <strong style={{ fontSize: 15, color: "var(--text-dark)" }}>
+                {language === "mr" ? "शासकीय योजना" : "Government Schemes"}
+              </strong>
+              <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 4 }}>
+                {language === "mr" ? "कृषी अनुदाने आणि योजनांची माहिती मिळवा." : "Explore state & national agricultural subsidies & loans."}
+              </p>
+            </div>
+            <Link to="/forum" style={{ marginTop: 12 }}>
+              <button className="button" style={{ width: "100%", padding: "8px 12px", fontSize: 12.5 }}>
+                {language === "mr" ? "योजना पहा 🏛️" : "Explore Schemes 🏛️"}
+              </button>
+            </Link>
           </div>
-          <Link to="/weather" style={{ marginTop: 16 }}>
-            <button className="button" style={{ width: "100%" }}>
-              {language === "mr" ? "अंदाज पहा ☀️" : "View Forecast ☀️"}
-            </button>
-          </Link>
         </div>
       </div>
-
-      {/* Section 3 – Crop Management */}
-      <div className="agri-section-header">
-        <h3 className="agri-section-title">
-          🌿 {language === "mr" ? "विभाग ३ – पीक व्यवस्थापन" : "Section 3 – Crop Management"}
-        </h3>
-      </div>
-      <div className="agri-suite-grid">
-        {/* Card 5: NPK Nutrient Advisor */}
-        <div className="agri-card">
-          <div>
-            <div style={{ fontSize: 32, marginBottom: 10 }}>🧪</div>
-            <h3 style={{ fontSize: 17, fontWeight: 700, margin: "0 0 6px 0" }}>
-              {language === "mr" ? "NPK खत सल्लागार" : "NPK Nutrient Advisor"}
-            </h3>
-            <p style={{ color: "var(--text-muted)", fontSize: 13, lineHeight: 1.5, margin: 0 }}>
-              {language === "mr"
-                ? "मातीतील NPK चाचणीचे घटक टाकून आवश्यक युरिया, डीएपी आणि एमओपी खताच्या गोण्यांची संख्या मोजा."
-                : "Input soil NPK test metrics to calculate target Urea, DAP, and MOP bag dosages."}
-            </p>
-          </div>
-          <Link to="/ai-tools?tab=npk" style={{ marginTop: 16 }}>
-            <button className="button" style={{ width: "100%" }}>
-              {language === "mr" ? "NPK खत मोजा 🧪" : "Calculate NPK 🧪"}
-            </button>
-          </Link>
-        </div>
-
-        {/* Card 6: Crop Diagnostics (CV) */}
-        <div className="agri-card">
-          <div>
-            <div style={{ fontSize: 32, marginBottom: 10 }}>🌾</div>
-            <h3 style={{ fontSize: 17, fontWeight: 700, margin: "0 0 6px 0" }}>
-              {language === "mr" ? "पीक निदान (CV)" : "Crop Diagnostics (CV)"}
-            </h3>
-            <p style={{ color: "var(--text-muted)", fontSize: 13, lineHeight: 1.5, margin: 0 }}>
-              {language === "mr"
-                ? "पिकाच्या वाढीचे टप्पे आणि निरोगी स्थितीचे विश्लेषण करण्यासाठी संगणक दृष्टी सहाय्यक वापरा."
-                : "Upload plant photos for AI computer vision diagnosis of growth stages and healthy crop conditions."}
-            </p>
-          </div>
-          <Link to="/ai-tools?tab=disease&subtab=crop_cv" style={{ marginTop: 16 }}>
-            <button className="button" style={{ width: "100%" }}>
-              {language === "mr" ? "पीक निदान करा 🌾" : "Diagnose Crop 🌾"}
-            </button>
-          </Link>
-        </div>
-
-        {/* Card 7: Leaf Disease Diagnostics */}
-        <div className="agri-card">
-          <div>
-            <div style={{ fontSize: 32, marginBottom: 10 }}>🍃</div>
-            <h3 style={{ fontSize: 17, fontWeight: 700, margin: "0 0 6px 0" }}>
-              {language === "mr" ? "पान रोग निदान" : "Leaf Disease Diagnostics"}
-            </h3>
-            <p style={{ color: "var(--text-muted)", fontSize: 13, lineHeight: 1.5, margin: 0 }}>
-              {language === "mr"
-                ? "पानावरील डाग, बुरशीजन्य संसर्ग आणि पोषक तत्वांची कमतरता ओळखण्यासाठी पानांचे फोटो स्कॅन करा."
-                : "Scan crop leaf symptoms to diagnose fungal infections, spots, and nutrient deficiencies."}
-            </p>
-          </div>
-          <Link to="/ai-tools?tab=disease&subtab=leaf_diag" style={{ marginTop: 16 }}>
-            <button className="button" style={{ width: "100%" }}>
-              {language === "mr" ? "पान विश्लेषण करा 🍃" : "Analyze Leaf 🍃"}
-            </button>
-          </Link>
-        </div>
-
-        {/* Card 8: Crop Disease Detection */}
-        <div className="agri-card">
-          <div>
-            <div style={{ fontSize: 32, marginBottom: 10 }}>🔬</div>
-            <h3 style={{ fontSize: 17, fontWeight: 700, margin: "0 0 6px 0" }}>
-              {language === "mr" ? "पीक रोग ओळख" : "Crop Disease Detection"}
-            </h3>
-            <p style={{ color: "var(--text-muted)", fontSize: 13, lineHeight: 1.5, margin: 0 }}>
-              {language === "mr"
-                ? "मशीन लर्निंगच्या सहाय्याने पिकातील रोग ओळखा आणि त्वरित उपचारात्मक उपाययोजना मिळवा."
-                : "Detect crop diseases with machine learning precision and receive curative treatment steps."}
-            </p>
-          </div>
-          <Link to="/ai-tools?tab=disease&subtab=crop_disease" style={{ marginTop: 16 }}>
-            <button className="button" style={{ width: "100%" }}>
-              {language === "mr" ? "रोग ओळख करा 🔬" : "Detect Disease 🔬"}
-            </button>
-          </Link>
-        </div>
-      </div>
-
-      {/* Section 4 – Analytics */}
-      <div className="agri-section-header">
-        <h3 className="agri-section-title">
-          📊 {language === "mr" ? "विभाग ४ – विश्लेषण आणि अंदाज" : "Section 4 – Analytics"}
-        </h3>
-      </div>
-      <div className="agri-suite-grid">
-        {/* Card 9: Predictive Yield Engine */}
-        <div className="agri-card">
-          <div>
-            <div style={{ fontSize: 32, marginBottom: 10 }}>📊</div>
-            <h3 style={{ fontSize: 17, fontWeight: 700, margin: "0 0 6px 0" }}>
-              {language === "mr" ? "उत्पादन अंदाज इंजिन" : "Predictive Yield Engine"}
-            </h3>
-            <p style={{ color: "var(--text-muted)", fontSize: 13, lineHeight: 1.5, margin: 0 }}>
-              {language === "mr"
-                ? "हवामान आणि जमिनीनुसार पिकाचे उत्पादन, एकूण नफा आणि सिंचन वेळापत्रक निश्चित करा."
-                : "Forecast crop yields, estimate net profits, and generate smart resource application plans."}
-            </p>
-          </div>
-          <Link to="/predictive-yield" style={{ marginTop: 16 }}>
-            <button className="button" style={{ width: "100%", background: "#166534" }}>
-              {language === "mr" ? "अंदाज मिळवा 📊" : "Forecast Yield 📊"}
-            </button>
-          </Link>
-        </div>
-
-        {/* Card 10: Mandi Market Prices */}
-        <div className="agri-card">
-          <div>
-            <div style={{ fontSize: 32, marginBottom: 10 }}>📈</div>
-            <h3 style={{ fontSize: 17, fontWeight: 700, margin: "0 0 6px 0" }}>
-              {language === "mr" ? "बाजार भाव (मंडी दर)" : "Mandi Market Prices"}
-            </h3>
-            <p style={{ color: "var(--text-muted)", fontSize: 13, lineHeight: 1.5, margin: 0 }}>
-              {language === "mr"
-                ? "नफ्यात विक्री करण्यासाठी स्थानिक कृषी बाजार समित्यांमधील चालू बाजार भाव तपासा."
-                : "Track local agricultural mandi prices to make informed crop sale arrangements."}
-            </p>
-          </div>
-          <Link to="/market" style={{ marginTop: 16 }}>
-            <button className="button" style={{ width: "100%" }}>
-              {language === "mr" ? "बाजार भाव पहा 📈" : "Check Prices 📈"}
-            </button>
-          </Link>
-        </div>
-      </div>
-
-      {/* Section 5 – Marketplace */}
-      <div className="agri-section-header">
-        <h3 className="agri-section-title">
-          🛒 {language === "mr" ? "विभाग ५ – शेतकरी बाजार" : "Section 5 – Marketplace"}
-        </h3>
-      </div>
-      <div className="agri-suite-grid">
-        {/* Card 11: Farmers Bazaar & Store */}
-        <div className="agri-card">
-          <div>
-            <div style={{ fontSize: 32, marginBottom: 10 }}>🛒</div>
-            <h3 style={{ fontSize: 17, fontWeight: 700, margin: "0 0 6px 0" }}>
-              {language === "mr" ? "शेतकरी बाजार आणि दुकान" : "Farmers Bazaar & Store"}
-            </h3>
-            <p style={{ color: "var(--text-muted)", fontSize: 13, lineHeight: 1.5, margin: 0 }}>
-              {language === "mr"
-                ? "उत्कृष्ट बियाणे आणि अवजारे खरेदी करा, किंवा तुमचे काढणी झालेले पीक विक्रीसाठी बाजारात नोंदवा."
-                : "Buy high-grade seeds and equipment, or list your harvest crop surplus for sale."}
-            </p>
-          </div>
-          <Link to="/marketplace" style={{ marginTop: 16 }}>
-            <button className="button" style={{ width: "100%" }}>
-              {language === "mr" ? "बाजार पहा 🛒" : "Visit Bazaar 🛒"}
-            </button>
-          </Link>
-        </div>
-      </div>
-
-      {/* Section 6 – Government Support */}
-      <div className="agri-section-header">
-        <h3 className="agri-section-title">
-          🏛️ {language === "mr" ? "विभाग ६ – शासकीय मदत" : "Section 6 – Government Support"}
-        </h3>
-      </div>
-      <div className="agri-suite-grid">
-        {/* Card 12: Government Schemes */}
-        <div className="agri-card">
-          <div>
-            <div style={{ fontSize: 32, marginBottom: 10 }}>🏛️</div>
-            <h3 style={{ fontSize: 17, fontWeight: 700, margin: "0 0 6px 0" }}>
-              {language === "mr" ? "शासकीय योजना" : "Government Schemes"}
-            </h3>
-            <p style={{ color: "var(--text-muted)", fontSize: 13, lineHeight: 1.5, margin: 0 }}>
-              {language === "mr"
-                ? "शासकीय कृषी अनुदाने, कर्ज योजना आणि शेतकरी कल्याणकारी धोरणांची सविस्तर माहिती मिळवा."
-                : "Explore state and national agricultural subsidies, credit loans, and farmer support policies."}
-            </p>
-          </div>
-          <Link to="/forum" style={{ marginTop: 16 }}>
-            <button className="button" style={{ width: "100%" }}>
-              {language === "mr" ? "योजना पहा 🏛️" : "Explore Schemes 🏛️"}
-            </button>
-          </Link>
-        </div>
-      </div>
-
-
     </div>
   );
 };
