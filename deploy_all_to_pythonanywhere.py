@@ -84,10 +84,10 @@ def main():
     upload_file(dist_zip, "dist.zip", username, api_token)
     safe_remove(dist_zip)
 
-    # 3. Package and upload Node backend (exclude node_modules to fit within PA storage quota)
+    # 3. Package and upload Node backend — include node_modules so PA never needs npm
     backend_dir = os.path.join(script_dir, "backend")
     backend_zip = os.path.join(script_dir, "backend.zip")
-    zip_directory(backend_dir, backend_zip, exclude_dir=["node_modules"])
+    zip_directory(backend_dir, backend_zip)
     upload_file(backend_zip, "backend.zip", username, api_token)
     safe_remove(backend_zip)
 
@@ -99,7 +99,7 @@ def main():
     safe_remove(py_zip)
 
     # 5. Create WSGI proxy configurations
-    wsgi_content = """import os
+    wsgi_content = r'''import os
 import sys
 import subprocess
 import socket
@@ -107,31 +107,9 @@ import urllib.request
 import urllib.error
 import mimetypes
 
-try:
-    # Force kill any running uvicorn or node instances first to release file locks
-    subprocess.run(['pkill', '-f', 'uvicorn'])
-    subprocess.run(['pkill', '-f', 'node'])
-    
-    # Clean up leftover corrupt numpy user packages
-    subprocess.run(['rm', '-rf', '/home/Krishna3114/.local/lib/python3.10/site-packages/numpy'])
-    subprocess.run(['rm', '-rf', '/home/Krishna3114/.local/lib/python3.10/site-packages/~umpy'])
-    
-    # Run numpy import diagnostics
-    try:
-        import numpy
-        with open('/home/Krishna3114/numpy_test.log', 'w') as log_f:
-            log_f.write("Success! Imported numpy from " + str(numpy.__file__))
-    except Exception as e:
-        import traceback
-        with open('/home/Krishna3114/numpy_test.log', 'w') as log_f:
-            log_f.write("Failed to import numpy: " + str(traceback.format_exc()))
-            
-    # Copy system web app error log to home for download
-    import shutil
-    shutil.copy('/var/log/krishna3114_pythonanywhere_com_error_log.txt', '/home/Krishna3114/remote_error_log.txt')
-except Exception as e:
-    with open('/home/Krishna3114/wsgi_debug.log', 'w') as f:
-        f.write(str(e))
+# Clean up leftover corrupt numpy user packages
+subprocess.run(['rm', '-rf', '/home/Krishna3114/.local/lib/python3.10/site-packages/numpy'])
+subprocess.run(['rm', '-rf', '/home/Krishna3114/.local/lib/python3.10/site-packages/~umpy'])
 
 os.environ['no_proxy'] = '127.0.0.1,localhost,krishna3114.pythonanywhere.com'
 os.environ['NO_PROXY'] = '127.0.0.1,localhost,krishna3114.pythonanywhere.com'
@@ -147,7 +125,7 @@ NODE_PORT = find_free_port()
 PYTHON_PORT = find_free_port()
 
 with open('/home/Krishna3114/active_ports.txt', 'w') as f:
-    f.write(f"NODE_PORT={NODE_PORT}\\nPYTHON_PORT={PYTHON_PORT}\\n")
+    f.write(f"NODE_PORT={NODE_PORT}\nPYTHON_PORT={PYTHON_PORT}\n")
 
 NODE_PATH = '/home/Krishna3114/.nvm/versions/node/v18.20.8/bin/node'
 SERVER_JS = '/home/Krishna3114/smart-kisan-backend/server.js'
@@ -212,7 +190,9 @@ if os.path.exists(backend_zip):
             )
     except Exception as e:
         with open('/home/Krishna3114/node_stderr.log', 'a') as log_f:
-            log_f.write(f"Backend extract error: {str(e)}\\n")# Extract dist.zip if it exists
+            log_f.write(f"Backend extract error: {str(e)}\n")
+
+# Extract dist.zip if it exists
 frontend_zip = '/home/Krishna3114/dist.zip'
 if os.path.exists(frontend_zip):
     try:
@@ -240,7 +220,7 @@ if os.path.exists(py_zip_file):
         os.remove(py_zip_file)
         # Install Python dependencies (without massive PyTorch dependencies to save disk space)
         subprocess.run(
-            ['/usr/bin/python3.10', '-m', 'pip', 'install', '--user', 'fastapi', 'uvicorn', 'sqlalchemy', 'twilio', 'pillow', 'python-multipart', 'requests', 'reportlab', 'numpy', 'faiss-cpu', 'pandas', 'python-dotenv'],
+            ['/usr/bin/python3.10', '-m', 'pip', 'install', '--user', '--no-cache-dir', 'fastapi', 'uvicorn', 'sqlalchemy', 'twilio', 'pillow', 'python-multipart', 'requests', 'reportlab', 'numpy', 'faiss-cpu', 'pandas', 'python-dotenv'],
             stdout=open('/home/Krishna3114/py_install_stdout.log', 'a'),
             stderr=open('/home/Krishna3114/py_install_stderr.log', 'a')
         )
@@ -397,7 +377,7 @@ def application(environ, start_response):
         except:
             pass
     return serve_index_html(environ, start_response)
-"""
+'''
 
     # 6. Upload WSGI file
     print(f"\n[api] Uploading new WSGI proxy configuration...")

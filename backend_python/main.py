@@ -2,7 +2,10 @@ import os
 import shutil
 import json
 import pickle
-import pandas as pd
+try:
+    import pandas as pd
+except Exception:
+    pd = None
 from datetime import datetime, timedelta
 from typing import Optional, List
 from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Form, status, Header, Request
