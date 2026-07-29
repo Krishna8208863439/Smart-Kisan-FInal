@@ -173,22 +173,21 @@ if os.path.exists(backend_zip):
         with zipfile.ZipFile(backend_zip, 'r') as zip_ref:
             zip_ref.extractall('/home/Krishna3114/smart-kisan-backend')
         os.remove(backend_zip)
-        # node_modules is bundled in backend.zip from Windows — skip npm on PA to save disk/quota
-        node_modules_path = '/home/Krishna3114/smart-kisan-backend/node_modules'
-        if not os.path.isdir(node_modules_path):
-            env = os.environ.copy()
-            if NODE_BIN_DIR:
-                env['PATH'] = NODE_BIN_DIR + ':' + env.get('PATH', '')
-                npm_bin = os.path.join(NODE_BIN_DIR, 'npm')
-            else:
-                npm_bin = 'npm'
-            subprocess.run(
-                [npm_bin, 'install', '--production'],
-                cwd='/home/Krishna3114/smart-kisan-backend',
-                env=env,
-                stdout=open('/home/Krishna3114/node_stdout.log', 'a'),
-                stderr=open('/home/Krishna3114/node_stderr.log', 'a')
-            )
+        # Always run npm install on backend update to ensure newly added packages (helmet, zod, rate-limit) are installed
+        env = os.environ.copy()
+        if NODE_BIN_DIR:
+            env['PATH'] = NODE_BIN_DIR + ':' + env.get('PATH', '')
+            npm_bin = os.path.join(NODE_BIN_DIR, 'npm')
+        else:
+            npm_bin = 'npm'
+        subprocess.run(
+            [npm_bin, 'install', '--production'],
+            cwd='/home/Krishna3114/smart-kisan-backend',
+            env=env,
+            stdout=open('/home/Krishna3114/node_stdout.log', 'a'),
+            stderr=open('/home/Krishna3114/node_stderr.log', 'a')
+        )
+
     except Exception as e:
         with open('/home/Krishna3114/node_stderr.log', 'a') as log_f:
             log_f.write(f"Backend extract error: {str(e)}\n")
