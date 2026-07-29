@@ -173,11 +173,15 @@ if os.path.exists(backend_zip):
         with zipfile.ZipFile(backend_zip, 'r') as zip_ref:
             zip_ref.extractall('/home/Krishna3114/smart-kisan-backend')
         os.remove(backend_zip)
-        # Clean old corrupted node_modules to avoid ENOTEMPTY rename errors during npm install
+        # Clean old corrupted node_modules and .npm cache to avoid EEXIST / ENOTEMPTY errors during npm install
         import shutil
         nm_path = '/home/Krishna3114/smart-kisan-backend/node_modules'
         if os.path.exists(nm_path):
             shutil.rmtree(nm_path, ignore_errors=True)
+        npm_cache = '/home/Krishna3114/.npm'
+        if os.path.exists(npm_cache):
+            shutil.rmtree(npm_cache, ignore_errors=True)
+
 
         env = os.environ.copy()
         if NODE_BIN_DIR:
