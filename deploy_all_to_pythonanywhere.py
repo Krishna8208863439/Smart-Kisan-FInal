@@ -32,10 +32,16 @@ def zip_directory(folder_path, zip_path, exclude_dir=None):
                     if exclude_dir in dirs:
                         dirs.remove(exclude_dir)
             for file in files:
+                # Skip non-essential bloat files in node_modules to keep zip under 9MB
+                if "node_modules" in root:
+                    ext = os.path.splitext(file)[1].lower()
+                    if ext in [".map", ".md", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".pdf", ".ts", ".html"]:
+                        continue
                 file_path = os.path.join(root, file)
                 arcname = os.path.relpath(file_path, folder_path)
                 zipf.write(file_path, arcname)
     print(f"[zip] Zipping complete: {zip_path}")
+
 
 def delete_remote_file(remote_path, username, api_token):
     url = f"https://www.pythonanywhere.com/api/v0/user/{username}/files/path/home/{username}/{remote_path}"
