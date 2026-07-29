@@ -84,12 +84,13 @@ def main():
     upload_file(dist_zip, "dist.zip", username, api_token)
     safe_remove(dist_zip)
 
-    # 3. Package and upload Node backend
+    # 3. Package and upload Node backend (includes node_modules so PA never needs npm install)
     backend_dir = os.path.join(script_dir, "backend")
     backend_zip = os.path.join(script_dir, "backend.zip")
-    zip_directory(backend_dir, backend_zip, exclude_dir=["node_modules", "uploads"])
+    zip_directory(backend_dir, backend_zip, exclude_dir=["uploads"])
     upload_file(backend_zip, "backend.zip", username, api_token)
     safe_remove(backend_zip)
+
 
 
     # 4. Package and upload Python backend
@@ -173,29 +174,7 @@ if os.path.exists(backend_zip):
         with zipfile.ZipFile(backend_zip, 'r') as zip_ref:
             zip_ref.extractall('/home/Krishna3114/smart-kisan-backend')
         os.remove(backend_zip)
-        # Clean old corrupted node_modules and .npm cache to avoid EEXIST / ENOTEMPTY errors during npm install
-        import shutil
-        nm_path = '/home/Krishna3114/smart-kisan-backend/node_modules'
-        if os.path.exists(nm_path):
-            shutil.rmtree(nm_path, ignore_errors=True)
-        npm_cache = '/home/Krishna3114/.npm'
-        if os.path.exists(npm_cache):
-            shutil.rmtree(npm_cache, ignore_errors=True)
-
-
-        env = os.environ.copy()
-        if NODE_BIN_DIR:
-            env['PATH'] = NODE_BIN_DIR + ':' + env.get('PATH', '')
-            npm_bin = os.path.join(NODE_BIN_DIR, 'npm')
-        else:
-            npm_bin = 'npm'
-        subprocess.run(
-            [npm_bin, 'install', '--production'],
-            cwd='/home/Krishna3114/smart-kisan-backend',
-            env=env,
-            stdout=open('/home/Krishna3114/node_stdout.log', 'a'),
-            stderr=open('/home/Krishna3114/node_stderr.log', 'a')
-        )
+        # node_modules is bundled in backend.zip — no need for npm install on PA
 
 
 
