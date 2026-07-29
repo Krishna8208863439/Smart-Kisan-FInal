@@ -173,7 +173,12 @@ if os.path.exists(backend_zip):
         with zipfile.ZipFile(backend_zip, 'r') as zip_ref:
             zip_ref.extractall('/home/Krishna3114/smart-kisan-backend')
         os.remove(backend_zip)
-        # Always run npm install on backend update to ensure newly added packages (helmet, zod, rate-limit) are installed
+        # Clean old corrupted node_modules to avoid ENOTEMPTY rename errors during npm install
+        import shutil
+        nm_path = '/home/Krishna3114/smart-kisan-backend/node_modules'
+        if os.path.exists(nm_path):
+            shutil.rmtree(nm_path, ignore_errors=True)
+
         env = os.environ.copy()
         if NODE_BIN_DIR:
             env['PATH'] = NODE_BIN_DIR + ':' + env.get('PATH', '')
@@ -181,12 +186,13 @@ if os.path.exists(backend_zip):
         else:
             npm_bin = 'npm'
         subprocess.run(
-            [npm_bin, 'install', '--production', '--force'],
+            [npm_bin, 'install', '--production'],
             cwd='/home/Krishna3114/smart-kisan-backend',
             env=env,
             stdout=open('/home/Krishna3114/node_stdout.log', 'a'),
             stderr=open('/home/Krishna3114/node_stderr.log', 'a')
         )
+
 
 
     except Exception as e:
