@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { AuditLogMock } from "../config/memoryDb.js";
 
 /**
  * AuditLog Schema — Smart Kisan
@@ -42,5 +43,19 @@ const auditLogSchema = new mongoose.Schema(
 auditLogSchema.index({ action: 1, timestamp: -1 });
 auditLogSchema.index({ userId: 1, timestamp: -1 });
 
-const AuditLog = mongoose.model("AuditLog", auditLogSchema);
+const AuditLogModel = mongoose.model("AuditLog", auditLogSchema);
+
+const AuditLog = new Proxy(AuditLogModel, {
+  get(target, prop, receiver) {
+    if (global.useMemoryDB && prop in AuditLogMock) {
+      const mockProp = AuditLogMock[prop];
+      return typeof mockProp === "function" ? mockProp.bind(AuditLogMock) : mockProp;
+    }
+    const value = Reflect.get(target, prop, receiver);
+    if (typeof value === "function") return value.bind(target);
+    return value;
+  }
+});
+
 export default AuditLog;
+

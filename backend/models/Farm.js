@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { FarmMock } from "../config/memoryDb.js";
 
 /**
  * Farm Schema — Smart Kisan
@@ -116,5 +117,19 @@ farmSchema.index({ location: "2dsphere" });
 farmSchema.index({ owner: 1, createdAt: -1 });
 farmSchema.index({ state: 1, district: 1 });
 
-const Farm = mongoose.model("Farm", farmSchema);
+const FarmModel = mongoose.model("Farm", farmSchema);
+
+const Farm = new Proxy(FarmModel, {
+  get(target, prop, receiver) {
+    if (global.useMemoryDB && prop in FarmMock) {
+      const mockProp = FarmMock[prop];
+      return typeof mockProp === "function" ? mockProp.bind(FarmMock) : mockProp;
+    }
+    const value = Reflect.get(target, prop, receiver);
+    if (typeof value === "function") return value.bind(target);
+    return value;
+  }
+});
+
 export default Farm;
+

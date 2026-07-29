@@ -720,3 +720,92 @@ export const LivestockMock = {
     return removed;
   }
 };
+
+// Farm Mock Model
+export const FarmMock = {
+  find: (filter = {}) => {
+    const db = readDb();
+    if (!db.farms) db.farms = [];
+    let items = db.farms;
+    if (filter.owner) items = items.filter(f => String(f.owner) === String(filter.owner));
+    return new MemoryQuery(Promise.resolve(items));
+  },
+  findById: (id) => {
+    const db = readDb();
+    if (!db.farms) db.farms = [];
+    const item = db.farms.find(f => String(f._id) === String(id));
+    return Promise.resolve(item || null);
+  },
+  findOne: (filter = {}) => {
+    const db = readDb();
+    if (!db.farms) db.farms = [];
+    const item = db.farms.find(f => {
+      if (filter._id && String(f._id) !== String(filter._id)) return false;
+      if (filter.owner && String(f.owner) !== String(filter.owner)) return false;
+      return true;
+    });
+    return Promise.resolve(item || null);
+  },
+  create: async (data) => {
+    const db = readDb();
+    if (!db.farms) db.farms = [];
+    const newFarm = {
+      _id: generateId(),
+      ...data,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    db.farms.push(newFarm);
+    writeDb(db);
+    return newFarm;
+  },
+  findByIdAndUpdate: async (id, updates, options = {}) => {
+    const db = readDb();
+    if (!db.farms) db.farms = [];
+    const idx = db.farms.findIndex(f => String(f._id) === String(id));
+    if (idx === -1) return null;
+    db.farms[idx] = { ...db.farms[idx], ...updates, updatedAt: new Date().toISOString() };
+    writeDb(db);
+    return db.farms[idx];
+  },
+  findByIdAndDelete: async (id) => {
+    const db = readDb();
+    if (!db.farms) db.farms = [];
+    const idx = db.farms.findIndex(f => String(f._id) === String(id));
+    if (idx === -1) return null;
+    const [deleted] = db.farms.splice(idx, 1);
+    writeDb(db);
+    return deleted;
+  }
+};
+
+// Notification Mock Model
+export const NotificationMock = {
+  find: (filter = {}) => {
+    const db = readDb();
+    if (!db.notifications) db.notifications = [];
+    return new MemoryQuery(Promise.resolve(db.notifications));
+  },
+  create: async (data) => {
+    const db = readDb();
+    if (!db.notifications) db.notifications = [];
+    const newNotif = { _id: generateId(), ...data, createdAt: new Date().toISOString() };
+    db.notifications.push(newNotif);
+    writeDb(db);
+    return newNotif;
+  }
+};
+
+// AuditLog Mock Model
+export const AuditLogMock = {
+  create: async (data) => {
+    const db = readDb();
+    if (!db.auditLogs) db.auditLogs = [];
+    const newAudit = { _id: generateId(), ...data, timestamp: new Date().toISOString() };
+    db.auditLogs.push(newAudit);
+    writeDb(db);
+    return newAudit;
+  },
+  find: () => new MemoryQuery(Promise.resolve([]))
+};
+

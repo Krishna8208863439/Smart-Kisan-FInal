@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { NotificationMock } from "../config/memoryDb.js";
 
 /**
  * Notification Schema — Smart Kisan
@@ -40,5 +41,19 @@ const notificationSchema = new mongoose.Schema(
 notificationSchema.index({ userId: 1, isRead: 1, sentAt: -1 });
 notificationSchema.index({ type: 1, sentAt: -1 });
 
-const Notification = mongoose.model("Notification", notificationSchema);
+const NotificationModel = mongoose.model("Notification", notificationSchema);
+
+const Notification = new Proxy(NotificationModel, {
+  get(target, prop, receiver) {
+    if (global.useMemoryDB && prop in NotificationMock) {
+      const mockProp = NotificationMock[prop];
+      return typeof mockProp === "function" ? mockProp.bind(NotificationMock) : mockProp;
+    }
+    const value = Reflect.get(target, prop, receiver);
+    if (typeof value === "function") return value.bind(target);
+    return value;
+  }
+});
+
 export default Notification;
+
