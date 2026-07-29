@@ -73,54 +73,179 @@ class MemoryQuery {
 
 // User Mock Model
 export const UserMock = {
-  find: () => {
+  find: (filter = {}) => {
     const db = readDb();
-    return new MemoryQuery(Promise.resolve(db.users));
+    let users = [...db.users];
+    // Support basic filter fields
+    if (filter.role) users = users.filter(u => u.role === filter.role);
+    if (filter.$or) {
+      users = users.filter(u => filter.$or.some(cond => {
+        return Object.entries(cond).some(([k, v]) => {
+          if (v && v.$regex) return new RegExp(v.$regex, v.$options || '').test(u[k] || '');
+          return u[k] === v;
+        });
+      }));
+    }
+    return new MemoryQuery(Promise.resolve(users));
   },
-  findOne: async (filter) => {
+
+  findOne: (filter) => {
     const db = readDb();
-    const user = db.users.find((u) => u.email === filter.email);
-    if (!user) return null;
-    return {
-      ...user,
-      save: async function () {
-        const currentDb = readDb();
-        const index = currentDb.users.findIndex((u) => String(u._id) === String(this._id));
-        if (index !== -1) {
-          const { save, ...cleanData } = this;
-          currentDb.users[index] = cleanData;
-          writeDb(currentDb);
-        }
-        return this;
-      }
-    };
-  },
-  findById: (id) => {
-    const db = readDb();
-    const user = db.users.find((u) => String(u._id) === String(id));
-    
-    // Return a thenable query object that supports .select()
+    let user = null;
+
+    if (filter.$or) {
+      user = db.users.find(u =>
+        filter.$or.some(cond => Object.entries(cond).every(([k, v]) => u[k] === v))
+      );
+    } else if (filter.email) {
+      user = db.users.find(u => u.email === filter.email);
+    } else if (filter._id) {
+      user = db.users.find(u => String(u._id) === String(filter._id));
+    } else {
+      const key = Object.keys(filter)[0];
+      user = key ? db.users.find(u => u[key] === filter[key]) : null;
+    }
+
+    // Return a thenable with .select() support
+    let _includePassword = false;
     const query = {
       select: function(fields) {
+        if (typeof fields === 'string' && fields.includes('+password')) {
+          _includePassword = true;
+        }
         return this;
       },
       then: function(onFulfilled, onRejected) {
-        return Promise.resolve(user || null).then(onFulfilled, onRejected);
+        let result = user ? { ...user } : null;
+        if (result && !_includePassword) {
+          delete result.password;
+          delete result.refreshTokens;
+        }
+        if (result) {
+          result.save = async function() {
+            const currentDb = readDb();
+            const idx = currentDb.users.findIndex(u => String(u._id) === String(this._id));
+            if (idx !== -1) {
+              const { save, select, then, ...cleanData } = this;
+              currentDb.users[idx] = cleanData;
+              writeDb(currentDb);
+            }
+            return this;
+          };
+        }
+        return Promise.resolve(result).then(onFulfilled, onRejected);
       }
     };
     return query;
   },
+
+  findById: (id) => {
+    const db = readDb();
+    const user = db.users.find(u => String(u._id) === String(id));
+    const query = {
+      select: function(fields) {
+        // Store which fields to exclude/include
+        this._selectFields = fields;
+        return this;
+      },
+      then: function(onFulfilled, onRejected) {
+        const result = user ? { ...user } : null;
+        if (result) {
+          // Always remove sensitive fields unless explicitly requested with +
+          const includePassword = this._selectFields && this._selectFields.includes('+password');
+          if (!includePassword) delete result.password;
+          delete result.refreshTokens;
+          delete result.emailVerifyToken;
+          delete result.phoneOtp;
+        }
+        return Promise.resolve(result).then(onFulfilled, onRejected);
+      }
+    };
+    return query;
+  },
+
+  findByIdAndUpdate: async (id, updates, options = {}) => {
+    const db = readDb();
+    const idx = db.users.findIndex(u => String(u._id) === String(id));
+    if (idx === -1) return null;
+    // Handle $inc operator
+    if (updates.$inc) {
+      for (const [k, v] of Object.entries(updates.$inc)) {
+        db.users[idx][k] = (db.users[idx][k] || 0) + v;
+      }
+      delete updates.$inc;
+    }
+    // Handle $push operator
+    if (updates.$push) {
+      for (const [k, v] of Object.entries(updates.$push)) {
+        if (!Array.isArray(db.users[idx][k])) db.users[idx][k] = [];
+        if (v.$each) {
+          db.users[idx][k].push(...v.$each);
+        } else {
+          db.users[idx][k].push(v);
+        }
+      }
+      delete updates.$push;
+    }
+    // Merge flat fields
+    const flat = Object.fromEntries(Object.entries(updates).filter(([k]) => !k.startsWith('$')));
+    db.users[idx] = { ...db.users[idx], ...flat, updatedAt: new Date().toISOString() };
+    writeDb(db);
+    return options.new ? { ...db.users[idx] } : { ...db.users[idx] };
+  },
+
+  findOneAndUpdate: async (filter, updates, options = {}) => {
+    const db = readDb();
+    let idx = -1;
+    if (filter.email) idx = db.users.findIndex(u => u.email === filter.email);
+    else if (filter._id) idx = db.users.findIndex(u => String(u._id) === String(filter._id));
+    if (idx === -1) return null;
+    const flat = Object.fromEntries(Object.entries(updates).filter(([k]) => !k.startsWith('$')));
+    db.users[idx] = { ...db.users[idx], ...flat, updatedAt: new Date().toISOString() };
+    writeDb(db);
+    return options.new ? { ...db.users[idx] } : { ...db.users[idx] };
+  },
+
+  countDocuments: async (filter = {}) => {
+    const db = readDb();
+    let users = db.users;
+    if (filter.role) users = users.filter(u => u.role === filter.role);
+    return users.length;
+  },
+
+  findOneAndDelete: async (filter) => {
+    const db = readDb();
+    const idx = filter.email
+      ? db.users.findIndex(u => u.email === filter.email)
+      : -1;
+    if (idx === -1) return null;
+    const [deleted] = db.users.splice(idx, 1);
+    writeDb(db);
+    return deleted;
+  },
+
   create: async (userData) => {
     const db = readDb();
+    // Check for duplicate email
+    if (userData.email && db.users.some(u => u.email === userData.email)) {
+      const err = new Error('E11000 duplicate key error');
+      err.code = 11000;
+      throw err;
+    }
     const newUser = {
       _id: generateId(),
+      isActive: true,      // Default: account is active
+      emailVerified: false, // Default: email not verified
+      loginCount: 0,
       ...userData,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
     db.users.push(newUser);
     writeDb(db);
-    return newUser;
+    // Return without sensitive fields
+    const { password: _pw, refreshTokens: _rt, emailVerifyToken: _evt, phoneOtp: _po, ...safeUser } = newUser;
+    return safeUser;
   }
 };
 

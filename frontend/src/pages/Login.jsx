@@ -29,7 +29,8 @@ const Login = () => {
       await login(form.email, form.password);
       nav("/dashboard");
     } catch (err) {
-      setError(err?.response?.data?.message || "Login failed. Please try again.");
+      const errData = err?.response?.data;
+      setError(errData?.error?.message || errData?.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -102,9 +103,10 @@ const Login = () => {
     try {
       const res = await api.post("/auth/forgot-password", { email: forgotEmail });
       setForgotView("reset");
-      setInfoMessage(`Code generated successfully! For testing: Enter reset code: ${res.data.otp}`);
+      setInfoMessage(`Code sent! ${res.data.data?.otp ? `For testing, your OTP is: ${res.data.data.otp}` : 'Check your email.'}`);
     } catch (err) {
-      setError(err?.response?.data?.message || "Failed to check email. Verify user exists.");
+      const errData = err?.response?.data;
+      setError(errData?.error?.message || errData?.message || "Failed to check email. Verify user exists.");
     } finally {
       setLoading(false);
     }
@@ -126,7 +128,8 @@ const Login = () => {
       setOtpCode("");
       setNewPassword("");
     } catch (err) {
-      setError(err?.response?.data?.message || "Failed to reset password. Check verification code.");
+      const errData = err?.response?.data;
+      setError(errData?.error?.message || errData?.message || "Failed to reset password. Check verification code.");
     } finally {
       setLoading(false);
     }

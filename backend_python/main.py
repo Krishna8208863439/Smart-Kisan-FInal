@@ -39,22 +39,45 @@ app = FastAPI(
 )
 
 # Setup CORS for frontend interactions
+# Load allowed origins from env var (comma-separated) with safe defaults
+_raw_origins = os.environ.get(
+    "CORS_ORIGINS",
+    "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5000"
+)
+ALLOW_ORIGINS = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=ALLOW_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Logging middleware
+# ── Structured Logging Setup ────────────────────────────────────────────────
 import logging
+import time
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%S"
+)
 logger = logging.getLogger("SmartKisanBackend")
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    print(f"Incoming request: {request.method} {request.url.path} from {request.client.host if request.client else 'Unknown'}")
-    response = await call_next(request)
+    start = time.time()
+    client_ip = request.client.host if request.client else "unknown"
+    logger.info("→ %s %s [%s]", request.method, request.url.path, client_ip)
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        logger.error("Unhandled exception during %s %s: %s", request.method, request.url.path, exc, exc_info=True)
+        raise
+    duration_ms = round((time.time() - start) * 1000, 1)
+    level = logging.ERROR if response.status_code >= 500 else logging.WARNING if response.status_code >= 400 else logging.INFO
+    logger.log(level, "← %s %s → %d (%sms)", request.method, request.url.path, response.status_code, duration_ms)
     return response
 
 # Exception handlers
@@ -65,27 +88,48 @@ import traceback
 
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request, exc):
-    print(f"[Error] HTTP {exc.status_code}: {exc.detail}")
+    logger.warning("HTTP %d: %s — %s %s", exc.status_code, exc.detail, request.method, request.url.path)
     return JSONResponse(
         status_code=exc.status_code,
-        content={"success": False, "message": exc.detail}
+        content={
+            "success": False,
+            "data": None,
+            "error": {"code": exc.status_code, "message": exc.detail, "details": []}
+        }
     )
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     tb = traceback.format_exc()
-    print(f"[Error] Internal Server Error: {exc}\n{tb}")
+    logger.error("Internal Server Error on %s %s: %s\n%s", request.method, request.url.path, exc, tb)
+    is_prod = os.environ.get("NODE_ENV", "development") == "production"
     return JSONResponse(
         status_code=500,
-        content={"success": False, "message": "An unexpected error occurred on the server.", "error": str(exc)}
+        content={
+            "success": False,
+            "data": None,
+            "error": {
+                "code": 500,
+                "message": "An unexpected error occurred on the server." if is_prod else str(exc),
+                "details": [] if is_prod else [tb]
+            }
+        }
     )
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc):
-    print(f"[Error] Validation failed: {exc.errors()}")
+    logger.warning("Validation failed on %s %s: %s", request.method, request.url.path, exc.errors())
     return JSONResponse(
         status_code=422,
-        content={"success": False, "message": "Request validation failed.", "details": exc.errors()}
+        content={
+            "success": False,
+            "data": None,
+            "error": {
+                "code": 422,
+                "message": "Request validation failed.",
+                "details": [str(e) for e in exc.errors()]
+            }
+        }
     )
 
 def verify_request_preconditions(image: UploadFile, x_gemini_key: Optional[str]):
