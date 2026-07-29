@@ -84,12 +84,13 @@ def main():
     upload_file(dist_zip, "dist.zip", username, api_token)
     safe_remove(dist_zip)
 
-    # 3. Package and upload Node backend — include node_modules so PA never needs npm
+    # 3. Package and upload Node backend
     backend_dir = os.path.join(script_dir, "backend")
     backend_zip = os.path.join(script_dir, "backend.zip")
-    zip_directory(backend_dir, backend_zip)
+    zip_directory(backend_dir, backend_zip, exclude_dir=["node_modules", "uploads"])
     upload_file(backend_zip, "backend.zip", username, api_token)
     safe_remove(backend_zip)
+
 
     # 4. Package and upload Python backend
     py_backend_dir = os.path.join(script_dir, "backend_python")
