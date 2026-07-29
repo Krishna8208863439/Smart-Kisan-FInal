@@ -181,12 +181,13 @@ if os.path.exists(backend_zip):
         else:
             npm_bin = 'npm'
         subprocess.run(
-            [npm_bin, 'install', '--production'],
+            [npm_bin, 'install', '--production', '--force'],
             cwd='/home/Krishna3114/smart-kisan-backend',
             env=env,
             stdout=open('/home/Krishna3114/node_stdout.log', 'a'),
             stderr=open('/home/Krishna3114/node_stderr.log', 'a')
         )
+
 
     except Exception as e:
         with open('/home/Krishna3114/node_stderr.log', 'a') as log_f:
@@ -388,11 +389,26 @@ def application(environ, start_response):
         print(f"[error] WSGI upload failed: {wsgi_res.text}")
         sys.exit(1)
 
+    # 6.5 Ensure no conflicting static file mappings exist on PythonAnywhere (e.g. url='/' mapping)
+    try:
+        sf_url = f"https://www.pythonanywhere.com/api/v0/user/{username}/webapps/{username}.pythonanywhere.com/static_files/"
+        sf_res = requests.get(sf_url, headers=headers)
+        if sf_res.status_code == 200:
+            mappings = sf_res.json()
+            for m in mappings:
+                if m.get("url") == "/":
+                    del_url = f"{sf_url}{m['id']}/"
+                    del_res = requests.delete(del_url, headers=headers)
+                    print(f"[clean] Removed conflicting static mapping url='/' (ID {m['id']}): {del_res.status_code}")
+    except Exception as e:
+        print(f"[warn] Static files check error: {e}")
+
     # 7. Reload webapp
     print(f"\n[api] Reloading web app '{username}.pythonanywhere.com'...")
     reload_url = f"https://www.pythonanywhere.com/api/v0/user/{username}/webapps/{username}.pythonanywhere.com/reload/"
     reload_res = requests.post(reload_url, headers=headers)
     print(f"[api] Reload result: {reload_res.status_code}")
+
 
     print("\n" + "=" * 60)
     print("      DEPI_ALL DEPLOYMENT COMPLETE FOR NODE & FASTAPI BACKENDS!")
