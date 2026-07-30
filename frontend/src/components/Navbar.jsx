@@ -6,7 +6,7 @@ import { useLanguage } from '../context/LanguageContext';
 import usePWAInstall from '../hooks/usePWAInstall';
 
 const Navbar = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const { language, toggleLanguage, t } = useLanguage();
   const { isInstallable, isInstalled, installApp } = usePWAInstall();
@@ -134,6 +134,7 @@ const Navbar = () => {
 
                 <NavLink to="/marketplace" className={navLinkClass}>{t('bazaar')}</NavLink>
                 <NavLink to="/forum" className={navLinkClass}>{language === 'mr' ? 'शासकीय योजना' : 'Govt Schemes'}</NavLink>
+                {isAdmin && <NavLink to="/admin" className={navLinkClass}>Admin</NavLink>}
               </>
             )}
             {!user && (
@@ -277,6 +278,7 @@ const Navbar = () => {
                 <NavLink to="/marketplace" className={navLinkClass}>{t('bazaar')}</NavLink>
                 <NavLink to="/forum" className={navLinkClass}>{language === 'mr' ? 'शासकीय योजना' : 'Government Schemes'}</NavLink>
                 <NavLink to="/history" className={navLinkClass}>{language === 'mr' ? 'इतिहास' : 'History'}</NavLink>
+                {isAdmin && <NavLink to="/admin" className={navLinkClass}>Admin</NavLink>}
               </>
             )}
             {!user && (

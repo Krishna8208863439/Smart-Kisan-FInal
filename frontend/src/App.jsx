@@ -15,6 +15,7 @@ import KisanChat from "./pages/KisanChat";
 import PredictiveYield from "./pages/PredictiveYield";
 import History from "./pages/History";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Admin from "./pages/Admin";
 import { ThemeProvider } from "./context/ThemeContext";
 import { LanguageProvider } from "./context/LanguageContext";
 import { HistoryProvider } from "./context/HistoryContext";
@@ -67,6 +68,7 @@ const App = () => {
               <Route path="/predictive-yield" element={<ProtectedRoute><PredictiveYield /></ProtectedRoute>} />
               <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
               <Route path="/chat" element={<ProtectedRoute><KisanChat /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
             </Routes>
