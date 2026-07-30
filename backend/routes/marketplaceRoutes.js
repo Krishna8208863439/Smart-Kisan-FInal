@@ -586,4 +586,130 @@ router.patch("/contracts/:id", protect, async (req, res) => {
   }
 });
 
+// ─── Phase 9: Cart System ─────────────────────────────────────────────────────
+// Cart is stored per user in memory (survives server restart via db_fallback.json if needed)
+// Prices are ALWAYS calculated server-side from real product data
+const userCarts = {}; // { userId: [ { productId, quantity } ] }
+
+async function buildCartResponse(userId) {
+  const items = userCarts[userId] || [];
+  const db = await Product.find({});
+  const enriched = [];
+  let subtotal = 0;
+
+  for (const cartItem of items) {
+    const product = db.find(p => String(p._id) === String(cartItem.productId));
+    if (!product) continue; // Product deleted — skip silently
+
+    const unitPrice = parseFloat(product.price) || 0;
+    const qty = cartItem.quantity;
+    const lineTotal = +(unitPrice * qty).toFixed(2);
+    subtotal += lineTotal;
+
+    enriched.push({
+      productId: product._id,
+      name: product.name,
+      category: product.category,
+      imageUrl: product.imageUrl || null,
+      unitPrice,
+      quantity: qty,
+      lineTotal,
+      sellerId: product.sellerId,
+      sellerName: product.sellerName || "Unknown Seller",
+      stock: product.quantity ?? null
+    });
+  }
+
+  const deliveryFee = subtotal > 0 ? (subtotal > 2000 ? 0 : 50) : 0;
+  const total = +(subtotal + deliveryFee).toFixed(2);
+
+  return { items: enriched, subtotal: +subtotal.toFixed(2), deliveryFee, total, itemCount: enriched.length };
+}
+
+// GET /api/marketplace/cart
+router.get("/cart", protect, async (req, res) => {
+  try {
+    const cart = await buildCartResponse(String(req.user._id));
+    return res.json({ success: true, data: cart });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/marketplace/cart — add or increment item
+router.post("/cart", protect, async (req, res) => {
+  try {
+    const { productId, quantity = 1 } = req.body;
+    if (!productId) return res.status(400).json({ success: false, message: "productId is required" });
+
+    const qty = Math.max(1, parseInt(quantity));
+    const userId = String(req.user._id);
+
+    if (!userCarts[userId]) userCarts[userId] = [];
+    const existing = userCarts[userId].find(i => String(i.productId) === String(productId));
+
+    if (existing) {
+      existing.quantity = Math.min(existing.quantity + qty, 99); // cap at 99
+    } else {
+      userCarts[userId].push({ productId: String(productId), quantity: qty });
+    }
+
+    const cart = await buildCartResponse(userId);
+    return res.json({ success: true, data: cart });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// PUT /api/marketplace/cart/:productId — set exact quantity
+router.put("/cart/:productId", protect, async (req, res) => {
+  try {
+    const { quantity } = req.body;
+    const qty = parseInt(quantity);
+    const userId = String(req.user._id);
+
+    if (!userCarts[userId]) userCarts[userId] = [];
+
+    if (isNaN(qty) || qty < 1) {
+      // quantity 0 or invalid → remove
+      userCarts[userId] = userCarts[userId].filter(i => String(i.productId) !== req.params.productId);
+    } else {
+      const item = userCarts[userId].find(i => String(i.productId) === req.params.productId);
+      if (item) item.quantity = Math.min(qty, 99);
+      else userCarts[userId].push({ productId: req.params.productId, quantity: Math.min(qty, 99) });
+    }
+
+    const cart = await buildCartResponse(userId);
+    return res.json({ success: true, data: cart });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/marketplace/cart/:productId — remove one item
+router.delete("/cart/:productId", protect, async (req, res) => {
+  try {
+    const userId = String(req.user._id);
+    if (userCarts[userId]) {
+      userCarts[userId] = userCarts[userId].filter(i => String(i.productId) !== req.params.productId);
+    }
+    const cart = await buildCartResponse(userId);
+    return res.json({ success: true, data: cart });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/marketplace/cart — clear entire cart
+router.delete("/cart", protect, async (req, res) => {
+  try {
+    const userId = String(req.user._id);
+    userCarts[userId] = [];
+    return res.json({ success: true, data: { items: [], subtotal: 0, deliveryFee: 0, total: 0, itemCount: 0 } });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 export default router;
+

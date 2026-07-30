@@ -1,4 +1,5 @@
 import "./config/proxySetup.js";
+import { startCronJobs } from "./services/cronReminders.js";
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -26,6 +27,8 @@ import marketplaceRoutes from "./routes/marketplaceRoutes.js";
 import yieldRoutes from "./routes/yieldRoutes.js";
 import livestockRoutes from "./routes/livestockRoutes.js";
 import farmRoutes from "./routes/farmRoutes.js";
+import schemesRoutes from "./routes/schemesRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 
 dotenv.config();
@@ -234,6 +237,11 @@ app.use("/api/marketplace", marketplaceRoutes);
 app.use("/api/yield", yieldRoutes);
 app.use("/api/livestock", livestockRoutes);
 app.use("/api/farms", farmRoutes);
+app.use("/api/schemes", schemesRoutes);
+app.use("/api/admin", adminRoutes);
+
+// ── Start scheduled cron jobs (reminders, etc.) ────────────────────────────
+try { startCronJobs(); } catch (e) { console.warn("[cron] Failed to start:", e.message); }
 
 
 // ──────────────────────────────────────────────────────────────────────────

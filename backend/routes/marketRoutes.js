@@ -320,4 +320,71 @@ router.post("/predict", protect, async (req, res) => {
   });
 });
 
+// GET /api/market/export?crop=Wheat&state=Punjab — CSV download
+router.get("/export", protect, async (req, res) => {
+  try {
+    const { crop, state } = req.query;
+    const commodity = crop || "Wheat";
+    const info = COMMODITY_DATA[commodity];
+
+    if (!info) {
+      return res.status(400).json({ error: `Unknown crop '${commodity}'. Use /api/market/commodities to list valid crops.` });
+    }
+
+    let selectedMandis = MANDIS;
+    if (state && state.trim()) {
+      selectedMandis = selectedMandis.filter(m =>
+        m.state.toLowerCase().includes(state.toLowerCase().trim())
+      );
+      if (selectedMandis.length === 0) selectedMandis = MANDIS;
+    }
+
+    const prices = selectedMandis.map((mandi, idx) => {
+      const price = generateLivePrice(info.basePrice, idx + 1);
+      const prevPrice = generateLivePrice(info.basePrice, idx + 2);
+      const minPrice = Math.round(price * 0.92);
+      const maxPrice = Math.round(price * 1.08);
+      const change = price - prevPrice;
+      return { mandi, price, prevPrice, minPrice, maxPrice, change };
+    });
+
+    // Build CSV rows
+    const headers = [
+      "Mandi Name", "City", "State", "District", "Pincode",
+      "Crop", "Modal Price (₹/quintal)", "Min Price", "Max Price",
+      "Change", "Change %", "Trend", "MSP", "Arrivals (Tons)", "Exported At"
+    ];
+
+    const rows = prices.map(({ mandi, price, prevPrice, minPrice, maxPrice, change }) => [
+      `"${mandi.name}"`,
+      `"${mandi.city}"`,
+      `"${mandi.state}"`,
+      `"${mandi.district}"`,
+      mandi.pincode,
+      `"${commodity}"`,
+      price,
+      minPrice,
+      maxPrice,
+      change,
+      ((change / prevPrice) * 100).toFixed(2) + "%",
+      change > 0 ? "Up" : change < 0 ? "Down" : "Stable",
+      info.minSupport || "N/A",
+      Math.round(20 + Math.abs(Math.sin(price)) * 80),
+      new Date().toISOString()
+    ]);
+
+    const csvLines = [headers.join(","), ...rows.map(r => r.join(","))];
+    const csv = csvLines.join("\n");
+    const filename = `smart-kisan-market-${commodity.replace(/\s+/g, "-")}-${Date.now()}.csv`;
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    return res.send(csv);
+  } catch (err) {
+    console.error("Market CSV export error:", err);
+    return res.status(500).json({ error: "Failed to export market data." });
+  }
+});
+
 export default router;
+
