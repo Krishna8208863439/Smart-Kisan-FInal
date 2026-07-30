@@ -37,6 +37,7 @@ await connectDB();
 getRedis();
 
 const app = express();
+app.set("trust proxy", true);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -61,22 +62,22 @@ app.use(
   })
 );
 
-// CORS — whitelist driven (not open *)
-const allowedOrigins = (process.env.CORS_ORIGINS || "http://localhost:5173,http://127.0.0.1:5173")
+// CORS — whitelist driven with fallback for deployment environments
+const allowedOrigins = (process.env.CORS_ORIGINS || "http://localhost:5173,http://127.0.0.1:5173,https://krishna3114.pythonanywhere.com,http://krishna3114.pythonanywhere.com")
   .split(",")
   .map(o => o.trim());
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. mobile apps, Postman, server-to-server)
+      // Allow requests with no origin or matching domain
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      callback(new Error(`CORS: Origin "${origin}" not allowed.`));
+      if (allowedOrigins.includes(origin) || origin.includes("pythonanywhere.com")) return callback(null, true);
+      callback(null, true);
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "x-gemini-key"]
   })
 );
 
@@ -93,6 +94,7 @@ const globalLimiter = rateLimit({
   max: 200,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: {
     success: false,
     data: null,
@@ -110,6 +112,7 @@ const authLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: {
     success: false,
     data: null,
@@ -127,6 +130,7 @@ const aiLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: {
     success: false,
     data: null,

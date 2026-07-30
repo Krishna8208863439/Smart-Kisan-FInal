@@ -114,13 +114,27 @@ import socket
 import urllib.request
 import urllib.error
 import mimetypes
+import shutil
 
 # Clean up leftover corrupt numpy user packages
-subprocess.run(['rm', '-rf', '/home/Krishna3114/.local/lib/python3.10/site-packages/numpy'])
-subprocess.run(['rm', '-rf', '/home/Krishna3114/.local/lib/python3.10/site-packages/~umpy'])
+subprocess.run(['rm', '-rf', '/home/Krishna3114/.local/lib/python3.10/site-packages/numpy'], stderr=subprocess.DEVNULL)
+subprocess.run(['rm', '-rf', '/home/Krishna3114/.local/lib/python3.10/site-packages/~umpy'], stderr=subprocess.DEVNULL)
 
 os.environ['no_proxy'] = '127.0.0.1,localhost,krishna3114.pythonanywhere.com'
 os.environ['NO_PROXY'] = '127.0.0.1,localhost,krishna3114.pythonanywhere.com'
+
+def safe_log(filepath, text):
+    try:
+        with open(filepath, 'a') as f:
+            f.write(text)
+    except Exception:
+        pass
+
+def safe_open_log(filepath):
+    try:
+        return open(filepath, 'a')
+    except Exception:
+        return open(os.devnull, 'w')
 
 def find_free_port():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -132,8 +146,11 @@ def find_free_port():
 NODE_PORT = find_free_port()
 PYTHON_PORT = find_free_port()
 
-with open('/home/Krishna3114/active_ports.txt', 'w') as f:
-    f.write(f"NODE_PORT={NODE_PORT}\nPYTHON_PORT={PYTHON_PORT}\n")
+try:
+    with open('/home/Krishna3114/active_ports.txt', 'w') as f:
+        f.write(f"NODE_PORT={NODE_PORT}\nPYTHON_PORT={PYTHON_PORT}\n")
+except Exception:
+    pass
 
 NODE_PATH = '/home/Krishna3114/.nvm/versions/node/v18.20.8/bin/node'
 SERVER_JS = '/home/Krishna3114/smart-kisan-backend/server.js'
@@ -146,7 +163,6 @@ if not os.path.exists(NODE_PATH):
         candidates.sort(reverse=True)
         NODE_PATH = candidates[0]
     else:
-        # Try system node
         for p in ['/usr/bin/node', '/usr/local/bin/node']:
             if os.path.exists(p):
                 NODE_PATH = p
@@ -170,30 +186,21 @@ backend_zip = '/home/Krishna3114/backend.zip'
 if os.path.exists(backend_zip):
     try:
         import zipfile
-        os.makedirs('/home/Krishna3114/smart-kisan-backend', exist_ok=True)
-        # Delete old uploaded files that might contain wrong images
-        uploads_path = '/home/Krishna3114/smart-kisan-backend/uploads'
-        if os.path.exists(uploads_path):
-            import shutil
-            shutil.rmtree(uploads_path)
-            os.makedirs(uploads_path, exist_ok=True)
+        target_be = '/home/Krishna3114/smart-kisan-backend'
+        if os.path.exists(target_be):
+            shutil.rmtree(target_be)
+        os.makedirs(target_be, exist_ok=True)
         with zipfile.ZipFile(backend_zip, 'r') as zip_ref:
-            zip_ref.extractall('/home/Krishna3114/smart-kisan-backend')
+            zip_ref.extractall(target_be)
         os.remove(backend_zip)
-        # node_modules is bundled in backend.zip — no need for npm install on PA
-
-
-
     except Exception as e:
-        with open('/home/Krishna3114/node_stderr.log', 'a') as log_f:
-            log_f.write(f"Backend extract error: {str(e)}\n")
+        safe_log('/home/Krishna3114/node_stderr.log', f"Backend extract error: {str(e)}\n")
 
 # Extract dist.zip if it exists
 frontend_zip = '/home/Krishna3114/dist.zip'
 if os.path.exists(frontend_zip):
     try:
         import zipfile
-        import shutil
         target_fe = '/home/Krishna3114/smart-kisan-frontend'
         if os.path.exists(target_fe):
             shutil.rmtree(target_fe)
@@ -202,62 +209,57 @@ if os.path.exists(frontend_zip):
             zip_ref.extractall(target_fe)
         os.remove(frontend_zip)
     except Exception as e:
-        with open('/home/Krishna3114/node_stderr.log', 'a') as log_f:
-            log_f.write(f"Frontend extract error: {str(e)}\n")
+        safe_log('/home/Krishna3114/node_stderr.log', f"Frontend extract error: {str(e)}\n")
 
 # Extract backend_python.zip if it exists
 py_zip_file = '/home/Krishna3114/backend_python.zip'
 if os.path.exists(py_zip_file):
     try:
         import zipfile
-        os.makedirs('/home/Krishna3114/smart-kisan-backend-python', exist_ok=True)
+        target_py = '/home/Krishna3114/smart-kisan-backend-python'
+        if os.path.exists(target_py):
+            shutil.rmtree(target_py)
+        os.makedirs(target_py, exist_ok=True)
         with zipfile.ZipFile(py_zip_file, 'r') as zip_ref:
-            zip_ref.extractall('/home/Krishna3114/smart-kisan-backend-python')
+            zip_ref.extractall(target_py)
         os.remove(py_zip_file)
-        # Install Python dependencies (without massive PyTorch dependencies to save disk space)
-        subprocess.run(
-            ['/usr/bin/python3.10', '-m', 'pip', 'install', '--user', '--no-cache-dir', 'fastapi', 'uvicorn', 'sqlalchemy', 'twilio', 'pillow', 'python-multipart', 'requests', 'reportlab', 'numpy', 'faiss-cpu', 'pandas', 'python-dotenv'],
-            stdout=open('/home/Krishna3114/py_install_stdout.log', 'a'),
-            stderr=open('/home/Krishna3114/py_install_stderr.log', 'a')
-        )
     except Exception as e:
-        with open('/home/Krishna3114/py_stderr.log', 'a') as log_f:
-            log_f.write(f"Python backend extract error: {str(e)}\n")
+        safe_log('/home/Krishna3114/py_stderr.log', f"Python backend extract error: {str(e)}\n")
 
 # Kill existing node and python uvicorn servers
-subprocess.run(['pkill', '-f', 'node server.js'])
-subprocess.run(['pkill', '-f', 'uvicorn main:app'])
+subprocess.run(['pkill', '-f', 'node server.js'], stderr=subprocess.DEVNULL)
+subprocess.run(['pkill', '-f', 'uvicorn main:app'], stderr=subprocess.DEVNULL)
 
 # Start Node Server
 if not is_port_open(NODE_PORT):
     env = os.environ.copy()
     env['PORT'] = str(NODE_PORT)
+    env['CORS_ORIGINS'] = 'https://krishna3114.pythonanywhere.com,http://krishna3114.pythonanywhere.com,http://localhost:5173,http://127.0.0.1:5173'
     env['MONGO_URI'] = 'mongodb://127.0.0.1:27017/smart_kisan'
     env['JWT_SECRET'] = 'supersecretjwtkey'
     env['GOOGLE_CLIENT_ID'] = '1234567890-abc123def456.apps.googleusercontent.com'
-    # Ensure node is in the environment PATH
     if NODE_BIN_DIR:
         env['PATH'] = NODE_BIN_DIR + ':' + env.get('PATH', '')
     subprocess.Popen(
         [NODE_PATH, SERVER_JS],
         env=env,
-        stdout=open('/home/Krishna3114/node_stdout.log', 'a'),
-        stderr=open('/home/Krishna3114/node_stderr.log', 'a'),
+        stdout=safe_open_log('/home/Krishna3114/node_stdout.log'),
+        stderr=safe_open_log('/home/Krishna3114/node_stderr.log'),
         cwd='/home/Krishna3114/smart-kisan-backend'
     )
 
 # Start Python FastAPI Server
 if not is_port_open(PYTHON_PORT):
     env = os.environ.copy()
-    # Ensure user pip installation bin is in PATH
     env['PATH'] = '/home/Krishna3114/.local/bin:' + env.get('PATH', '')
     subprocess.Popen(
         ['/usr/bin/python3.10', '-m', 'uvicorn', 'main:app', '--port', str(PYTHON_PORT)],
         env=env,
-        stdout=open('/home/Krishna3114/py_stdout.log', 'a'),
-        stderr=open('/home/Krishna3114/py_stderr.log', 'a'),
+        stdout=safe_open_log('/home/Krishna3114/py_stdout.log'),
+        stderr=safe_open_log('/home/Krishna3114/py_stderr.log'),
         cwd='/home/Krishna3114/smart-kisan-backend-python'
     )
+
 
 def proxy_request(environ, start_response, port):
     path = environ.get('PATH_INFO', '')
