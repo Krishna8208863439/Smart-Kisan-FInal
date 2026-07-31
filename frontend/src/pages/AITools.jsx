@@ -1531,7 +1531,7 @@ const AITools = () => {
                 </select>
 
                 <button type="submit" className="button" style={{ width: "100%" }}>
-                  {language === 'mr' ? 'सिंचन वेळापत्रक मिळवा 💧' : 'Calculate Irrigation Prescriptions 💧'}
+                  {language === 'mr' ? 'सिंचन वेळापत्रक मिळवा' : 'Calculate'}
                 </button>
               </form>
             </div>
@@ -1684,7 +1684,7 @@ const AITools = () => {
                 </div>
 
                 <button type="submit" className="button" style={{ width: "100%" }}>
-                  Calculate Nutrient Prescription 🧪
+                  Calculate
                 </button>
               </form>
             </div>
@@ -1859,7 +1859,7 @@ const AITools = () => {
                 />
 
                 <button type="submit" className="button" style={{ width: "100%" }} disabled={calLoading}>
-                  {calLoading ? (language === 'mr' ? "तयार करत आहे..." : "Generating...") : (language === 'mr' ? "पीक वेळापत्रक तयार करा 📅" : "Generate Crop Calendar 📅")}
+                  {calLoading ? (language === 'mr' ? "तयार करत आहे..." : "Generating...") : (language === 'mr' ? "पीक वेळापत्रक तयार करा" : "Generate Calendar")}
                 </button>
               </form>
 

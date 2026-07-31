@@ -495,7 +495,7 @@ const KisanChat = () => {
           className="bazaar-redirect-badge"
           title={`Search "${query}" on Marketplace`}
         >
-          🛒 {linkText}
+          {linkText}
         </button>
       );
 

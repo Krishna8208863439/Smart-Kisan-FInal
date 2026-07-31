@@ -629,6 +629,122 @@ def get_gemini_api_key() -> str | None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+#  STAGE 1 — Google Cloud Vision API Validation Gate
+#  Validates that uploaded image contains plant/leaf/crop content.
+#  Called BEFORE any classifier. Returns (is_valid, reason).
+#  ⚠ GUARDRAIL: This is a pre-filter only. Disease label MUST still come from
+#    the trained PyTorch/ONNX classifier in Stage 2, never from an LLM.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Labels that indicate an agricultural/plant image (Cloud Vision label detection)
+_PLANT_LABELS = {
+    "plant", "leaf", "botany", "flora", "flower", "vegetation", "tree",
+    "crop", "agriculture", "farm", "field", "garden", "nature",
+    "grass", "herb", "shrub", "seedling", "produce", "fruit", "vegetable",
+    "tomato", "potato", "rice", "wheat", "maize", "corn", "cotton",
+    "sugarcane", "soybean", "mango", "banana", "apple", "grape", "onion",
+    "chili", "pepper", "brinjal", "eggplant", "paddy", "groundnut",
+    "mustard", "spinach", "cabbage", "cauliflower", "okra", "beans",
+    "pea", "lentil", "chickpea", "soil", "mulch", "compost", "manure",
+    "fungus", "mold", "blight", "rust", "spot", "lesion", "disease",
+    "pest", "insect", "aphid", "whitefly",
+}
+
+def get_cloud_vision_api_key() -> str | None:
+    """Read CLOUD_VISION_API_KEY from environment or .env files."""
+    key = os.getenv("CLOUD_VISION_API_KEY", "").strip()
+    if key:
+        return key
+    env_paths = [
+        os.path.join(os.path.dirname(__file__), ".env"),
+        os.path.join(os.path.dirname(__file__), "..", ".env"),
+        os.path.join(os.path.dirname(__file__), "..", "backend", ".env"),
+    ]
+    for path in env_paths:
+        if os.path.exists(path):
+            try:
+                with open(path, "r") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith("CLOUD_VISION_API_KEY="):
+                            val = line.split("=", 1)[1].strip().strip('"').strip("'")
+                            if val:
+                                return val
+            except Exception:
+                pass
+    return None
+
+
+def validate_image_with_cloud_vision(
+    image_bytes: bytes,
+    custom_key: str = None,
+    confidence_threshold: float = 0.6,
+):
+    """
+    Stage 1 Validation Gate using Google Cloud Vision API.
+
+    Sends image to Cloud Vision label detection.
+    Returns (True, "ok") if at least one plant/crop label is found above
+    the confidence_threshold. Returns (False, reason) otherwise.
+
+    If CLOUD_VISION_API_KEY is not configured, gate is bypassed (fail-open)
+    so existing deployments without the key are not broken.
+
+    Returns: tuple[bool, str] -> (is_valid, reason_string)
+    """
+    api_key = (custom_key or "").strip() or get_cloud_vision_api_key()
+    if not api_key:
+        print("[CloudVision] CLOUD_VISION_API_KEY not configured. Bypassing Stage 1 gate.")
+        return True, "bypass"
+
+    try:
+        b64_image = base64.b64encode(image_bytes).decode("utf-8")
+        url = f"https://vision.googleapis.com/v1/images:annotate?key={api_key}"
+        payload = {
+            "requests": [{
+                "image": {"content": b64_image},
+                "features": [
+                    {"type": "LABEL_DETECTION", "maxResults": 20},
+                    {"type": "OBJECT_LOCALIZATION", "maxResults": 10},
+                ]
+            }]
+        }
+        resp = requests.post(url, json=payload, timeout=15)
+        if resp.status_code != 200:
+            print(f"[CloudVision] API error {resp.status_code}: {resp.text[:200]}. Bypassing gate.")
+            return True, "api-error-bypass"
+
+        data = resp.json()
+        annotations = data.get("responses", [{}])[0]
+
+        # Collect labels from both LABEL_DETECTION and OBJECT_LOCALIZATION
+        all_labels = []
+        for item in annotations.get("labelAnnotations", []):
+            all_labels.append((item.get("description", "").lower(), item.get("score", 0.0)))
+        for item in annotations.get("localizedObjectAnnotations", []):
+            all_labels.append((item.get("name", "").lower(), item.get("score", 0.0)))
+
+        print(f"[CloudVision] Detected labels: {[(l, round(s, 2)) for l, s in all_labels]}")
+
+        # Check if any label matches plant/crop vocabulary above threshold
+        for label, score in all_labels:
+            if score >= confidence_threshold:
+                for plant_word in _PLANT_LABELS:
+                    if plant_word in label:
+                        print(f"[CloudVision] Validated as plant image via label '{label}' (score={score:.2f})")
+                        return True, f"plant-label:{label}"
+
+        # No plant label found — reject the image
+        detected_str = ", ".join(f"{l}({s:.2f})" for l, s in all_labels[:8])
+        print(f"[CloudVision] No plant/crop label found. Detected: {detected_str}")
+        return False, f"no-plant-label (detected: {detected_str})"
+
+    except Exception as e:
+        print(f"[CloudVision] Validation exception: {e}. Bypassing gate (fail-open).")
+        return True, "exception-bypass"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 #  TIER 1 — Google Gemini 1.5 Flash Vision API
 #  Analyzes the ACTUAL image — returns correct crop/disease regardless of hint
 # ─────────────────────────────────────────────────────────────────────────────

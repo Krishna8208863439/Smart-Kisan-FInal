@@ -1652,7 +1652,7 @@ const Marketplace = () => {
                 </div>
               </div>
               <button className="button" style={{ width: "100%", background: "#f59e0b", fontSize: 15, margin: 0 }} onClick={handleCheckout}>
-                {isLoggedIn ? (language === "mr" ? "खरेदी पूर्ण करा 🚀" : "Complete Purchase 🚀") : (language === "mr" ? "खरेदी करण्यासाठी लॉग इन करा 🔑" : "Log in to Purchase 🔑")}
+                {isLoggedIn ? (language === "mr" ? "खरेदी पूर्ण करा" : "Complete Purchase") : (language === "mr" ? "खरेदी करण्यासाठी लॉग इन करा 🔑" : "Log in to Purchase 🔑")}
               </button>
             </footer>
           )}

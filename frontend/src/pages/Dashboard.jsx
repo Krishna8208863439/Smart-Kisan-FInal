@@ -839,7 +839,7 @@ const Dashboard = () => {
             </div>
             <Link to="/ai-tools?tab=npk" style={{ textDecoration: "none" }}>
               <button className="agri-suite-btn">
-                {language === "mr" ? "NPK मोजा 🧪" : "Calculate NPK 🧪"}
+                {language === "mr" ? "NPK मोजा" : "Calculate NPK"}
               </button>
             </Link>
           </div>
@@ -927,7 +927,6 @@ const Dashboard = () => {
           {/* Card 8: Predictive Yield Engine */}
           <div className="agri-suite-card">
             <div className="agri-suite-card-top">
-              <div className="agri-suite-icon">📊</div>
               <h3 className="agri-suite-card-title">
                 {language === "mr" ? "उत्पादन अंदाज इंजिन" : "Predictive Yield Engine"}
               </h3>
@@ -939,7 +938,7 @@ const Dashboard = () => {
             </div>
             <Link to="/predictive-yield" style={{ textDecoration: "none" }}>
               <button className="agri-suite-btn">
-                {language === "mr" ? "अंदाज मिळवा 📊" : "Forecast Yield 📊"}
+                {language === "mr" ? "अंदाज मिळवा" : "Predictive"}
               </button>
             </Link>
           </div>

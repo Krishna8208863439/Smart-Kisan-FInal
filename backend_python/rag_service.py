@@ -102,10 +102,11 @@ def init_rag_system(force_rebuild: bool = False, api_key: str = None):
             print(f"[RAG] Error loading FAISS index: {faiss_err}. Using Numpy fallback.")
             _faiss_index = None
 
-def search_knowledge_base(query: str, k: int = 3, api_key: str = None) -> list:
+def search_knowledge_base(query: str, k: int = 3, api_key: str = None, relevance_threshold: float = 0.12) -> list:
     """
     Search agriculture knowledge base for relevant documents.
-    Returns: list of dicts (articles with relevance score)
+    Returns: list of dicts (articles above the relevance threshold, up to k results).
+    If no documents meet the threshold, returns an empty list (signals out-of-scope query).
     """
     global _cached_kb, _cached_embeddings, _faiss_index
     
@@ -125,9 +126,11 @@ def search_knowledge_base(query: str, k: int = 3, api_key: str = None) -> list:
             for dist, idx in zip(D[0], I[0]):
                 if idx < len(_cached_kb) and idx >= 0:
                     doc = _cached_kb[idx].copy()
-                    # Distance in FAISS FlatL2 is squared L2 distance. Convert to raw score
-                    doc["relevance_score"] = float(1.0 / (1.0 + dist))
-                    results.append(doc)
+                    # Convert L2 distance to a 0-1 similarity score
+                    score = float(1.0 / (1.0 + dist))
+                    doc["relevance_score"] = score
+                    if score >= relevance_threshold:
+                        results.append(doc)
             return results
         except Exception as search_err:
             print(f"[RAG] FAISS search failed: {search_err}. Falling back to Numpy.")
@@ -145,10 +148,12 @@ def search_knowledge_base(query: str, k: int = 3, api_key: str = None) -> list:
         else:
             score = float(np.dot(q_vec, doc_vec) / (q_norm * doc_norm))
             
-        doc_copy = doc.copy()
-        doc_copy["relevance_score"] = score
-        results.append(doc_copy)
+        if score >= relevance_threshold:
+            doc_copy = doc.copy()
+            doc_copy["relevance_score"] = score
+            results.append(doc_copy)
         
-    # Sort by score descending
+    # Sort by score descending and return top k
     results.sort(key=lambda x: x["relevance_score"], reverse=True)
     return results[:k]
+

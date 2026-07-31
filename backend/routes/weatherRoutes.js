@@ -3,7 +3,11 @@ import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Weather condition code mappings (WMO codes from Open-Meteo)
+// ─────────────────────────────────────────────────────────────────────────────
+//  Static cached weather data (Open-Meteo live fetch removed per product spec)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Weather condition code mappings (WMO codes)
 const WMO_CONDITIONS = {
   0: { label: "Clear Sky", icon: "☀️" },
   1: { label: "Mainly Clear", icon: "🌤️" },
@@ -31,182 +35,134 @@ const WMO_CONDITIONS = {
   99: { label: "Thunderstorm w/ Heavy Hail", icon: "⛈️" },
 };
 
-// Geocoding: Convert city name → lat/lon using Open-Meteo geocoding API
-async function geocodeCity(cityName) {
-  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=en&format=json`;
-  const res = await fetch(url);
-  const data = await res.json();
-  if (!data.results || data.results.length === 0) return null;
-  const { latitude, longitude, name, admin1, country } = data.results[0];
-  return { lat: latitude, lon: longitude, displayName: `${name}${admin1 ? ", " + admin1 : ""}, ${country}` };
+// Static 7-day forecast template for Indian agricultural regions
+function buildStaticForecast() {
+  const today = new Date();
+  const days = ["Today", "Tomorrow", "Mon", "Tue", "Wed", "Thu", "Fri"];
+  const conditions = [
+    { code: 1, maxTemp: 34, minTemp: 22, rain: 10, wind: 12, uv: 6 },
+    { code: 2, maxTemp: 33, minTemp: 21, rain: 20, wind: 15, uv: 5 },
+    { code: 80, maxTemp: 30, minTemp: 20, rain: 65, wind: 18, uv: 3 },
+    { code: 63, maxTemp: 28, minTemp: 19, rain: 80, wind: 20, uv: 2 },
+    { code: 2, maxTemp: 31, minTemp: 20, rain: 25, wind: 14, uv: 5 },
+    { code: 1, maxTemp: 35, minTemp: 23, rain: 5, wind: 10, uv: 7 },
+    { code: 0, maxTemp: 36, minTemp: 24, rain: 5, wind: 9, uv: 8 },
+  ];
+
+  return conditions.map((c, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const cond = WMO_CONDITIONS[c.code] || { label: "Unknown", icon: "🌡️" };
+    const dayName =
+      i === 0
+        ? "Today"
+        : i === 1
+        ? "Tomorrow"
+        : d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+    const dateStr = d.toISOString().split("T")[0];
+    return {
+      date: dateStr,
+      dayName,
+      icon: cond.icon,
+      condition: cond.label,
+      maxTemp: c.maxTemp,
+      minTemp: c.minTemp,
+      rainChance: c.rain,
+      rainfall: (c.rain / 20).toFixed(1),
+      maxWind: c.wind,
+      uvIndex: c.uv,
+      sunrise: "06:15",
+      sunset: "19:30",
+    };
+  });
 }
 
-// Fetch live weather from Open-Meteo (free, no API key)
-async function fetchOpenMeteo(lat, lon) {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
-    + `&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,wind_speed_10m,wind_direction_10m,weather_code,surface_pressure,uv_index`
-    + `&hourly=temperature_2m,precipitation_probability,weather_code`
-    + `&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,uv_index_max`
-    + `&timezone=Asia%2FKolkata&forecast_days=7&wind_speed_unit=kmh`;
+// Static hourly template for next 24 hours
+function buildStaticHourly() {
+  const hours = [];
+  const now = new Date();
+  const baseTemp = 28;
+  for (let i = 0; i < 8; i++) {
+    const t = new Date(now);
+    t.setHours(now.getHours() + i * 3);
+    const hour = t.getHours();
+    const tempOffset = hour >= 11 && hour <= 16 ? 6 : hour <= 6 || hour >= 20 ? -4 : 0;
+    hours.push({
+      time: t.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+      temp: baseTemp + tempOffset,
+      rainChance: hour >= 14 && hour <= 18 ? 40 : 10,
+      icon: hour >= 20 || hour < 6 ? "🌙" : hour >= 14 ? "⛅" : "☀️",
+    });
+  }
+  return hours;
+}
 
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("Weather API request failed");
-  return res.json();
+// Farming advice derived from static current conditions
+function generateStaticFarmingAdvice() {
+  return [
+    {
+      icon: "✅",
+      type: "success",
+      title: "Good Day for Farm Work",
+      text: "Weather looks favorable. Ideal conditions for spraying, weeding, or harvesting activities.",
+    },
+    {
+      icon: "💧",
+      type: "info",
+      title: "Irrigation Reminder",
+      text: "Monitor soil moisture. Irrigate in the early morning or late evening to reduce evaporation losses.",
+    },
+    {
+      icon: "🌾",
+      type: "info",
+      title: "Seasonal Advisory",
+      text: "Check crop growth stage and apply recommended fertilizers as per schedule. Inspect leaves for early disease symptoms.",
+    },
+  ];
 }
 
 // GET /api/weather?location=cityname  OR  /api/weather?lat=...&lon=...
+// Returns cached/static weather data. Live API fetch has been disabled.
 router.get("/", protect, async (req, res) => {
   try {
     const { location, lat: qLat, lon: qLon } = req.query;
 
-    let lat, lon, displayName;
-
-    // Coordinates provided directly (from browser geolocation)
-    if (qLat && qLon) {
-      lat = parseFloat(qLat);
-      lon = parseFloat(qLon);
-      displayName = req.query.name || "Your Location";
-    } else if (location && location.trim()) {
-      // Geocode the city name
-      const geo = await geocodeCity(location.trim());
-      if (!geo) {
-        return res.status(404).json({ error: `Location "${location}" not found. Try a major city or district name.` });
-      }
-      lat = geo.lat;
-      lon = geo.lon;
-      displayName = geo.displayName;
-    } else {
-      // Default: New Delhi
-      lat = 28.6139;
-      lon = 77.2090;
-      displayName = "New Delhi, India";
+    let displayName = "New Delhi, India";
+    if (location && location.trim()) {
+      displayName = location.trim();
+    } else if (req.query.name) {
+      displayName = req.query.name;
+    } else if (qLat && qLon) {
+      displayName = `${parseFloat(qLat).toFixed(2)}°N, ${parseFloat(qLon).toFixed(2)}°E`;
     }
-
-    const raw = await fetchOpenMeteo(lat, lon);
-    const curr = raw.current;
-    const daily = raw.daily;
-    const hourly = raw.hourly;
-
-    // Current weather
-    const wmoCode = curr.weather_code;
-    const condition = WMO_CONDITIONS[wmoCode] || { label: "Unknown", icon: "🌡️" };
-
-    // Farming-specific advisory based on conditions
-    const farmingAdvice = generateFarmingAdvice(curr, daily, wmoCode);
-
-    // 7-day forecast
-    const forecast = daily.time.map((dateStr, i) => {
-      const code = daily.weather_code[i];
-      const cond = WMO_CONDITIONS[code] || { label: "Unknown", icon: "🌡️" };
-      const sunrise = daily.sunrise[i] ? daily.sunrise[i].split("T")[1] : "--";
-      const sunset = daily.sunset[i] ? daily.sunset[i].split("T")[1] : "--";
-      const date = new Date(dateStr);
-      return {
-        date: dateStr,
-        dayName: i === 0 ? "Today" : i === 1 ? "Tomorrow" : date.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }),
-        icon: cond.icon,
-        condition: cond.label,
-        maxTemp: Math.round(daily.temperature_2m_max[i]),
-        minTemp: Math.round(daily.temperature_2m_min[i]),
-        rainChance: daily.precipitation_probability_max[i] || 0,
-        rainfall: (daily.precipitation_sum[i] || 0).toFixed(1),
-        maxWind: Math.round(daily.wind_speed_10m_max[i] || 0),
-        uvIndex: Math.round(daily.uv_index_max[i] || 0),
-        sunrise,
-        sunset,
-      };
-    });
-
-    // Hourly forecast for next 24 hours
-    const now = new Date();
-    const currentHourIdx = hourly.time.findIndex(t => new Date(t) >= now);
-    const next24Hours = hourly.time.slice(currentHourIdx, currentHourIdx + 24).map((t, i) => {
-      const idx = currentHourIdx + i;
-      const code = hourly.weather_code[idx];
-      const hCond = WMO_CONDITIONS[code] || { icon: "🌡️" };
-      return {
-        time: new Date(t).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
-        temp: Math.round(hourly.temperature_2m[idx]),
-        rainChance: hourly.precipitation_probability[idx] || 0,
-        icon: hCond.icon,
-      };
-    }).filter((_, i) => i % 3 === 0); // Every 3 hours
 
     return res.json({
       location: displayName,
-      lat, lon,
+      lat: parseFloat(qLat) || 28.6139,
+      lon: parseFloat(qLon) || 77.209,
       current: {
-        temperature: Math.round(curr.temperature_2m),
-        feelsLike: Math.round(curr.apparent_temperature),
-        humidity: curr.relative_humidity_2m,
-        condition: condition.label,
-        icon: condition.icon,
-        windSpeed: Math.round(curr.wind_speed_10m),
-        windDirection: curr.wind_direction_10m,
-        pressure: Math.round(curr.surface_pressure),
-        uvIndex: Math.round(curr.uv_index || 0),
-        precipitation: curr.precipitation || 0,
-        isDay: curr.is_day === 1,
+        temperature: 32,
+        feelsLike: 35,
+        humidity: 58,
+        condition: "Mainly Clear",
+        icon: "🌤️",
+        windSpeed: 14,
+        windDirection: 220,
+        pressure: 1008,
+        uvIndex: 6,
+        precipitation: 0,
+        isDay: true,
       },
-      forecast,
-      hourly: next24Hours,
-      farmingAdvice,
+      forecast: buildStaticForecast(),
+      hourly: buildStaticHourly(),
+      farmingAdvice: generateStaticFarmingAdvice(),
       lastUpdated: new Date().toISOString(),
+      cached: true,
     });
   } catch (err) {
-    console.error("Weather API error:", err.message);
-    return res.status(500).json({ error: "Failed to fetch live weather data. Please try again." });
+    console.error("Weather route error:", err.message);
+    return res.status(500).json({ error: "Weather data unavailable. Please try again later." });
   }
 });
-
-function generateFarmingAdvice(curr, daily, wmoCode) {
-  const tips = [];
-  const temp = Math.round(curr.temperature_2m);
-  const humidity = curr.relative_humidity_2m;
-  const wind = Math.round(curr.wind_speed_10m);
-  const rain = curr.precipitation || 0;
-  const uv = curr.uv_index || 0;
-  const rainTomorrow = daily.precipitation_probability_max[1] || 0;
-
-  // Rain advice
-  if ([61, 63, 65, 80, 81, 82, 95, 96, 99].includes(wmoCode)) {
-    tips.push({ icon: "🌧️", type: "warning", title: "Heavy Rain Alert", text: "Suspend irrigation and postpone fertilizer application. Ensure field drainage is clear to prevent waterlogging." });
-  } else if (rainTomorrow > 60) {
-    tips.push({ icon: "⛈️", type: "warning", title: "Rain Expected Tomorrow", text: `${rainTomorrow}% chance of rain tomorrow. Skip irrigation today and delay pesticide spraying.` });
-  }
-
-  // Temperature advice
-  if (temp > 38) {
-    tips.push({ icon: "🔥", type: "danger", title: "Heat Stress Risk", text: "Temperatures above 38°C. Irrigate crops in the early morning or late evening. Mulch root zones to retain moisture." });
-  } else if (temp < 10) {
-    tips.push({ icon: "❄️", type: "info", title: "Cold Stress Risk", text: "Low temperatures may damage tender crops. Cover seedlings and nursery beds with polythene mulch tonight." });
-  } else if (temp >= 20 && temp <= 30) {
-    tips.push({ icon: "✅", type: "success", title: "Ideal Growing Conditions", text: "Temperature is optimal for most rabi and kharif crops. Good time for transplanting and sowing activities." });
-  }
-
-  // Humidity advice
-  if (humidity > 85) {
-    tips.push({ icon: "💧", type: "warning", title: "High Humidity — Disease Risk", text: "High humidity favors fungal diseases (blight, mildew). Improve crop ventilation and inspect leaves for early symptoms." });
-  } else if (humidity < 30) {
-    tips.push({ icon: "🌵", type: "warning", title: "Low Humidity — Drought Risk", text: "Very dry conditions. Monitor soil moisture closely and schedule drip or sprinkler irrigation more frequently." });
-  }
-
-  // Wind advice
-  if (wind > 40) {
-    tips.push({ icon: "💨", type: "warning", title: "High Winds", text: `Wind speed ${wind} km/h. Avoid pesticide spraying — chemical drift risk. Support tall crops with stakes.` });
-  }
-
-  // UV advice
-  if (uv >= 8) {
-    tips.push({ icon: "☀️", type: "info", title: "High UV Index", text: "UV Index is high. Best to do field work before 11 AM or after 4 PM to avoid heat exhaustion." });
-  }
-
-  // Clear day advice
-  if (tips.length === 0) {
-    tips.push({ icon: "🌾", type: "success", title: "Good Day for Farm Work", text: "Weather looks favorable. Ideal conditions for spraying, weeding, or harvesting activities." });
-  }
-
-  return tips;
-}
 
 export default router;

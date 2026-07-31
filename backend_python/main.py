@@ -23,7 +23,7 @@ except ImportError:
     pass
 
 from database import init_db, get_db, DiseaseReport, CropLog, WeatherCache, User, PushSubscription, EmergencyAlert, CommunityOfficer, CommunityWebinar, GovernmentScheme, seed_db
-from ml_model import predict_image, get_gemini_api_key, run_crop_diagnose_cv, run_leaf_disease_diagnose, run_crop_disease_detect
+from ml_model import predict_image, get_gemini_api_key, run_crop_diagnose_cv, run_leaf_disease_diagnose, run_crop_disease_detect, validate_image_with_cloud_vision
 from use_dataset_for_disease_detection import register_dataset_routes, get_dataset_stats, load_dataset_classes
 from pydantic import BaseModel
 from fastapi.responses import FileResponse
@@ -420,6 +420,18 @@ async def diagnose_crop_cv_endpoint(
     with open(file_path, "rb") as f:
         img_bytes = f.read()
 
+    # ── STAGE 1: Cloud Vision API Validation Gate ──────────────────────────────
+    # Reject non-plant images before they reach the Stage 2 classifier.
+    cv_valid, cv_reason = validate_image_with_cloud_vision(img_bytes, custom_key=x_gemini_key)
+    if not cv_valid:
+        return {
+            "success": False,
+            "error": "Invalid image. Please upload a clear photo of a crop or plant leaf.",
+            "cloud_vision_reason": cv_reason,
+        }
+    print(f"[Stage1] Crop-diagnose image validated: {cv_reason}")
+    # ─────────────────────────────────────────────────────────────────────────
+
     import asyncio
     loop = asyncio.get_event_loop()
     prediction = await loop.run_in_executor(None, run_crop_diagnose_cv, img_bytes, crop, x_gemini_key)
@@ -484,6 +496,17 @@ async def diagnose_leaf_disease(
     with open(file_path, "rb") as f:
         img_bytes = f.read()
 
+    # ── STAGE 1: Cloud Vision API Validation Gate ──────────────────────────────
+    cv_valid, cv_reason = validate_image_with_cloud_vision(img_bytes, custom_key=x_gemini_key)
+    if not cv_valid:
+        return {
+            "success": False,
+            "error": "Invalid image. Please upload a clear photo of a plant leaf for leaf disease analysis.",
+            "cloud_vision_reason": cv_reason,
+        }
+    print(f"[Stage1] Leaf-diagnose image validated: {cv_reason}")
+    # ─────────────────────────────────────────────────────────────────────────
+
     import asyncio
     loop = asyncio.get_event_loop()
     prediction = await loop.run_in_executor(None, run_leaf_disease_diagnose, img_bytes, crop, x_gemini_key)
@@ -546,6 +569,17 @@ async def detect_crop_disease_endpoint(
 
     with open(file_path, "rb") as f:
         img_bytes = f.read()
+
+    # ── STAGE 1: Cloud Vision API Validation Gate ──────────────────────────────
+    cv_valid, cv_reason = validate_image_with_cloud_vision(img_bytes, custom_key=x_gemini_key)
+    if not cv_valid:
+        return {
+            "success": False,
+            "error": "Invalid image. Please upload a clear photo of a crop or plant leaf for disease detection.",
+            "cloud_vision_reason": cv_reason,
+        }
+    print(f"[Stage1] Crop-disease-detect image validated: {cv_reason}")
+    # ─────────────────────────────────────────────────────────────────────────
 
     import asyncio
     loop = asyncio.get_event_loop()
@@ -666,21 +700,36 @@ async def agricultural_chat_endpoint(
     # 2. Vector search matched documents (RAG)
     from rag_service import search_knowledge_base
     matched_docs = search_knowledge_base(query, k=3, api_key=api_key)
-    context_str = ""
-    if matched_docs:
-        context_str = "\n\n".join([f"Source: {doc['source']}\nTitle: {doc['title']}\nContent: {doc['text']}" for doc in matched_docs])
+
+    # ── Strict RAG Grounding: Refuse if no KB context is found ──
+    # This prevents Gemini from generating answers from general knowledge.
+    # The topic guardrail above handles off-topic queries. This check handles
+    # queries that are technically agricultural but fall outside the KB coverage.
+    if not matched_docs:
+        return {
+            "success": False,
+            "response": (
+                "I don't have specific information about that in my knowledge base. "
+                "Please consult your local agricultural extension officer or Krishi Vigyan Kendra (KVK) for advice on this topic."
+            ),
+            "source": "rag-no-context"
+        }
+
+    context_str = "\n\n".join([
+        f"Source: {doc['source']}\nTitle: {doc['title']}\nContent: {doc['text']}"
+        for doc in matched_docs
+    ])
 
     # 3. Formulate RAG context prompt with strict persona
-    system_instruction = f"""You are SmartKisanBot, an Expert Agriculture AI Assistant.
-    You ONLY provide information related to farming, plants, crops, soil, irrigation, fertilizers, pests, diseases, weather, and agriculture technology.
-    If a question is NOT related to agriculture, reply EXACTLY: "{REFUSAL_MESSAGE}".
-    Reply in the requested language: {lang.upper()} (en, hi, or mr).
-    Always format your response with clean Markdown:
-    - Structured headings
-    - Bullet points for clarity
-    - Next steps / Actionable recommendations for the farmer
-    
-    Use the following verified knowledge base documents if relevant:
+    system_instruction = f"""You are SmartKisanBot, an Expert Agriculture AI Assistant for Indian farmers.
+    IMPORTANT RULES:
+    1. You ONLY answer based on the knowledge base documents provided below.
+    2. Do NOT use general knowledge or information not present in the provided context.
+    3. If the context does not contain sufficient information to answer the question, reply EXACTLY: "{REFUSAL_MESSAGE}"
+    4. Reply in the requested language: {lang.upper()} (en=English, hi=Hindi, mr=Marathi).
+    5. Format your response with clean Markdown: structured headings, bullet points, actionable next steps.
+
+    KNOWLEDGE BASE CONTEXT:
     {context_str}"""
 
     # Assemble chat history for multi-turn context
@@ -703,7 +752,7 @@ async def agricultural_chat_endpoint(
                 "parts": [{"text": system_instruction}]
             },
             "generationConfig": {
-                "temperature": 0.2,
+                "temperature": 0.1,
                 "maxOutputTokens": 1200
             }
         }
@@ -711,30 +760,38 @@ async def agricultural_chat_endpoint(
         if resp.status_code == 200:
             data = resp.json()
             response_text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])[0].get("text", "").strip()
+            # If Gemini itself signals it cannot answer (echoes refusal), surface it cleanly
+            if not response_text or response_text == REFUSAL_MESSAGE:
+                return {
+                    "success": False,
+                    "response": REFUSAL_MESSAGE,
+                    "source": "rag-out-of-scope"
+                }
             return {
                 "success": True,
                 "response": response_text,
-                "source": "gemini",
+                "source": "gemini-rag",
                 "rag_sources": [d["title"] for d in matched_docs]
             }
         else:
             raise Exception(f"Gemini API status code {resp.status_code}")
     except Exception as err:
         print(f"[FastAPI Chat Error] {err}")
-        if matched_docs:
-            doc = matched_docs[0]
-            fallback_text = f"Here is relevant information from our knowledge base:\n\n* **{doc['title']}**: {doc['text']}\n\n**Next Steps:**\n* Monitor soil moisture\n* Inspect plants for symptoms"
-            return {
-                "success": True,
-                "response": fallback_text,
-                "source": "database_fallback",
-                "rag_sources": [d["title"] for d in matched_docs]
-            }
+        # Fallback: surface top KB document text if Gemini call fails
+        doc = matched_docs[0]
+        fallback_text = (
+            f"Here is relevant information from our knowledge base:\n\n"
+            f"**{doc['title']}**\n{doc['text']}\n\n"
+            "**Next Steps:**\n* Monitor soil moisture\n* Inspect plants for early symptoms"
+        )
         return {
-            "success": False,
-            "response": REFUSAL_MESSAGE,
-            "source": "guardrail"
+            "success": True,
+            "response": fallback_text,
+            "source": "database_fallback",
+            "rag_sources": [d["title"] for d in matched_docs]
         }
+
+
 
 
 # --- PDF Report Download Endpoint ---
