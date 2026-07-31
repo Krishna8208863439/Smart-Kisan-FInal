@@ -24,6 +24,7 @@ except ImportError:
 
 from database import init_db, get_db, DiseaseReport, CropLog, WeatherCache, User, PushSubscription, EmergencyAlert, CommunityOfficer, CommunityWebinar, GovernmentScheme, seed_db
 from ml_model import predict_image, get_gemini_api_key, run_crop_diagnose_cv, run_leaf_disease_diagnose, run_crop_disease_detect, validate_image_with_cloud_vision
+from plant_gate import validate_is_plant_image, log_rejection
 from use_dataset_for_disease_detection import register_dataset_routes, get_dataset_stats, load_dataset_classes
 from pydantic import BaseModel
 from fastapi.responses import FileResponse
@@ -150,6 +151,16 @@ def verify_request_preconditions(image: UploadFile, x_gemini_key: Optional[str])
             status_code=400,
             detail="Invalid file format. Only JPG, JPEG, PNG, and WEBP images are accepted."
         )
+
+
+def _gate_reject(confidence: float, message: str = None) -> dict:
+    """Standard rejection payload returned when Step 1 validation gate fails."""
+    return {
+        "status": "rejected",
+        "success": False,
+        "message": message or "Invalid image. Please upload a clear image of a crop or plant.",
+        "confidence": round(float(confidence), 4),
+    }
 
 # Ensure folders exist
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
@@ -420,16 +431,30 @@ async def diagnose_crop_cv_endpoint(
     with open(file_path, "rb") as f:
         img_bytes = f.read()
 
-    # ── STAGE 1: Cloud Vision API Validation Gate ──────────────────────────────
-    # Reject non-plant images before they reach the Stage 2 classifier.
-    cv_valid, cv_reason = validate_image_with_cloud_vision(img_bytes, custom_key=x_gemini_key)
-    if not cv_valid:
-        return {
-            "success": False,
-            "error": "Invalid image. Please upload a clear photo of a crop or plant leaf.",
-            "cloud_vision_reason": cv_reason,
-        }
-    print(f"[Stage1] Crop-diagnose image validated: {cv_reason}")
+    # ── STAGE 1: Plant Image Validation Gate (MobileNetV2 / Gemini strict) ────
+    # Rejects non-plant images BEFORE any classifier or Gemini diagnosis call.
+    # This gate is NEVER bypassed — it always runs regardless of API keys.
+    gate_result = validate_is_plant_image(img_bytes, confidence_threshold=0.75, custom_key=x_gemini_key)
+    if not gate_result["is_valid"]:
+        log_rejection(
+            filename=image.filename,
+            endpoint="/api/crop-diagnostics",
+            confidence=gate_result["confidence"],
+            reason=f"not_plant (mode={gate_result['mode']})",
+        )
+        logger.info(
+            "[Stage1] REJECTED non-plant image '%s' at /api/crop-diagnostics "
+            "(confidence=%.3f mode=%s)",
+            image.filename, gate_result["confidence"], gate_result["mode"],
+        )
+        return _gate_reject(
+            confidence=gate_result["confidence"],
+            message="Invalid image. Please upload a clear image of a crop or plant.",
+        )
+    logger.info(
+        "[Stage1] PASSED crop-diagnostics gate: '%s' confidence=%.3f mode=%s",
+        image.filename, gate_result["confidence"], gate_result["mode"],
+    )
     # ─────────────────────────────────────────────────────────────────────────
 
     import asyncio
@@ -496,15 +521,28 @@ async def diagnose_leaf_disease(
     with open(file_path, "rb") as f:
         img_bytes = f.read()
 
-    # ── STAGE 1: Cloud Vision API Validation Gate ──────────────────────────────
-    cv_valid, cv_reason = validate_image_with_cloud_vision(img_bytes, custom_key=x_gemini_key)
-    if not cv_valid:
-        return {
-            "success": False,
-            "error": "Invalid image. Please upload a clear photo of a plant leaf for leaf disease analysis.",
-            "cloud_vision_reason": cv_reason,
-        }
-    print(f"[Stage1] Leaf-diagnose image validated: {cv_reason}")
+    # ── STAGE 1: Plant Image Validation Gate (MobileNetV2 / Gemini strict) ────
+    gate_result = validate_is_plant_image(img_bytes, confidence_threshold=0.75, custom_key=x_gemini_key)
+    if not gate_result["is_valid"]:
+        log_rejection(
+            filename=image.filename,
+            endpoint="/api/leaf-disease",
+            confidence=gate_result["confidence"],
+            reason=f"not_plant (mode={gate_result['mode']})",
+        )
+        logger.info(
+            "[Stage1] REJECTED non-plant image '%s' at /api/leaf-disease "
+            "(confidence=%.3f mode=%s)",
+            image.filename, gate_result["confidence"], gate_result["mode"],
+        )
+        return _gate_reject(
+            confidence=gate_result["confidence"],
+            message="Invalid image. Please upload a clear image of a crop or plant leaf.",
+        )
+    logger.info(
+        "[Stage1] PASSED leaf-disease gate: '%s' confidence=%.3f mode=%s",
+        image.filename, gate_result["confidence"], gate_result["mode"],
+    )
     # ─────────────────────────────────────────────────────────────────────────
 
     import asyncio
@@ -570,15 +608,28 @@ async def detect_crop_disease_endpoint(
     with open(file_path, "rb") as f:
         img_bytes = f.read()
 
-    # ── STAGE 1: Cloud Vision API Validation Gate ──────────────────────────────
-    cv_valid, cv_reason = validate_image_with_cloud_vision(img_bytes, custom_key=x_gemini_key)
-    if not cv_valid:
-        return {
-            "success": False,
-            "error": "Invalid image. Please upload a clear photo of a crop or plant leaf for disease detection.",
-            "cloud_vision_reason": cv_reason,
-        }
-    print(f"[Stage1] Crop-disease-detect image validated: {cv_reason}")
+    # ── STAGE 1: Plant Image Validation Gate (MobileNetV2 / Gemini strict) ────
+    gate_result = validate_is_plant_image(img_bytes, confidence_threshold=0.75, custom_key=x_gemini_key)
+    if not gate_result["is_valid"]:
+        log_rejection(
+            filename=image.filename,
+            endpoint="/api/crop-disease",
+            confidence=gate_result["confidence"],
+            reason=f"not_plant (mode={gate_result['mode']})",
+        )
+        logger.info(
+            "[Stage1] REJECTED non-plant image '%s' at /api/crop-disease "
+            "(confidence=%.3f mode=%s)",
+            image.filename, gate_result["confidence"], gate_result["mode"],
+        )
+        return _gate_reject(
+            confidence=gate_result["confidence"],
+            message="Invalid image. Please upload a clear image of a crop or plant for disease detection.",
+        )
+    logger.info(
+        "[Stage1] PASSED crop-disease gate: '%s' confidence=%.3f mode=%s",
+        image.filename, gate_result["confidence"], gate_result["mode"],
+    )
     # ─────────────────────────────────────────────────────────────────────────
 
     import asyncio

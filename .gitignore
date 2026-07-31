@@ -58,3 +58,6 @@ datasets/plantvillage dataset/
 # Generated analysis reports
 backend_python/crop_disease_analysis_report.json
 backend_python/sample_diagnosis_report.json
+backend_python/rejection_log.jsonl
+backend_python/uploads/
+

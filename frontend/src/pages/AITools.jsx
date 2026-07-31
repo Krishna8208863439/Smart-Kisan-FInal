@@ -140,6 +140,7 @@ const AITools = () => {
   const [diseaseLoading, setDiseaseLoading] = useState(false);
   const [diseaseResult, setDiseaseResult] = useState(null);
   const [diseaseIsInvalid, setDiseaseIsInvalid] = useState(false);
+  const [diseaseRejection, setDiseaseRejection] = useState(null); // {message, confidence} on gate rejection
   const [diseaseStatus, setDiseaseStatus] = useState("Upload a crop leaf photo and click analyze.");
   const [scanStep, setScanStep] = useState(0);
   const [scanStepsList] = useState([
@@ -290,6 +291,7 @@ const AITools = () => {
     }
     setDiseaseLoading(true);
     setDiseaseIsInvalid(false);
+    setDiseaseRejection(null);
     setScanStep(0);
     setDiseaseResult(null);
     setDiseaseStatus(scanStepsList[0]);
@@ -330,6 +332,22 @@ const AITools = () => {
       clearInterval(stepInterval);
 
       const result = response.data;
+
+      // ── Step 1 Gate Rejection ─────────────────────────────────────────────
+      // Server returned standardised {status:"rejected"} — not a plant image.
+      // Do NOT populate the report card. Show rejection banner only.
+      if (result && result.status === "rejected") {
+        setDiseaseRejection({
+          message: result.message || "Invalid image. Please upload a clear image of a crop or plant.",
+          confidence: result.confidence ?? null,
+        });
+        setDiseaseResult(null);
+        setDiseaseIsInvalid(false);
+        setDiseaseStatus("");
+        return;
+      }
+      // ─────────────────────────────────────────────────────────────────────
+
       const isInvalid = !result || result.success === false || result.disease === "Invalid Image" || result.health_status === "invalid" || result.error;
       
       setDiseaseIsInvalid(isInvalid);
@@ -1076,10 +1094,72 @@ const AITools = () => {
               </div>
             </div>
 
+            {/* ── Step 1 Gate Rejection Banner ──────────────────────────────────── */}
+            {/* Shown INSTEAD of the report card when a non-plant image is detected */}
+            {diseaseRejection && (
+              <div
+                id="plant-gate-rejection-banner"
+                style={{
+                  background: "linear-gradient(135deg, #450a0a 0%, #7f1d1d 100%)",
+                  border: "1.5px solid #ef4444",
+                  borderRadius: 14,
+                  padding: "28px 28px 24px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 14,
+                  textAlign: "center",
+                  animation: "fadeInUp 0.35s ease"
+                }}
+              >
+                <div style={{ fontSize: 56, lineHeight: 1 }}>🚫</div>
+                <h3 style={{ margin: 0, color: "#fca5a5", fontSize: 18, fontWeight: 800 }}>
+                  {language === 'mr' ? 'अवैध प्रतिमा आढळली' : 'Invalid Image Detected'}
+                </h3>
+                <p style={{ margin: 0, color: "#fecaca", fontSize: 14, lineHeight: 1.6, maxWidth: 420 }}>
+                  {diseaseRejection.message}
+                </p>
+                {diseaseRejection.confidence !== null && (
+                  <div style={{
+                    background: "rgba(0,0,0,0.3)",
+                    borderRadius: 8,
+                    padding: "6px 16px",
+                    fontSize: 12,
+                    color: "#f87171",
+                    fontFamily: "monospace"
+                  }}>
+                    {language === 'mr'
+                      ? `वनस्पती आत्मविश्वास: ${Math.round(diseaseRejection.confidence * 100)}%`
+                      : `Plant confidence: ${Math.round(diseaseRejection.confidence * 100)}% (threshold: 75%)`}
+                  </div>
+                )}
+                <button
+                  id="gate-rejection-upload-new-btn"
+                  className="button"
+                  style={{
+                    marginTop: 6,
+                    background: "linear-gradient(135deg, #dc2626, #b91c1c)",
+                    border: "1px solid #ef4444",
+                    padding: "10px 24px",
+                    fontWeight: 700,
+                    fontSize: 14,
+                  }}
+                  onClick={() => {
+                    setDiseaseRejection(null);
+                    clearDiseaseImage(diseaseSubTab);
+                  }}
+                >
+                  {language === 'mr' ? '📷 नवीन प्रतिमा अपलोड करा' : '📷 Upload New Image'}
+                </button>
+              </div>
+            )}
+
             {/* Diagnostics Report */}
+            {!diseaseRejection && (
             <div className="card" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <h3 style={{ margin: 0 }}>
+                  {language === 'mr' ? '🩺 निदान अहवाल' : '🩺 Diagnostics Report'}
                   {language === 'mr' ? '🩺 निदान अहवाल' : '🩺 Diagnostics Report'}
                 </h3>
                 {diseaseResult && !diseaseIsInvalid && (
@@ -1465,6 +1545,7 @@ const AITools = () => {
                 </div>
               )}
             </div>
+            )}
           </div>
         </div>
       )}
