@@ -1,0 +1,100 @@
+/* ============================================================
+   Smart Kisan AI — Industrial Agricultural Design System Tokens
+   Grounded Palette: Clay Soil, Working Field Green, Turmeric Gold, Warm Off-White
+   ============================================================ */
+
+:root {
+  /* Earthy Palette Tokens */
+  --color-soil-dark: #1A241E;
+  --color-soil-dark-hover: #26342C;
+  --color-field-green: #1B7A43;
+  --color-field-green-hover: #145E33;
+  --color-field-green-light: #EBF7EE;
+  
+  --color-turmeric-gold: #D97706;
+  --color-turmeric-gold-hover: #B45309;
+  --color-turmeric-gold-light: #FEF3C7;
+  
+  --color-bg-warm-neutral: #F6F8F5;
+  --color-surface-card: #FFFFFF;
+  --color-surface-card-hover: #F0F4EF;
+  --color-border-subtle: #E2E8F0;
+  --color-border-accent: rgba(27, 122, 67, 0.25);
+  
+  /* Status Colors (Colorblind-Safe) */
+  --color-status-healthy: #15803D;
+  --color-status-healthy-bg: #DCFCE7;
+  --color-status-stressed: #D97706;
+  --color-status-stressed-bg: #FEF3C7;
+  --color-status-diseased: #DC2626;
+  --color-status-diseased-bg: #FEE2E2;
+  
+  /* Typography Variables */
+  --font-display: 'Outfit', 'Noto Sans Devanagari', system-ui, sans-serif;
+  --font-body: 'Inter', 'Noto Sans Devanagari', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  
+  --color-text-main: #111915;
+  --color-text-secondary: #374151;
+  --color-text-muted: #6B7280;
+  
+  /* Spacing Scale (8pt Grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  
+  /* Elevation Hierarchy */
+  --shadow-flat: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 8px 24px -4px rgba(27, 122, 67, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
+  --shadow-card-hover: 0 16px 36px -8px rgba(27, 122, 67, 0.18), 0 4px 12px -2px rgba(0, 0, 0, 0.05);
+  --shadow-dropdown: 0 20px 40px -10px rgba(26, 36, 30, 0.3);
+  
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+}
+
+/* Dark Mode Extensions */
+[data-theme="dark"] {
+  --color-soil-dark: #0A0F0C;
+  --color-bg-warm-neutral: #0E1411;
+  --color-surface-card: #16201B;
+  --color-surface-card-hover: #1E2B24;
+  --color-border-subtle: #27372E;
+  --color-border-accent: rgba(74, 222, 128, 0.3);
+  
+  --color-text-main: #F3F4F6;
+  --color-text-secondary: #D1D5DB;
+  --color-text-muted: #9CA3AF;
+  
+  --color-field-green-light: #0D2D1B;
+  --color-turmeric-gold-light: #3A2306;
+  --color-status-healthy-bg: #0A3A1B;
+  --color-status-stressed-bg: #3A2306;
+  --color-status-diseased-bg: #3D0A0A;
+  
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: 0 16px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* Utility Monospace Data Formatting */
+.data-mono {
+  font-family: var(--font-mono) !important;
+  letter-spacing: -0.5px;
+}
+
+/* Base Body Application */
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-bg-warm-neutral);
+  color: var(--color-text-main);
+}
+
+h1, h2, h3, h4, h5, h6, .display-title {
+  font-family: var(--font-display);
+}

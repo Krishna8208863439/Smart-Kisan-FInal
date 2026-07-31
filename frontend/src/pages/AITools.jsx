@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
 import { useHistory } from "../context/HistoryContext";
+import DiagnosticReport from "../components/common/DiagnosticReport";
 
 const TABS = ["Disease Detection", "Irrigation", "Fertilizer / NPK", "Smart Calendar"];
 
@@ -1231,28 +1232,7 @@ const AITools = () => {
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
-                    {/* AI Model Badge */}
-                    <div style={{
-                      background: "linear-gradient(135deg, #dbeafe, #eff6ff)",
-                      border: "1px solid #93c5fd",
-                      borderRadius: 8,
-                      padding: "6px 12px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      fontSize: 12
-                    }}>
-                      <span>✨</span>
-                      <span style={{ color: "#1d4ed8", fontWeight: 600 }}>
-                        {diseaseSubTab === "leaf_diag" 
-                          ? (diseaseResult?.ai_model || "AI Computer Vision Model")
-                          : "Google Gemini 1.5 Flash (AgriExpert AI)"}
-                      </span>
-                    </div>
-
-                    {/* Download PDF button */}
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
                     <button
                       type="button"
                       onClick={handleDownloadDiagnosticPDF}
@@ -1261,19 +1241,22 @@ const AITools = () => {
                         color: "white",
                         border: "none",
                         borderRadius: 8,
-                        padding: "6px 12px",
-                        fontSize: 12,
+                        padding: "8px 16px",
+                        fontSize: 13,
                         cursor: "pointer",
-                        fontWeight: 600,
+                        fontWeight: 700,
                         display: "inline-flex",
                         alignItems: "center",
-                        gap: 6
+                        gap: 6,
+                        boxShadow: "0 2px 8px rgba(21, 128, 61, 0.2)"
                       }}
                     >
                       <span>📥</span>
-                      {language === 'mr' ? 'अहवाल (PDF)' : 'Report (PDF)'}
+                      {language === 'mr' ? 'अहवाल डाउनलोड करा (PDF)' : 'Export Diagnostic PDF'}
                     </button>
                   </div>
+
+                  <DiagnosticReport report={diseaseResult} />
 
                   {/* --- CASE 1: CROP DIAGNOSTICS (CV) --- */}
                   {diseaseSubTab === "crop_cv" && (
