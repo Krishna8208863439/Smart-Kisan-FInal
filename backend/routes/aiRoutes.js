@@ -496,46 +496,48 @@ Query: "${message}"`
     }
   }
 
-  // Forward to Python FastAPI RAG chatbot
-  if (isGeminiKey) {
-    try {
-      const pythonUrl = getPythonUrl();
-      const chatPayload = {
-        message: message,
-        chatHistory: chatHistory ? chatHistory.map(item => ({
-          sender: item.sender,
-          text: item.text
-        })) : [],
-        language: activeLang
-      };
+  // ── Always Forward Chat Query to Python FastAPI RAG chatbot ──
+  try {
+    const pythonUrl = getPythonUrl();
+    const chatPayload = {
+      message: message,
+      chatHistory: chatHistory ? chatHistory.map(item => ({
+        sender: item.sender,
+        text: item.text
+      })) : [],
+      language: activeLang,
+      gps,
+      weather,
+      waterAvailability,
+      cropHint
+    };
 
-      console.log(`[Node] Forwarding chat query to Python RAG: ${pythonUrl}/api/chat`);
-      const pyResp = await fetch(`${pythonUrl}/api/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-gemini-key": apiKey
-        },
-        body: JSON.stringify(chatPayload)
+    console.log(`[Node] Forwarding chat query to Python RAG: ${pythonUrl}/api/chat`);
+    const headers = { "Content-Type": "application/json" };
+    if (apiKey) headers["x-gemini-key"] = apiKey;
+
+    const pyResp = await fetch(`${pythonUrl}/api/chat`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(chatPayload)
+    });
+
+    if (pyResp.ok) {
+      const pyData = await pyResp.json();
+      return res.json({
+        success: pyData.success !== false,
+        response: pyData.response,
+        source: pyData.source || "gemini-rag",
+        rag_sources: pyData.rag_sources
       });
-
-      if (pyResp.ok) {
-        const pyData = await pyResp.json();
-        return res.json({
-          success: pyData.success,
-          response: pyData.response,
-          source: pyData.source || "gemini",
-          rag_sources: pyData.rag_sources
-        });
-      } else {
-        console.warn(`[Node] Python chat backend returned status ${pyResp.status}. Trying direct Gemini fallback.`);
-      }
-    } catch (err) {
-      console.error("[Node] Python RAG chat forward failed, falling back to direct query:", err);
+    } else {
+      console.warn(`[Node] Python chat backend returned status ${pyResp.status}. Trying fallback.`);
     }
+  } catch (err) {
+    console.error("[Node] Python RAG chat forward failed:", err);
   }
 
-  // ── Process Text Query with systemInstruction and history ──
+  // ── Process Text Query with direct Gemini API if key is present ──
   if (isGeminiKey) {
     try {
       const systemInstruction = `You are SmartKisanBot, a specialized B2B Agricultural AI Assistant for Indian farmers.
@@ -703,14 +705,32 @@ Formatting requirement: Always format your response using clean, simple Markdown
       ? `📅 **साप्ताहिक कृषि कैलेंडर (AgriExpert)**:\n\n- **सप्ताह 1 (बुवाई की तैयारी)**: खेत की जुताई कर प्रति एकड़ 5 टन गोबर खाद और 80 किलोग्राम डीएपी मिलाएं।\n- **सप्ताह 3 (वानस्पतिक वृद्धि)**: बुवाई के 20 दिन बाद यूरिया की पहली टॉप-ड्रेसिंग करें और निराई-गुड़ाई करें।\n- **सप्ताह 7 (फूल आने की अवस्था)**: सूक्ष्म पोषक तत्वों का छिड़काव करें और हल्की सिंचाई दें।`
       : `📅 **Weekly Agronomic Calendar (AgriExpert)**:\n\n- **Week 1 (Sowing Preparation)**: Tillage soil, blend 5 tons of organic manure and 80kg Phosphorus (DAP) per acre.\n- **Week 3 (Vegetative Stage)**: Perform manual weeding, top-dress with 40kg Nitrogen (Urea) per acre.\n- **Week 7 (Flowering/Node Set)**: Administer a micro-nutrient foliar spray and run a light irrigation cycle.`;
   }
+  // 6.5 LOCATION SPECIFIC (Kolhapur, Maharashtra, Regional Crops)
+  else if (userMessage.includes("kolhapur") || userMessage.includes("कोल्हापूर") || userMessage.includes("कोल्हापुर") || userMessage.includes("best crop") || userMessage.includes("which crop") || userMessage.includes("beest crop")) {
+    responseText = activeLang === "mr"
+      ? `🌾 **कोल्हापूर / पश्चिम महाराष्ट्रासाठी प्रमुख पिके (AgriExpert)**:\n\n` +
+        `कोल्हापूर जिल्ह्यातील समृद्ध काळी व जांभी माती आणि उच्च पर्जन्यमान (१०००-२५०० मिमी) यानुसार सर्वोत्तम पिके:\n\n` +
+        `1. **ऊस (Sugarcane)**: को ८६०३२ (Co 86032) आणि फुले ०२६५ - मुख्य रोखीचे पीक.\n` +
+        `2. **भाताचे वाण (Paddy/Rice)**: आजरा घनसाळ आणि इंद्रायणी भात.\n` +
+        `3. **सोयाबीन (Soybean)**: जेएस ३३५ व केडीएस ७५३ वाण.\n` +
+        `4. **इतर रोखीची पिके**: भुईमूग, हळद, मिरची आणि टोमॅटो.`
+      : activeLang === "hi"
+      ? `🌾 **कोल्हापुर / पश्चिमी महाराष्ट्र के लिए अनुशंसित फसलें (AgriExpert)**:\n\n` +
+        `कोल्हापुर की समृद्ध काली मिट्टी और प्रचुर वर्षा के अनुसार प्रमुख फसलें:\n\n` +
+        `1. **गन्ना (Sugarcane)**: किस्म Co 86032 एवं फुले 0265 - मुख्य नकदी फसल।\n` +
+        `2. **धान (Paddy)**: आजरा घनसाल और इंद्रायणी चावल।\n` +
+        `3. **सोयाबीन (Soybean)**: JS 335 और KDS 753 किस्म।\n` +
+        `4. **अन्य नकदी फसलें**: मूंगफली, हल्दी, मिर्च एवं टमाटर।`
+      : `🌾 **Recommended Crops for Kolhapur / Western Maharashtra (AgriExpert)**:\n\n` +
+        `Based on Kolhapur's rich black/lateritic soil and heavy rainfall (1000–2500 mm), the top recommended crops are:\n\n` +
+        `1. **Sugarcane**: Varieties **Co 86032** and **Phule 0265** (Premier cash crop).\n` +
+        `2. **Paddy / Rice**: **Ajara Ghansal** and **Indrayani** rice varieties.\n` +
+        `3. **Soybean**: **JS 335** and **KDS 753** high-yield Kharif oilseed.\n` +
+        `4. **Cash & Commercial Crops**: Groundnut, Turmeric, Chilli, and Tomato.`;
+  }
   // 7. DEFAULT RULES
   else {
     responseText = dict.default;
-  }
-
-  // Inject GPS/Weather context indicators into fallback text
-  if (userContext) {
-    responseText = `📡 **[Injected Context Active]**\n\n` + responseText;
   }
 
   return res.json({
