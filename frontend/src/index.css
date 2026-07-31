@@ -134,25 +134,28 @@ a {
 }
 
 /* ── Navbar ── */
+/* ── Navbar (Industrial Enterprise Design) ── */
 .nav-bar {
-  background: #15803d; /* Solid green background */
+  background: linear-gradient(135deg, #064e3b 0%, #15803d 60%, #065f46 100%);
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 20px -2px rgba(6, 78, 59, 0.35);
   transition: var(--transition);
   height: var(--nav-height);
   width: 100%;
   min-width: 100%;
+  backdrop-filter: blur(12px);
 }
 
 [data-theme="dark"] .nav-bar {
-  background: #0f172a; /* Solid dark background */
-  border-bottom: 1px solid var(--border-color);
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.45);
 }
 
 .nav-bar-scrolled {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
 }
 
 .nav-container {
@@ -164,23 +167,24 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .nav-logo {
-  font-size: 20px;
+  font-size: 21px;
   font-weight: 800;
-  color: white;
+  color: #ffffff;
   display: flex;
   align-items: center;
-  gap: 8px;
-  letter-spacing: -0.3px;
+  gap: 10px;
+  letter-spacing: -0.4px;
   flex-shrink: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 .nav-links-desktop {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
   flex: 1;
   justify-content: center;
@@ -189,20 +193,30 @@ a {
 }
 
 .nav-link {
-  color: rgba(255, 255, 255, 0.88);
-  font-size: 13px;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13.5px;
   font-weight: 600;
   text-decoration: none;
-  padding: 6px 12px;
-  border-radius: 8px;
-  transition: var(--transition);
+  padding: 8px 16px;
+  border-radius: 20px;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
   flex-shrink: 0;
+  border: 1px solid transparent;
 }
 
-.nav-link:hover, .nav-link-active {
-  color: white;
-  background: rgba(255, 255, 255, 0.22);
+.nav-link:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.nav-link-active {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.24) !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 /* ── AI Tools Dropdown ── */
@@ -2799,35 +2813,40 @@ label {
 }
 
 .agri-suite-card {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.07);
+  background: var(--bg-card);
+  border: 1px solid rgba(22, 163, 74, 0.18);
+  border-top: 3px solid #16a34a;
   border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  min-height: 230px;
-  position: relative;
-  overflow: hidden;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.05);
+  transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
 }
 
 [data-theme="dark"] .agri-suite-card {
   background: #1e293b;
   border-color: #334155;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  border-top: 3px solid #22c55e;
 }
 
 .agri-suite-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
-  border-color: rgba(21, 128, 61, 0.3);
+  box-shadow: 0 16px 36px -8px rgba(22, 163, 74, 0.22);
+  border-color: rgba(22, 163, 74, 0.4);
+}
+
+[data-theme="dark"] .agri-suite-card:hover {
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  border-color: #4ade80;
 }
 
 .agri-suite-card-top {
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
 .agri-suite-icon {
