@@ -131,6 +131,17 @@ const AITools = () => {
       }
     }
   }, [location.search]);
+
+  // Handle image passed from CameraScannerModal
+  useEffect(() => {
+    if (location.state?.capturedFile) {
+      const file = location.state.capturedFile;
+      setDiseaseFile(file);
+      setDiseasePreview(URL.createObjectURL(file));
+      setDiseaseResult(null);
+      setDiseaseRejection(null);
+    }
+  }, [location.state]);
   const [diseaseFile, setDiseaseFile] = useState(null);
   const [diseasePreview, setDiseasePreview] = useState("");
   const [diseaseCropHint, setDiseaseCropHint] = useState("Tomato");

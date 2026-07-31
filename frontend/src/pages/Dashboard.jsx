@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Bot, Calendar, FlaskConical, ShoppingCart, Sun, LineChart, Sprout, BarChart3, Leaf, Microscope, Landmark, ShieldCheck } from "lucide-react";
+import { Bot, Calendar, FlaskConical, ShoppingCart, Sun, LineChart, Sprout, BarChart3, Leaf, Microscope, Landmark, ShieldCheck, Camera } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import api from "../api";
@@ -782,8 +782,57 @@ const Dashboard = () => {
       {/* Live Weather Widget */}
       <WeatherWidget />
 
+      {/* Prominent Primary Field Action: Camera Scan Hero CTA */}
+      <div
+        style={{
+          background: "linear-gradient(135deg, #1B7A43 0%, #15803D 100%)",
+          borderRadius: 16,
+          padding: "20px 24px",
+          marginTop: 20,
+          marginBottom: 24,
+          color: "#FFFFFF",
+          boxShadow: "0 8px 24px -4px rgba(27, 122, 67, 0.4)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 16
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ background: "rgba(255, 255, 255, 0.2)", borderRadius: 50, padding: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Camera size={28} color="#FFFFFF" />
+          </div>
+          <div>
+            <span style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.8px", color: "rgba(255, 255, 255, 0.85)" }}>
+              FIELD CAMERA DIAGNOSTICS
+            </span>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: "#FFFFFF", margin: "2px 0 0 0" }}>
+              {language === "mr" ? "पिकाचा फोटो काढून रोग ओळखा" : "Scan Crop Leaf for Immediate Diagnosis"}
+            </h3>
+          </div>
+        </div>
+
+        <Link to="/ai-tools?tab=disease&subtab=crop_cv" style={{ textDecoration: "none" }}>
+          <button
+            className="agri-suite-btn"
+            style={{
+              background: "#FFFFFF",
+              color: "#15803D",
+              padding: "12px 24px",
+              fontSize: 14,
+              fontWeight: 800,
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)"
+            }}
+          >
+            <Camera size={18} />
+            {language === "mr" ? "स्कॅन करा" : "Launch Camera"}
+          </button>
+        </Link>
+      </div>
+
       {/* ===== Agri Advisory Suite — Standardized ToolCard Grid ===== */}
-      <div style={{ marginTop: 28, marginBottom: 36 }}>
+      <div style={{ marginTop: 20, marginBottom: 36 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
           <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--color-text-main)", letterSpacing: "-0.4px", margin: 0 }}>
             {language === "mr" ? "कृषी सल्लागार संच" : "Agri Advisory Suite"}
@@ -793,7 +842,7 @@ const Dashboard = () => {
           </span>
         </div>
 
-        <div className="agri-suite-grid-4x2">
+        <div className="agri-suite-grid-4x2 agri-mobile-grid-2col">
           {/* Card 1: Kisan AI Chatbot */}
           <ToolCard
             icon={Bot}

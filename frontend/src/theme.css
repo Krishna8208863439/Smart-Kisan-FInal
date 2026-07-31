@@ -98,3 +98,352 @@ body {
 h1, h2, h3, h4, h5, h6, .display-title {
   font-family: var(--font-display);
 }
+
+/* ============================================================
+   Mobile Bottom Navigation & Camera Modal CSS (< 768px)
+   ============================================================ */
+
+.mobile-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .mobile-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: #1A241E;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 990;
+    padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35);
+  }
+
+  .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    color: #9CA3AF;
+    text-decoration: none;
+    background: none;
+    border: none;
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 54px;
+    min-height: 48px;
+    cursor: pointer;
+  }
+
+  .bottom-nav-item span {
+    font-size: 10.5px;
+  }
+
+  .bottom-nav-active {
+    color: #22C55E !important;
+  }
+
+  /* Center Focal Raised Camera Scan Button */
+  .bottom-nav-scan-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-top: -18px;
+  }
+
+  .bottom-nav-scan-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1B7A43 0%, #15803D 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(27, 122, 67, 0.5), 0 0 0 4px #1A241E;
+    transition: transform 0.2s ease;
+  }
+
+  .bottom-nav-scan-btn:active .bottom-nav-scan-icon {
+    transform: scale(0.92);
+  }
+
+  .bottom-nav-scan-btn span {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #22C55E;
+    margin-top: 3px;
+  }
+}
+
+/* Mobile Drawer Overlay */
+.mobile-drawer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.mobile-drawer-content {
+  width: 100%;
+  max-width: 500px;
+  background: var(--color-surface-card);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.25s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.mobile-drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.mobile-drawer-close {
+  background: var(--color-bg-warm-neutral);
+  border: none;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.mobile-drawer-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.drawer-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--color-text-main);
+  padding: 12px 6px;
+  border-radius: 12px;
+  background: var(--color-bg-warm-neutral);
+  transition: background 0.2s ease;
+}
+
+.drawer-item-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drawer-item span {
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* Full-Screen Mobile Camera Scanner Modal */
+.camera-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000000;
+  z-index: 1050;
+  display: flex;
+  flex-direction: column;
+}
+
+.camera-modal-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.camera-modal-header {
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+}
+
+.camera-modal-close {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.camera-viewport-box {
+  flex: 1;
+  position: relative;
+  background: #0A0F0C;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.camera-video-element {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.camera-frame-guide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.camera-frame-box {
+  width: 78%;
+  max-width: 320px;
+  height: 60%;
+  max-height: 380px;
+  border: 3px dashed #22C55E;
+  border-radius: 20px;
+  box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 16px;
+}
+
+.camera-frame-label {
+  background: rgba(0, 0, 0, 0.75);
+  color: #22C55E;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 6px 14px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.camera-fallback-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 20px;
+}
+
+.camera-modal-actions {
+  padding: 24px 32px calc(24px + env(safe-area-inset-bottom));
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.camera-action-sub-btn {
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  min-width: 60px;
+}
+
+.camera-shutter-btn {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: 4px solid #FFFFFF;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.camera-shutter-inner {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #22C55E;
+  transition: transform 0.15s ease;
+}
+
+.camera-shutter-btn:active .camera-shutter-inner {
+  transform: scale(0.85);
+  background: #16A34A;
+}
+
+/* 2-Column Mobile Tile Grid (< 768px) */
+@media (max-width: 767px) {
+  .agri-mobile-grid-2col {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .agri-suite-card {
+    padding: 16px !important;
+    min-height: auto !important;
+  }
+
+  .agri-suite-card-title {
+    font-size: 14.5px !important;
+  }
+
+  .agri-suite-card-desc {
+    font-size: 12px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .agri-suite-btn {
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+    min-height: 44px !important; /* WCAG 44px touch target */
+  }
+}
+
