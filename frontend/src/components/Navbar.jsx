@@ -56,7 +56,7 @@ const Navbar = () => {
       <nav className={`nav-bar ${scrolled ? 'nav-bar-scrolled' : ''}`}>
         <div className="nav-container">
           <Link to="/" className="nav-logo" onClick={() => setMenuOpen(false)}>
-            🌾 {t('title')}
+            {t('title')}
           </Link>
 
           {/* Desktop Links */}
@@ -85,45 +85,39 @@ const Navbar = () => {
                   {toolsOpen && (
                     <div className="nav-tools-dropdown">
                       <div className="nav-tools-dropdown-header">
-                        ✨ {language === 'mr' ? 'स्मार्ट एआय शेती साधने' : 'Smart AI Farming Tools'}
+                        {language === 'mr' ? 'स्मार्ट एआय शेती साधने' : 'Smart AI Farming Tools'}
                       </div>
                       <NavLink to="/ai-tools?tab=calendar" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
-                        <span className="nav-tools-item-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Calendar size={20} color="#16a34a" /></span>
                         <div>
                           <div className="nav-tools-item-title">{language === 'mr' ? 'पेरणी दिनदर्शिका' : 'Sowing Calendar'}</div>
                           <div className="nav-tools-item-desc">{language === 'mr' ? 'हवामानानुसार पेरणीचे वेळापत्रक' : 'Weather-based crop schedules'}</div>
                         </div>
                       </NavLink>
                       <NavLink to="/ai-tools?tab=npk" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
-                        <span className="nav-tools-item-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><FlaskConical size={20} color="#0284c7" /></span>
                         <div>
                           <div className="nav-tools-item-title">{language === 'mr' ? 'NPK खत सल्लागार' : 'NPK Fertilizer Advisor'}</div>
                           <div className="nav-tools-item-desc">{language === 'mr' ? 'जमिनीच्या पोषणाचा अचूक अंदाज' : 'Soil nutrient optimization'}</div>
                         </div>
                       </NavLink>
                       <NavLink to="/ai-tools?tab=disease&subtab=crop_cv" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
-                        <span className="nav-tools-item-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Leaf size={20} color="#15803d" /></span>
                         <div>
                           <div className="nav-tools-item-title">{language === 'mr' ? 'पीक निदान' : 'Crop Diagnostics'}</div>
                           <div className="nav-tools-item-desc">{language === 'mr' ? 'पिकांच्या आरोग्याची AI तपासणी' : 'AI crop health scan'}</div>
                         </div>
                       </NavLink>
                       <NavLink to="/ai-tools?tab=disease&subtab=leaf_diag" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
-                        <span className="nav-tools-item-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Sprout size={20} color="#22c55e" /></span>
                         <div>
                           <div className="nav-tools-item-title">{language === 'mr' ? 'पान रोग निदान' : 'Leaf Disease'}</div>
                           <div className="nav-tools-item-desc">{language === 'mr' ? 'पानावरील रोगांचा त्वरित शोध' : 'Foliage disease scan'}</div>
                         </div>
                       </NavLink>
                       <NavLink to="/ai-tools?tab=disease&subtab=crop_disease" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
-                        <span className="nav-tools-item-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Microscope size={20} color="#7c3aed" /></span>
                         <div>
                           <div className="nav-tools-item-title">{language === 'mr' ? 'रोग ओळख' : 'Disease Detection'}</div>
                           <div className="nav-tools-item-desc">{language === 'mr' ? 'कीड व रोगांवर उपाय' : 'Pest & disease remedies'}</div>
                         </div>
                       </NavLink>
                       <NavLink to="/predictive-yield" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
-                        <span className="nav-tools-item-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><BarChart3 size={20} color="#eab308" /></span>
                         <div>
                           <div className="nav-tools-item-title">{language === 'mr' ? 'उत्पादन अंदाज' : 'Predictive Yield'}</div>
                           <div className="nav-tools-item-desc">{language === 'mr' ? 'हंगामातील उत्पादनाची आकडेवारी' : 'AI yield forecast'}</div>
@@ -155,7 +149,7 @@ const Navbar = () => {
               aria-label="Toggle language"
               title={language === 'en' ? 'Switch to Marathi' : 'Switch to English'}
             >
-              🌐 <span className="nav-btn-label">{language === 'en' ? 'मराठी' : 'EN'}</span>
+              <span className="nav-btn-label">{language === 'en' ? 'मराठी' : 'EN'}</span>
             </button>
 
             {/* Dark Mode Toggle */}
@@ -165,7 +159,7 @@ const Navbar = () => {
               aria-label="Toggle dark mode"
               title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
             >
-              {isDark ? '☀️' : '🌙'}
+              {isDark ? 'Light' : 'Dark'}
             </button>
 
             {/* User Profile Dropdown — combines Install App + Hi name + Logout */}
@@ -178,7 +172,6 @@ const Navbar = () => {
                   aria-expanded={profileOpen}
                   title={`${t('hi')}, ${user.name?.split(' ')[0]}`}
                 >
-                  <span className="nav-profile-avatar">👨‍🌾</span>
                   <span className="nav-btn-label">{t('hi')}, {user.name?.split(' ')[0]}</span>
                   <span className="nav-profile-caret">{profileOpen ? '▲' : '▾'}</span>
                 </button>
@@ -247,7 +240,7 @@ const Navbar = () => {
       {/* Mobile Side Drawer */}
       <aside className={`nav-drawer ${menuOpen ? 'nav-drawer-open' : ''}`} aria-label="Mobile menu">
         <div className="nav-drawer-header">
-          <span className="nav-logo" style={{ color: 'white', fontSize: 18 }}>🌾 {t('title')}</span>
+          <span className="nav-logo" style={{ color: 'white', fontSize: 18 }}>{t('title')}</span>
           <button className="nav-icon-btn" onClick={() => setMenuOpen(false)} aria-label="Close menu">
             ✕
           </button>
@@ -256,7 +249,6 @@ const Navbar = () => {
         <div className="nav-drawer-body">
           {user && (
             <div className="nav-drawer-user">
-              <div style={{ fontSize: 36 }}>👨‍🌾</div>
               <div className="nav-drawer-user-name">{user.name}</div>
               <div className="nav-drawer-user-role" style={{ fontSize: 12, opacity: 0.7 }}>{user.email}</div>
             </div>
@@ -296,7 +288,7 @@ const Navbar = () => {
               onClick={toggleLanguage}
               style={{ gap: 8, fontSize: 14 }}
             >
-              🌐 {language === 'en' ? 'मराठी' : 'English'}
+              {language === 'en' ? 'मराठी' : 'English'}
             </button>
 
             <button
@@ -304,7 +296,7 @@ const Navbar = () => {
               onClick={toggleTheme}
               style={{ gap: 8, fontSize: 14 }}
             >
-              {isDark ? '☀️ Light Mode' : '🌙 Dark Mode'}
+              {isDark ? 'Light Mode' : 'Dark Mode'}
             </button>
 
             {!isInstalled && (
@@ -323,7 +315,7 @@ const Navbar = () => {
                 onClick={logout}
                 style={{ width: '100%', marginTop: 8 }}
               >
-                🚪 {t('logout')}
+                {t('logout')}
               </button>
             )}
           </div>
