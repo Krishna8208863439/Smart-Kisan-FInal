@@ -825,27 +825,31 @@ async def agricultural_chat_endpoint(
             raise Exception(f"Gemini API status code {resp.status_code}")
     except Exception as err:
         print(f"[FastAPI Chat Error] {err}")
+        if matched_docs:
+            doc = matched_docs[0]
+            fallback_text = (
+                f"**{doc['title']}**\n\n"
+                f"{doc['text']}\n\n"
+                "**Recommended Action Steps:**\n"
+                "• Ensure optimal soil drainage and aeration.\n"
+                "• Apply balanced NPK fertilizers according to crop growth stage.\n"
+                "• Monitor crops regularly for pest and disease symptoms."
+            )
+            return {
+                "success": True,
+                "response": fallback_text,
+                "source": "agri-kb-fallback",
+                "rag_sources": [d["title"] for d in matched_docs]
+            }
+
         return {
             "success": True,
             "response": (
-                "For crop management in Kolhapur / Western Maharashtra: The primary recommended crops are **Sugarcane (Co 86032, Phule 0265)**, **Paddy (Ajara Ghansal)**, **Soybean (JS 335, KDS 753)**, **Groundnut**, **Turmeric**, and **Vegetables** like Tomato and Chilli due to rich black/lateritic soil and high annual rainfall (1000–2500mm)."
+                "For crop management in Kolhapur / Western Maharashtra: The primary recommended crops are **Sugarcane (Co 86032, Phule 0265)**, **Paddy (Ajara Ghansal)**, **Soybean (JS 335, KDS 753)**, **Groundnut**, **Turmeric**, and **Vegetables** (Tomato, Chilli) due to rich black/lateritic soil and annual rainfall (1000–2500mm)."
                 if "kolhapur" in lowered or "maharashtra" in lowered
-                else "Please ensure your soil is well-drained, maintain proper crop spacing, and apply balanced NPK fertilizers based on growth stage."
+                else "I am ready to help with your farming questions! Please ask any query regarding crop selection, soil NPK, fertilizers, irrigation, diseases, weather, or market prices."
             ),
             "source": "agri-fallback"
-        }
-        # Fallback: surface top KB document text if Gemini call fails
-        doc = matched_docs[0]
-        fallback_text = (
-            f"Here is relevant information from our knowledge base:\n\n"
-            f"**{doc['title']}**\n{doc['text']}\n\n"
-            "**Next Steps:**\n* Monitor soil moisture\n* Inspect plants for early symptoms"
-        )
-        return {
-            "success": True,
-            "response": fallback_text,
-            "source": "database_fallback",
-            "rag_sources": [d["title"] for d in matched_docs]
         }
 
 
