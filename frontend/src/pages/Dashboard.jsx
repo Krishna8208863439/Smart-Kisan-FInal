@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { Bot, Calendar, FlaskConical, ShoppingCart, Sun, LineChart, Sprout, BarChart3, Leaf, Microscope, Landmark, ShieldCheck } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import api from "../api";
@@ -777,7 +778,7 @@ const Dashboard = () => {
       {/* Live Weather Widget */}
       <WeatherWidget />
 
-      {/* ===== Agri Advisory Suite — Modern 4x2 Grid (Matches Image Design) ===== */}
+      {/* ===== Agri Advisory Suite — Modern 4x2 Grid ===== */}
       <div style={{ marginTop: 24, marginBottom: 32 }}>
         <h1 className="agri-suite-title-main" style={{ marginBottom: 20 }}>
           {language === "mr" ? "कृषी सल्लागार संच" : "Agri Advisory Suite"}
@@ -787,7 +788,9 @@ const Dashboard = () => {
           {/* Card 1: Kisan AI Chatbot */}
           <div className="agri-suite-card">
             <div className="agri-suite-card-top">
-              <div className="agri-suite-icon">🤖</div>
+              <div className="agri-suite-icon" style={{ background: "rgba(22, 163, 74, 0.1)", borderRadius: 12, padding: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, marginBottom: 12 }}>
+                <Bot size={24} color="#16a34a" />
+              </div>
               <h3 className="agri-suite-card-title">
                 {language === "mr" ? "किसान AI चॅटबॉट" : "Kisan AI Chatbot"}
               </h3>
@@ -807,7 +810,9 @@ const Dashboard = () => {
           {/* Card 2: Sowing Task Calendar */}
           <div className="agri-suite-card">
             <div className="agri-suite-card-top">
-              <div className="agri-suite-icon">📅</div>
+              <div className="agri-suite-icon" style={{ background: "rgba(2, 132, 199, 0.1)", borderRadius: 12, padding: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, marginBottom: 12 }}>
+                <Calendar size={24} color="#0284c7" />
+              </div>
               <h3 className="agri-suite-card-title">
                 {language === "mr" ? "पेरणी कार्य दिनदर्शिका" : "Sowing Task Calendar"}
               </h3>
@@ -827,7 +832,9 @@ const Dashboard = () => {
           {/* Card 3: NPK Nutrient Advisor */}
           <div className="agri-suite-card">
             <div className="agri-suite-card-top">
-              <div className="agri-suite-icon">🧪</div>
+              <div className="agri-suite-icon" style={{ background: "rgba(124, 58, 237, 0.1)", borderRadius: 12, padding: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, marginBottom: 12 }}>
+                <FlaskConical size={24} color="#7c3aed" />
+              </div>
               <h3 className="agri-suite-card-title">
                 {language === "mr" ? "NPK खत सल्लागार" : "NPK Nutrient Advisor"}
               </h3>
@@ -847,7 +854,9 @@ const Dashboard = () => {
           {/* Card 4: Farmers Bazaar & Store */}
           <div className="agri-suite-card">
             <div className="agri-suite-card-top">
-              <div className="agri-suite-icon">🛒</div>
+              <div className="agri-suite-icon" style={{ background: "rgba(234, 179, 8, 0.1)", borderRadius: 12, padding: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, marginBottom: 12 }}>
+                <ShoppingCart size={24} color="#ca8a04" />
+              </div>
               <h3 className="agri-suite-card-title">
                 {language === "mr" ? "शेतकरी बाजार आणि दुकान" : "Farmers Bazaar & Store"}
               </h3>
@@ -867,7 +876,9 @@ const Dashboard = () => {
           {/* Card 5: Weather Insights */}
           <div className="agri-suite-card">
             <div className="agri-suite-card-top">
-              <div className="agri-suite-icon">☀️</div>
+              <div className="agri-suite-icon" style={{ background: "rgba(249, 115, 22, 0.1)", borderRadius: 12, padding: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, marginBottom: 12 }}>
+                <Sun size={24} color="#f97316" />
+              </div>
               <h3 className="agri-suite-card-title">
                 {language === "mr" ? "हवामान अंदाज" : "Weather Insights"}
               </h3>
@@ -887,7 +898,9 @@ const Dashboard = () => {
           {/* Card 6: Mandi Market Prices */}
           <div className="agri-suite-card">
             <div className="agri-suite-card-top">
-              <div className="agri-suite-icon">📈</div>
+              <div className="agri-suite-icon" style={{ background: "rgba(16, 185, 129, 0.1)", borderRadius: 12, padding: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, marginBottom: 12 }}>
+                <LineChart size={24} color="#10b981" />
+              </div>
               <h3 className="agri-suite-card-title">
                 {language === "mr" ? "मंडी बाजार भाव" : "Mandi Market Prices"}
               </h3>
@@ -907,7 +920,9 @@ const Dashboard = () => {
           {/* Card 7: AI Crop Recommendations */}
           <div className="agri-suite-card">
             <div className="agri-suite-card-top">
-              <div className="agri-suite-icon">🌱</div>
+              <div className="agri-suite-icon" style={{ background: "rgba(34, 197, 94, 0.1)", borderRadius: 12, padding: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, marginBottom: 12 }}>
+                <Sprout size={24} color="#22c55e" />
+              </div>
               <h3 className="agri-suite-card-title">
                 {language === "mr" ? "AI पीक शिफारसी" : "AI Crop Recommendations"}
               </h3>
@@ -927,6 +942,9 @@ const Dashboard = () => {
           {/* Card 8: Predictive Yield Engine */}
           <div className="agri-suite-card">
             <div className="agri-suite-card-top">
+              <div className="agri-suite-icon" style={{ background: "rgba(59, 130, 246, 0.1)", borderRadius: 12, padding: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, marginBottom: 12 }}>
+                <BarChart3 size={24} color="#3b82f6" />
+              </div>
               <h3 className="agri-suite-card-title">
                 {language === "mr" ? "उत्पादन अंदाज इंजिन" : "Predictive Yield Engine"}
               </h3>
@@ -951,11 +969,13 @@ const Dashboard = () => {
           🌿 {language === "mr" ? "अतिरिक्त कृषी निदान आणि योजना" : "Additional Plant Health Diagnostics & Schemes"}
         </h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
-          {/* Diagnostic 1: Crop CV */}
+          {/* Card 9: Crop Vision Diagnostics */}
           <div className="card" style={{ margin: 0, padding: 18, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
             <div>
-              <div style={{ fontSize: 24, marginBottom: 8 }}>🌾</div>
-              <strong style={{ fontSize: 15, color: "var(--text-dark)" }}>
+              <div style={{ background: "rgba(21, 128, 61, 0.1)", borderRadius: 10, width: 40, height: 40, display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
+                <Leaf size={22} color="#15803d" />
+              </div>
+              <strong style={{ fontSize: 15, color: "var(--text-dark)", display: "block" }}>
                 {language === "mr" ? "पीक वाढ निदान (CV)" : "Crop Vision Diagnostics"}
               </strong>
               <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 4 }}>
@@ -969,11 +989,13 @@ const Dashboard = () => {
             </Link>
           </div>
 
-          {/* Diagnostic 2: Leaf Diagnostics */}
+          {/* Card 10: Leaf Disease Scanner */}
           <div className="card" style={{ margin: 0, padding: 18, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
             <div>
-              <div style={{ fontSize: 24, marginBottom: 8 }}>🍃</div>
-              <strong style={{ fontSize: 15, color: "var(--text-dark)" }}>
+              <div style={{ background: "rgba(34, 197, 94, 0.1)", borderRadius: 10, width: 40, height: 40, display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
+                <Sprout size={22} color="#22c55e" />
+              </div>
+              <strong style={{ fontSize: 15, color: "var(--text-dark)", display: "block" }}>
                 {language === "mr" ? "पान रोग निदान" : "Leaf Disease Scanner"}
               </strong>
               <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 4 }}>
@@ -987,11 +1009,13 @@ const Dashboard = () => {
             </Link>
           </div>
 
-          {/* Diagnostic 3: Disease Detection */}
+          {/* Card 11: Disease Detection */}
           <div className="card" style={{ margin: 0, padding: 18, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
             <div>
-              <div style={{ fontSize: 24, marginBottom: 8 }}>🔬</div>
-              <strong style={{ fontSize: 15, color: "var(--text-dark)" }}>
+              <div style={{ background: "rgba(124, 58, 237, 0.1)", borderRadius: 10, width: 40, height: 40, display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
+                <Microscope size={22} color="#7c3aed" />
+              </div>
+              <strong style={{ fontSize: 15, color: "var(--text-dark)", display: "block" }}>
                 {language === "mr" ? "पीक रोग ओळख" : "Disease Detection"}
               </strong>
               <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 4 }}>
@@ -1005,11 +1029,13 @@ const Dashboard = () => {
             </Link>
           </div>
 
-          {/* Scheme 4: Government Support */}
+          {/* Card 12: Government Schemes */}
           <div className="card" style={{ margin: 0, padding: 18, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
             <div>
-              <div style={{ fontSize: 24, marginBottom: 8 }}>🏛️</div>
-              <strong style={{ fontSize: 15, color: "var(--text-dark)" }}>
+              <div style={{ background: "rgba(2, 132, 199, 0.1)", borderRadius: 10, width: 40, height: 40, display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
+                <Landmark size={22} color="#0284c7" />
+              </div>
+              <strong style={{ fontSize: 15, color: "var(--text-dark)", display: "block" }}>
                 {language === "mr" ? "शासकीय योजना" : "Government Schemes"}
               </strong>
               <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 4 }}>

@@ -48,6 +48,7 @@ archive/
 # JSON — keep important ones, ignore generated reports
 *.json
 !classes.json
+!agriculture_kb.json
 !package.json
 !package-lock.json
 
@@ -60,4 +61,7 @@ backend_python/crop_disease_analysis_report.json
 backend_python/sample_diagnosis_report.json
 backend_python/rejection_log.jsonl
 backend_python/uploads/
+backend_python/datasets/agriculture_kb_embeddings.pkl
+*.pkl
+
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Calendar, FlaskConical, Leaf, Sprout, Microscope, BarChart3 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -87,42 +88,42 @@ const Navbar = () => {
                         ✨ {language === 'mr' ? 'स्मार्ट एआय शेती साधने' : 'Smart AI Farming Tools'}
                       </div>
                       <NavLink to="/ai-tools?tab=calendar" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
-                        <span className="nav-tools-item-icon">📅</span>
+                        <span className="nav-tools-item-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Calendar size={20} color="#16a34a" /></span>
                         <div>
                           <div className="nav-tools-item-title">{language === 'mr' ? 'पेरणी दिनदर्शिका' : 'Sowing Calendar'}</div>
                           <div className="nav-tools-item-desc">{language === 'mr' ? 'हवामानानुसार पेरणीचे वेळापत्रक' : 'Weather-based crop schedules'}</div>
                         </div>
                       </NavLink>
                       <NavLink to="/ai-tools?tab=npk" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
-                        <span className="nav-tools-item-icon">🧪</span>
+                        <span className="nav-tools-item-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><FlaskConical size={20} color="#0284c7" /></span>
                         <div>
                           <div className="nav-tools-item-title">{language === 'mr' ? 'NPK खत सल्लागार' : 'NPK Fertilizer Advisor'}</div>
                           <div className="nav-tools-item-desc">{language === 'mr' ? 'जमिनीच्या पोषणाचा अचूक अंदाज' : 'Soil nutrient optimization'}</div>
                         </div>
                       </NavLink>
                       <NavLink to="/ai-tools?tab=disease&subtab=crop_cv" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
-                        <span className="nav-tools-item-icon">🌾</span>
+                        <span className="nav-tools-item-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Leaf size={20} color="#15803d" /></span>
                         <div>
                           <div className="nav-tools-item-title">{language === 'mr' ? 'पीक निदान' : 'Crop Diagnostics'}</div>
                           <div className="nav-tools-item-desc">{language === 'mr' ? 'पिकांच्या आरोग्याची AI तपासणी' : 'AI crop health scan'}</div>
                         </div>
                       </NavLink>
                       <NavLink to="/ai-tools?tab=disease&subtab=leaf_diag" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
-                        <span className="nav-tools-item-icon">🍃</span>
+                        <span className="nav-tools-item-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Sprout size={20} color="#22c55e" /></span>
                         <div>
                           <div className="nav-tools-item-title">{language === 'mr' ? 'पान रोग निदान' : 'Leaf Disease'}</div>
                           <div className="nav-tools-item-desc">{language === 'mr' ? 'पानावरील रोगांचा त्वरित शोध' : 'Foliage disease scan'}</div>
                         </div>
                       </NavLink>
                       <NavLink to="/ai-tools?tab=disease&subtab=crop_disease" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
-                        <span className="nav-tools-item-icon">🔬</span>
+                        <span className="nav-tools-item-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Microscope size={20} color="#7c3aed" /></span>
                         <div>
                           <div className="nav-tools-item-title">{language === 'mr' ? 'रोग ओळख' : 'Disease Detection'}</div>
                           <div className="nav-tools-item-desc">{language === 'mr' ? 'कीड व रोगांवर उपाय' : 'Pest & disease remedies'}</div>
                         </div>
                       </NavLink>
                       <NavLink to="/predictive-yield" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
-                        <span className="nav-tools-item-icon">📊</span>
+                        <span className="nav-tools-item-icon" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><BarChart3 size={20} color="#eab308" /></span>
                         <div>
                           <div className="nav-tools-item-title">{language === 'mr' ? 'उत्पादन अंदाज' : 'Predictive Yield'}</div>
                           <div className="nav-tools-item-desc">{language === 'mr' ? 'हंगामातील उत्पादनाची आकडेवारी' : 'AI yield forecast'}</div>

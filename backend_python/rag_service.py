@@ -1,4 +1,5 @@
 import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 import json
 import pickle
 import requests
@@ -74,12 +75,15 @@ def init_rag_system(force_rebuild: bool = False, api_key: str = None):
             force_rebuild = True
 
     if force_rebuild or not _cached_embeddings or len(_cached_embeddings) != len(_cached_kb):
-        print("[RAG] Embedding knowledge base documents (this may take a moment)...")
+        print("[RAG] Initializing embeddings for knowledge base documents...")
         _cached_embeddings = []
+        key = (api_key or "").strip() or get_gemini_api_key()
         for doc in _cached_kb:
-            # Combine title + text to get better semantic vector
-            doc_context = f"Title: {doc['title']}\nSource: {doc['source']}\nText: {doc['text']}"
-            vec = get_embedding(doc_context, api_key)
+            if not key:
+                vec = [0.0] * 768
+            else:
+                doc_context = f"Title: {doc['title']}\nSource: {doc['source']}\nText: {doc['text']}"
+                vec = get_embedding(doc_context, key)
             _cached_embeddings.append(vec)
             
         # Save cache
@@ -141,19 +145,33 @@ def search_knowledge_base(query: str, k: int = 3, api_key: str = None, relevance
     q_norm = np.linalg.norm(q_vec)
     
     for i, doc in enumerate(_cached_kb):
-        doc_vec = np.array(_cached_embeddings[i])
-        doc_norm = np.linalg.norm(doc_vec)
-        if q_norm == 0 or doc_norm == 0:
-            score = 0.0
+        if i < len(_cached_embeddings):
+            doc_vec = np.array(_cached_embeddings[i])
+            doc_norm = np.linalg.norm(doc_vec)
+            if q_norm == 0 or doc_norm == 0:
+                score = 0.0
+            else:
+                score = float(np.dot(q_vec, doc_vec) / (q_norm * doc_norm))
         else:
-            score = float(np.dot(q_vec, doc_vec) / (q_norm * doc_norm))
+            score = 0.0
             
         if score >= relevance_threshold:
             doc_copy = doc.copy()
             doc_copy["relevance_score"] = score
             results.append(doc_copy)
+
+    # 3. Keyword matching fallback if vector results are empty or low
+    query_words = set(query.lower().replace("?", "").replace(",", "").split())
+    if not results:
+        for doc in _cached_kb:
+            text_lower = (doc["title"] + " " + doc["text"]).lower()
+            matched_count = sum(1 for w in query_words if len(w) > 2 and w in text_lower)
+            if matched_count > 0:
+                doc_copy = doc.copy()
+                doc_copy["relevance_score"] = 0.5 + (matched_count * 0.1)
+                results.append(doc_copy)
         
     # Sort by score descending and return top k
-    results.sort(key=lambda x: x["relevance_score"], reverse=True)
+    results.sort(key=lambda x: x.get("relevance_score", 0), reverse=True)
     return results[:k]
 
