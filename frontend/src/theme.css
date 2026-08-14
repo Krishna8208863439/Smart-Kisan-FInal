@@ -1,0 +1,459 @@
+/* ============================================================
+   Smart Kisan AI — Industrial Agricultural Design System Tokens
+   Grounded Palette: Clay Soil, Working Field Green, Turmeric Gold, Warm Off-White
+   ============================================================ */
+
+:root {
+  /* Earthy Palette Tokens */
+  --color-soil-dark: #1A241E;
+  --color-soil-dark-hover: #26342C;
+  --color-field-green: #1B7A43;
+  --color-field-green-hover: #145E33;
+  --color-field-green-light: #EBF7EE;
+  
+  --color-turmeric-gold: #D97706;
+  --color-turmeric-gold-hover: #B45309;
+  --color-turmeric-gold-light: #FEF3C7;
+  
+  --color-bg-warm-neutral: #F6F8F5;
+  --color-surface-card: #FFFFFF;
+  --color-surface-card-hover: #F0F4EF;
+  --color-border-subtle: #E2E8F0;
+  --color-border-accent: rgba(27, 122, 67, 0.25);
+  
+  /* Status Colors (Colorblind-Safe) */
+  --color-status-healthy: #15803D;
+  --color-status-healthy-bg: #DCFCE7;
+  --color-status-stressed: #D97706;
+  --color-status-stressed-bg: #FEF3C7;
+  --color-status-diseased: #DC2626;
+  --color-status-diseased-bg: #FEE2E2;
+  
+  /* Typography Variables */
+  --font-display: 'Outfit', 'Noto Sans Devanagari', system-ui, sans-serif;
+  --font-body: 'Inter', 'Noto Sans Devanagari', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  
+  --color-text-main: #111915;
+  --color-text-secondary: #374151;
+  --color-text-muted: #6B7280;
+  
+  /* Spacing Scale (8pt Grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  
+  /* Elevation Hierarchy */
+  --shadow-flat: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 8px 24px -4px rgba(27, 122, 67, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
+  --shadow-card-hover: 0 16px 36px -8px rgba(27, 122, 67, 0.18), 0 4px 12px -2px rgba(0, 0, 0, 0.05);
+  --shadow-dropdown: 0 20px 40px -10px rgba(26, 36, 30, 0.3);
+  
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+}
+
+/* Dark Mode Extensions */
+[data-theme="dark"] {
+  --color-soil-dark: #0A0F0C;
+  --color-bg-warm-neutral: #0E1411;
+  --color-surface-card: #16201B;
+  --color-surface-card-hover: #1E2B24;
+  --color-border-subtle: #27372E;
+  --color-border-accent: rgba(74, 222, 128, 0.3);
+  
+  --color-text-main: #F3F4F6;
+  --color-text-secondary: #D1D5DB;
+  --color-text-muted: #9CA3AF;
+  
+  --color-field-green-light: #0D2D1B;
+  --color-turmeric-gold-light: #3A2306;
+  --color-status-healthy-bg: #0A3A1B;
+  --color-status-stressed-bg: #3A2306;
+  --color-status-diseased-bg: #3D0A0A;
+  
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: 0 16px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* Utility Monospace Data Formatting */
+.data-mono {
+  font-family: var(--font-mono) !important;
+  letter-spacing: -0.5px;
+}
+
+/* Base Body Application */
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-bg-warm-neutral);
+  color: var(--color-text-main);
+}
+
+h1, h2, h3, h4, h5, h6, .display-title {
+  font-family: var(--font-display);
+}
+
+/* ============================================================
+   Mobile Bottom Navigation & Camera Modal CSS (< 768px)
+   ============================================================ */
+
+.mobile-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .mobile-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: #1A241E;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 990;
+    padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35);
+  }
+
+  .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    color: #9CA3AF;
+    text-decoration: none;
+    background: none;
+    border: none;
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 54px;
+    min-height: 48px;
+    cursor: pointer;
+  }
+
+  .bottom-nav-item span {
+    font-size: 10.5px;
+  }
+
+  .bottom-nav-active {
+    color: #22C55E !important;
+  }
+
+  /* Center Focal Raised Camera Scan Button */
+  .bottom-nav-scan-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-top: -18px;
+  }
+
+  .bottom-nav-scan-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1B7A43 0%, #15803D 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(27, 122, 67, 0.5), 0 0 0 4px #1A241E;
+    transition: transform 0.2s ease;
+  }
+
+  .bottom-nav-scan-btn:active .bottom-nav-scan-icon {
+    transform: scale(0.92);
+  }
+
+  .bottom-nav-scan-btn span {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #22C55E;
+    margin-top: 3px;
+  }
+}
+
+/* Mobile Drawer Overlay */
+.mobile-drawer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.mobile-drawer-content {
+  width: 100%;
+  max-width: 500px;
+  background: var(--color-surface-card);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.25s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.mobile-drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.mobile-drawer-close {
+  background: var(--color-bg-warm-neutral);
+  border: none;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.mobile-drawer-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.drawer-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--color-text-main);
+  padding: 12px 6px;
+  border-radius: 12px;
+  background: var(--color-bg-warm-neutral);
+  transition: background 0.2s ease;
+}
+
+.drawer-item-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drawer-item span {
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* Full-Screen & Full-Width Camera Scanner & Diagnosis Modal */
+.camera-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 15, 12, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.camera-modal-container {
+  width: 100%;
+  max-height: 92vh;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  margin: auto;
+}
+
+.camera-modal-header {
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+}
+
+.camera-modal-close {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.camera-viewport-box {
+  flex: 1;
+  position: relative;
+  background: #0A0F0C;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.camera-video-element {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.camera-frame-guide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.camera-frame-box {
+  width: 78%;
+  max-width: 320px;
+  height: 60%;
+  max-height: 380px;
+  border: 3px dashed #22C55E;
+  border-radius: 20px;
+  box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 16px;
+}
+
+.camera-frame-label {
+  background: rgba(0, 0, 0, 0.75);
+  color: #22C55E;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 6px 14px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.camera-fallback-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 20px;
+}
+
+.camera-modal-actions {
+  padding: 24px 32px calc(24px + env(safe-area-inset-bottom));
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.camera-action-sub-btn {
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  min-width: 60px;
+}
+
+.camera-shutter-btn {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: 4px solid #FFFFFF;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.camera-shutter-inner {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #22C55E;
+  transition: transform 0.15s ease;
+}
+
+.camera-shutter-btn:active .camera-shutter-inner {
+  transform: scale(0.85);
+  background: #16A34A;
+}
+
+/* 2-Column Mobile Tile Grid (< 768px) */
+@media (max-width: 767px) {
+  .agri-mobile-grid-2col {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .agri-suite-card {
+    padding: 16px !important;
+    min-height: auto !important;
+  }
+
+  .agri-suite-card-title {
+    font-size: 14.5px !important;
+  }
+
+  .agri-suite-card-desc {
+    font-size: 12px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .agri-suite-btn {
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+    min-height: 44px !important; /* WCAG 44px touch target */
+  }
+}
+

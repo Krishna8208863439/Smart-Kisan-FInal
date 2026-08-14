@@ -1,0 +1,316 @@
+import { useState, useEffect, useRef } from 'react';
+import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Calendar, FlaskConical, Leaf, Sprout, Microscope, BarChart3 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+import usePWAInstall from '../hooks/usePWAInstall';
+
+const Navbar = () => {
+  const { user, logout, isAdmin } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
+  const { language, toggleLanguage, t } = useLanguage();
+  const { isInstallable, isInstalled, installApp } = usePWAInstall();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const profileRef = useRef(null);
+  const toolsRef = useRef(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Close menus on route change
+  useEffect(() => {
+    setMenuOpen(false);
+    setProfileOpen(false);
+    setToolsOpen(false);
+  }, [location]);
+
+  // Detect scroll for glass effect
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+      if (toolsRef.current && !toolsRef.current.contains(e.target)) {
+        setToolsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const navLinkClass = ({ isActive }) => `nav-link ${isActive ? 'nav-link-active' : ''}`;
+  const isAiToolsActive = location.pathname.includes('/ai-tools') || location.pathname.includes('/predictive-yield');
+
+  return (
+    <>
+      <nav className={`nav-bar ${scrolled ? 'nav-bar-scrolled' : ''}`}>
+        <div className="nav-container">
+          <Link to="/" className="nav-logo" onClick={() => setMenuOpen(false)}>
+            {t('title')}
+          </Link>
+
+          {/* Desktop Links */}
+          <div className="nav-links nav-links-desktop">
+            {user && (
+              <>
+                <NavLink to="/dashboard" className={navLinkClass}>{t('dashboard')}</NavLink>
+                <NavLink to="/chat" className={navLinkClass}>{t('chat')}</NavLink>
+                <NavLink to="/recommendations" className={navLinkClass}>{t('recommendations')}</NavLink>
+                <NavLink to="/weather" className={navLinkClass}>{t('weather')}</NavLink>
+                <NavLink to="/market" className={navLinkClass}>{t('mandiPrices')}</NavLink>
+
+                {/* AI Tools Dropdown */}
+                <div className="nav-tools-wrapper" ref={toolsRef}>
+                  <button
+                    className={`nav-link nav-tools-btn ${isAiToolsActive ? 'nav-link-active' : ''}`}
+                    onClick={() => setToolsOpen(!toolsOpen)}
+                    aria-haspopup="true"
+                    aria-expanded={toolsOpen}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                  >
+                    <span>{language === 'mr' ? 'एआय साधने' : 'AI Tools'}</span>
+                    <span style={{ fontSize: 10 }}>{toolsOpen ? '▲' : '▾'}</span>
+                  </button>
+
+                  {toolsOpen && (
+                    <div className="nav-tools-dropdown">
+                      <div className="nav-tools-dropdown-header">
+                        {language === 'mr' ? 'स्मार्ट एआय शेती साधने' : 'Smart AI Farming Tools'}
+                      </div>
+                      <NavLink to="/ai-tools?tab=calendar" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
+                        <div>
+                          <div className="nav-tools-item-title">{language === 'mr' ? 'पेरणी दिनदर्शिका' : 'Sowing Calendar'}</div>
+                          <div className="nav-tools-item-desc">{language === 'mr' ? 'हवामानानुसार पेरणीचे वेळापत्रक' : 'Weather-based crop schedules'}</div>
+                        </div>
+                      </NavLink>
+                      <NavLink to="/ai-tools?tab=npk" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
+                        <div>
+                          <div className="nav-tools-item-title">{language === 'mr' ? 'NPK खत सल्लागार' : 'NPK Fertilizer Advisor'}</div>
+                          <div className="nav-tools-item-desc">{language === 'mr' ? 'जमिनीच्या पोषणाचा अचूक अंदाज' : 'Soil nutrient optimization'}</div>
+                        </div>
+                      </NavLink>
+                      <NavLink to="/ai-tools?tab=disease" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
+                        <div>
+                          <div className="nav-tools-item-title">{language === 'mr' ? 'पीक रोग निदान' : 'Crop Diagnostics'}</div>
+                          <div className="nav-tools-item-desc">{language === 'mr' ? 'Claude Vision AI द्वारे पिकांची तपासणी' : 'Claude Vision AI crop health scan'}</div>
+                        </div>
+                      </NavLink>
+
+                      <NavLink to="/predictive-yield" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
+                        <div>
+                          <div className="nav-tools-item-title">{language === 'mr' ? 'उत्पादन अंदाज' : 'Predictive Yield'}</div>
+                          <div className="nav-tools-item-desc">{language === 'mr' ? 'हंगामातील उत्पादनाची आकडेवारी' : 'AI yield forecast'}</div>
+                        </div>
+                      </NavLink>
+                    </div>
+                  )}
+                </div>
+
+                <NavLink to="/marketplace" className={navLinkClass}>{t('bazaar')}</NavLink>
+                <NavLink to="/forum" className={navLinkClass}>{language === 'mr' ? 'शासकीय योजना' : 'Govt Schemes'}</NavLink>
+                {isAdmin && <NavLink to="/admin" className={navLinkClass}>Admin</NavLink>}
+              </>
+            )}
+            {!user && (
+              <>
+                <NavLink to="/login" className={navLinkClass}>{t('login')}</NavLink>
+                <NavLink to="/register" className={navLinkClass}>{t('register')}</NavLink>
+              </>
+            )}
+          </div>
+
+          {/* Right Controls */}
+          <div className="nav-actions">
+            {/* Language Toggle */}
+            <button
+              className="nav-icon-btn nav-lang-btn"
+              onClick={toggleLanguage}
+              aria-label="Toggle language"
+              title={language === 'en' ? 'Switch to Marathi' : 'Switch to English'}
+            >
+              <span className="nav-btn-label">{language === 'en' ? 'मराठी' : 'EN'}</span>
+            </button>
+
+            {/* Dark Mode Toggle */}
+            <button
+              className="nav-icon-btn"
+              onClick={toggleTheme}
+              aria-label="Toggle dark mode"
+              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {isDark ? 'Light' : 'Dark'}
+            </button>
+
+            {/* User Profile Dropdown — combines Install App + Hi name + Logout */}
+            {user && (
+              <div className="nav-profile-wrapper" ref={profileRef}>
+                <button
+                  className="nav-profile-btn"
+                  onClick={() => setProfileOpen(!profileOpen)}
+                  aria-haspopup="true"
+                  aria-expanded={profileOpen}
+                  title={`${t('hi')}, ${user.name?.split(' ')[0]}`}
+                >
+                  <span className="nav-btn-label">{t('hi')}, {user.name?.split(' ')[0]}</span>
+                  <span className="nav-profile-caret">{profileOpen ? '▲' : '▾'}</span>
+                </button>
+
+                {profileOpen && (
+                  <div className="nav-profile-dropdown">
+                    <div className="nav-profile-dropdown-header">
+                      <div className="nav-profile-dropdown-name">👨‍🌾 {user.name}</div>
+                      <div className="nav-profile-dropdown-email">{user.email}</div>
+                    </div>
+
+                    {!isInstalled && (
+                      <button
+                        className="nav-profile-dropdown-item"
+                        onClick={() => { installApp(); setProfileOpen(false); }}
+                      >
+                        <span>📲</span>
+                        <span>{t('installApp').replace('📲 ', '')}</span>
+                      </button>
+                    )}
+
+                    <button
+                      className="nav-profile-dropdown-item"
+                      onClick={() => { navigate('/history'); setProfileOpen(false); }}
+                    >
+                      <span>🕘</span>
+                      <span>{language === 'mr' ? 'क्रियाकलाप इतिहास' : 'Activity History'}</span>
+                    </button>
+
+                    <button
+                      className="nav-profile-dropdown-item nav-profile-dropdown-logout"
+                      onClick={() => { logout(); setProfileOpen(false); }}
+                    >
+                      <span>🚪</span>
+                      <span>{t('logout')}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Hamburger Button (mobile) */}
+            <button
+              className="nav-hamburger"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Toggle mobile menu"
+              aria-expanded={menuOpen}
+            >
+              <span className={`hamburger-line ${menuOpen ? 'ham-open-1' : ''}`} />
+              <span className={`hamburger-line ${menuOpen ? 'ham-open-2' : ''}`} />
+              <span className={`hamburger-line ${menuOpen ? 'ham-open-3' : ''}`} />
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Mobile Drawer Overlay */}
+      {menuOpen && (
+        <div
+          className="nav-overlay"
+          onClick={() => setMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Mobile Side Drawer */}
+      <aside className={`nav-drawer ${menuOpen ? 'nav-drawer-open' : ''}`} aria-label="Mobile menu">
+        <div className="nav-drawer-header">
+          <span className="nav-logo" style={{ color: 'white', fontSize: 18 }}>{t('title')}</span>
+          <button className="nav-icon-btn" onClick={() => setMenuOpen(false)} aria-label="Close menu">
+            ✕
+          </button>
+        </div>
+
+        <div className="nav-drawer-body">
+          {user && (
+            <div className="nav-drawer-user">
+              <div className="nav-drawer-user-name">{user.name}</div>
+              <div className="nav-drawer-user-role" style={{ fontSize: 12, opacity: 0.7 }}>{user.email}</div>
+            </div>
+          )}
+
+          <nav className="nav-drawer-links">
+            {user && (
+              <>
+                <NavLink to="/dashboard" className={navLinkClass}>{t('dashboard')}</NavLink>
+                <NavLink to="/chat" className={navLinkClass}>{t('chat')}</NavLink>
+                <NavLink to="/recommendations" className={navLinkClass}>{t('recommendations')}</NavLink>
+                <NavLink to="/ai-tools?tab=calendar" className={navLinkClass}>{language === 'mr' ? 'पेरणी दिनदर्शिका' : 'Sowing Calendar'}</NavLink>
+                <NavLink to="/weather" className={navLinkClass}>{t('weather')}</NavLink>
+                <NavLink to="/market" className={navLinkClass}>{t('mandiPrices')}</NavLink>
+                <NavLink to="/ai-tools?tab=npk" className={navLinkClass}>{language === 'mr' ? 'NPK खत सल्लागार' : 'NPK Advisor'}</NavLink>
+                <NavLink to="/ai-tools?tab=disease" className={navLinkClass}>{language === 'mr' ? 'पीक रोग निदान' : 'Crop Diagnostics'}</NavLink>
+
+                <NavLink to="/predictive-yield" className={navLinkClass}>{language === 'mr' ? 'उत्पादन अंदाज' : 'Predictive Yield'}</NavLink>
+                <NavLink to="/marketplace" className={navLinkClass}>{t('bazaar')}</NavLink>
+                <NavLink to="/forum" className={navLinkClass}>{language === 'mr' ? 'शासकीय योजना' : 'Government Schemes'}</NavLink>
+                <NavLink to="/history" className={navLinkClass}>{language === 'mr' ? 'इतिहास' : 'History'}</NavLink>
+                {isAdmin && <NavLink to="/admin" className={navLinkClass}>Admin</NavLink>}
+              </>
+            )}
+            {!user && (
+              <>
+                <NavLink to="/login" className={navLinkClass}>{t('login')}</NavLink>
+                <NavLink to="/register" className={navLinkClass}>{t('register')}</NavLink>
+              </>
+            )}
+          </nav>
+
+          <div className="nav-drawer-footer">
+            <button
+              className="nav-icon-btn"
+              onClick={toggleLanguage}
+              style={{ gap: 8, fontSize: 14 }}
+            >
+              {language === 'en' ? 'मराठी' : 'English'}
+            </button>
+
+            <button
+              className="nav-icon-btn"
+              onClick={toggleTheme}
+              style={{ gap: 8, fontSize: 14 }}
+            >
+              {isDark ? 'Light Mode' : 'Dark Mode'}
+            </button>
+
+            {!isInstalled && (
+              <button
+                className="button"
+                onClick={installApp}
+                style={{ width: '100%', marginTop: 8, background: '#f59e0b' }}
+              >
+                {t('installApp')}
+              </button>
+            )}
+
+            {user && (
+              <button
+                className="button button-secondary"
+                onClick={logout}
+                style={{ width: '100%', marginTop: 8 }}
+              >
+                {t('logout')}
+              </button>
+            )}
+          </div>
+        </div>
+      </aside>
+    </>
+  );
+};
+
+export default Navbar;

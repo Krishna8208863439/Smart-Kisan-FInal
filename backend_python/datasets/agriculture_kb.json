@@ -1,0 +1,44 @@
+[
+  {
+    "id": "kb_kolhapur_maharashtra_crops",
+    "title": "Agro-Climatic Zone & Recommended Crops for Kolhapur and Western Maharashtra",
+    "source": "ICAR & Maharashtra State Department of Agriculture",
+    "text": "Kolhapur district belongs to the Sub-Tropical High Rainfall and Transition Zone of Western Maharashtra (South Maharashtra Sub-Montane & Sub-Tropical Zone). The region receives an average annual rainfall of 1000mm to 2500mm, with fertile reddish-brown lateritic soil in western hilly areas and rich medium-to-deep black alluvial soil along river basins (Panchganga, Bhogavati, Krishna).\n\nBest Crops for Kolhapur:\n1. Sugarcane (ऊस): Primary cash crop. High sugar recovery in river belts (Panchganga valley). Best varieties: Co 86032, Co 0265 (Phule 0265).\n2. Paddy / Rice (भात / धान): Main Kharif grain in heavy rainfall pockets (Radhanagari, Shahuwadi, Ajara). Popular aromatic variety: Ajara Ghansal.\n3. Soybean (सोयाबीन): Leading Kharif oilseed crop across Kagal, Hatkanangale, and Shirol blocks. Best varieties: JS 335, KDS 753 (Phule Kimaya).\n4. Groundnut (भूईमूग): Grown in Kharif and Summer under light-to-medium black soils.\n5. Turmeric & Ginger (हळद व आले): High commercial value spice crops grown in Shirol & Karveer belts. Variety: Selam, Rajapuri.\n6. Chilli & Vegetables (मिरची व भाज्या): Tomato, Brinjal, Cabbage, and Okra thrive in well-drained loamy soils during Kharif and Rabi."
+  },
+  {
+    "id": "kb_maharashtra_agro_zones",
+    "title": "Agro-Climatic Zones & Crop Guidelines across Maharashtra",
+    "source": "Mahatma Phule Krishi Vidyapeeth (MPKV) & MPKV Rahuri",
+    "text": "Maharashtra is divided into 9 agro-climatic zones based on rainfall, soil type, and climate:\n- Konkan Coastal Zone: Rice, Cashew, Coconut, Alphonso Mango.\n- Western Ghat / Heavy Rainfall Zone: Paddy, Finger Millet (Ragi/Nachni), Hill Millets.\n- Transition Zone (Kolhapur, Satara, Pune, Sangli): Sugarcane, Soybean, Paddy, Groundnut, Vegetables, Turmeric.\n- Scarcity / Rain Shadow Zone (Solapur, Ahmednagar): Jowar (Sorghum), Bajra, Pomegranate, Onion, Pulses (Tur, Gram).\n- Central Vidarbha & Marathwada: Cotton (Bt Cotton), Soybean, Pigeon Pea (Tur), Bengal Gram (Harbara), Citrus (Nagpur Orange)."
+  },
+  {
+    "id": "kb_punjab_haryana_crops",
+    "title": "Crops & Agronomy for Indo-Gangetic Plains (Punjab, Haryana, UP)",
+    "source": "PAU Ludhiana & ICAR",
+    "text": "The fertile alluvial plains of Punjab, Haryana, and Western UP are ideal for intensive double-cropping:\n- Kharif Season: Paddy / Rice (PR 126, Basmati 1509), Cotton, Maize, Sugarcane.\n- Rabi Season: Wheat (HD 2967, HD 3086, DBW 187), Mustard / Rapeseed, Barley, Potato, Peas.\n- Soil & Water: Requires balanced NPK application (120:60:40 kg/ha for Wheat) and timed irrigation during critical growth stages (Crown Root Initiation, Flowering, Grain filling)."
+  },
+  {
+    "id": "kb_tomato_early_blight",
+    "title": "Tomato Early Blight Disease Management",
+    "source": "Indian Institute of Horticultural Research (IIHR)",
+    "text": "Early Blight in Tomato is caused by the fungus Alternaria solani. Symptoms include concentric dark brown target-spot concentric rings on lower leaves, leading to leaf yellowing and defoliation.\nOrganic Treatment: Spray Neem oil formulation (5ml/L water) or Trichoderma viride / Pseudomonas fluorescens (5g/L).\nChemical Treatment: Spray Mancozeb 75% WP @ 2g/L water or Chlorothalonil 75% WP @ 2g/L or Difenoconazole 25% EC @ 1ml/L at initial symptom appearance.\nPrevention: Maintain crop spacing, avoid overhead drip watering, remove infected bottom leaves."
+  },
+  {
+    "id": "kb_paddy_blast",
+    "title": "Paddy Rice Blast Disease Control",
+    "source": "Central Rice Research Institute (CRRI)",
+    "text": "Rice Blast (Pyricularia oryzae) affects leaves, nodes, and panicles creating spindle-shaped brown spots with grey centers.\nChemical Control: Spray Tricyclazole 75% WP @ 0.6g/L water or Isoprothiolane 40% EC @ 1.5ml/L.\nOrganic Control: Seed treatment with Pseudomonas fluorescens @ 10g/kg seed."
+  },
+  {
+    "id": "kb_npk_fertilizer_guidelines",
+    "title": "NPK Nutrient Optimization & Fertilizer Calculation",
+    "source": "Fertilizer Association of India (FAI)",
+    "text": "NPK (Nitrogen, Phosphorus, Potassium) requirements vary by crop and soil type:\n- Nitrogen (Urea 46% N): Promotes vegetative growth and leaf greenness. Split doses recommended.\n- Phosphorus (DAP 18:46:0): Stimulates root development and flowering. Apply basal dose at sowing.\n- Potassium (MOP 60% K2O): Enhances disease resistance, fruit size, and grain weight.\nStandard split: Apply 50% N + 100% P + 100% K at sowing/transplanting; remaining 50% N in two equal splits during vegetative and flowering stages."
+  },
+  {
+    "id": "kb_organic_composting",
+    "title": "Organic Composting & Farmyard Manure (FYM) Preparation",
+    "source": "National Centre of Organic Farming (NCOF)",
+    "text": "Well-decomposed Farmyard Manure (FYM) or Vermicompost improves soil structure, water retention, and beneficial microbial activity. Apply 5 to 10 tons/acre prior to land preparation. Combine with biofertilizers like Azotobacter (for N fixation) and PSB (Phosphate Solubilizing Bacteria) @ 2 kg/acre."
+  }
+]
