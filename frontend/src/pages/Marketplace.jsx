@@ -213,7 +213,8 @@ const Marketplace = () => {
     setLoading(true);
     try {
       const res = await api.get("/marketplace");
-      setProducts(res.data);
+      const list = Array.isArray(res.data) ? res.data : (res.data?.products || res.data?.data || []);
+      setProducts(list);
     } catch (err) {
       console.error("Error fetching products:", err);
     } finally {
@@ -226,7 +227,8 @@ const Marketplace = () => {
     if (!isLoggedIn) return;
     try {
       const res = await api.get("/marketplace/my-listings");
-      setMyListings(res.data);
+      const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      setMyListings(list);
     } catch (err) {
       console.error("Error fetching seller listings:", err);
     }
@@ -237,7 +239,8 @@ const Marketplace = () => {
     setOrdersLoading(true);
     try {
       const res = await api.get("/marketplace/orders");
-      setOrders(res.data);
+      const list = Array.isArray(res.data) ? res.data : (res.data?.data || res.data?.orders || []);
+      setOrders(list);
     } catch (err) {
       console.error("Error fetching order history:", err);
     } finally {

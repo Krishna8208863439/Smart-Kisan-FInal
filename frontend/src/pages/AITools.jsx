@@ -245,9 +245,10 @@ const AITools = () => {
     if (!isLoggedIn) return;
     try {
       const res = await api.get("/crop-calendar");
-      setActiveCalendars(res.data);
-      if (res.data.length > 0 && !selectedCalId) {
-        setSelectedCalId(res.data[0]._id);
+      const list = Array.isArray(res.data) ? res.data : (res.data?.calendar || res.data?.data || []);
+      setActiveCalendars(list);
+      if (list.length > 0 && !selectedCalId) {
+        setSelectedCalId(list[0]._id || list[0].id);
       }
     } catch (err) {
       console.error("Error loading calendars:", err);

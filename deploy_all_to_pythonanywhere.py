@@ -100,14 +100,14 @@ def main():
             cid = consoles[0]["id"]
             sync_cmds = f"""
 cd /home/{username}/Smart-Kisan-FInal
-git fetch origin
-git reset --hard origin/main
-git pull origin main
-python3.10 -m pip install -r backend/requirements.txt
+mkdir -p /home/{username}/Smart-Kisan-FInal/backend
+mkdir -p /home/{username}/Smart-Kisan-FInal/frontend
 mkdir -p /home/{username}/Smart-Kisan-FInal/backend/dist
 mkdir -p /home/{username}/Smart-Kisan-FInal/frontend/dist
+unzip -o /home/{username}/backend.zip -d /home/{username}/Smart-Kisan-FInal/backend
 unzip -o /home/{username}/dist.zip -d /home/{username}/Smart-Kisan-FInal/backend/dist
 unzip -o /home/{username}/dist.zip -d /home/{username}/Smart-Kisan-FInal/frontend/dist
+python3.10 -m pip install -r backend/requirements.txt
 """
             requests.post(f"https://www.pythonanywhere.com/api/v0/user/{username}/consoles/{cid}/send_input/",
                           headers=headers,

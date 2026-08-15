@@ -499,7 +499,7 @@ const Recommendations = () => {
                     zIndex: 0
                   }} />
 
-                  {result.fertilizerPlan.map((step, idx) => (
+                  {(result.fertilizerPlan || []).map((step, idx) => (
                     <div key={idx} style={{ display: "flex", gap: 16, position: "relative", zIndex: 1 }}>
                       <div style={{
                         width: 36,
