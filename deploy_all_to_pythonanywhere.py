@@ -91,7 +91,33 @@ def main():
     upload_file(backend_zip, "backend.zip", username, api_token)
     safe_remove(backend_zip)
 
-    # 5. Upload WSGI configuration for Flask app
+    # 5. Extract dist and backend inside PythonAnywhere via Console or API
+    print("\n[console] Triggering extraction and git sync on PythonAnywhere...")
+    try:
+        r_cons = requests.get(f"https://www.pythonanywhere.com/api/v0/user/{username}/consoles/", headers=headers)
+        consoles = r_cons.json() if r_cons.status_code == 200 else []
+        if consoles:
+            cid = consoles[0]["id"]
+            sync_cmds = f"""
+cd /home/{username}/Smart-Kisan-FInal
+git fetch origin
+git reset --hard origin/main
+git pull origin main
+python3.10 -m pip install -r backend/requirements.txt
+mkdir -p /home/{username}/Smart-Kisan-FInal/backend/dist
+mkdir -p /home/{username}/Smart-Kisan-FInal/frontend/dist
+unzip -o /home/{username}/dist.zip -d /home/{username}/Smart-Kisan-FInal/backend/dist
+unzip -o /home/{username}/dist.zip -d /home/{username}/Smart-Kisan-FInal/frontend/dist
+"""
+            requests.post(f"https://www.pythonanywhere.com/api/v0/user/{username}/consoles/{cid}/send_input/",
+                          headers=headers,
+                          json={"input": sync_cmds + "\n"})
+            print("[console] Sent extraction and sync commands to active console.")
+            time.sleep(4)
+    except Exception as e:
+        print(f"[console] Note: {e}")
+
+    # 6. Upload WSGI configuration for Flask app
     wsgi_content = f"""import os
 import sys
 
@@ -113,14 +139,15 @@ from app import app as application
     res = requests.post(wsgi_url, headers=headers, files={"content": wsgi_content})
     print(f"[api] WSGI upload status: {res.status_code}")
 
-    # 6. Reload Web App
+    # 7. Reload Web App
     print(f"\n[api] Reloading web app '{username}.pythonanywhere.com'...")
     reload_url = f"https://www.pythonanywhere.com/api/v0/user/{username}/webapps/{username}.pythonanywhere.com/reload/"
     reload_res = requests.post(reload_url, headers=headers)
     print(f"[api] Reload result: {reload_res.status_code}")
 
     print("\n" + "=" * 60)
-    print("      SMART KISAN FLASK BACKEND DEPLOYMENT COMPLETE!")
+    print("      SMART KISAN FLASK BACKEND & FRONTEND DEPLOYMENT COMPLETE!")
+    print("      Live URL: https://krishna3114.pythonanywhere.com")
     print("=" * 60)
 
 if __name__ == "__main__":
