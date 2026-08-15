@@ -19,7 +19,8 @@ const handleChatbotMessage = async (req, res) => {
     location: gps || context?.location,
     weather: weather || context?.weather,
     waterSource: waterAvailability || context?.waterSource,
-    language: language || context?.language || "English"
+    language: language || context?.language || "English",
+    geminiKey: (req.headers["x-gemini-key"] || (typeof req.body?.geminiKey === "string" ? req.body.geminiKey : "") || "").trim()
   };
 
   try {
@@ -33,11 +34,11 @@ const handleChatbotMessage = async (req, res) => {
       success: true,
       reply,
       response: reply,
-      source: process.env.OPENAI_API_KEY ? "chatgpt" : "agriexpert"
+      source: process.env.OPENAI_API_KEY ? "chatgpt" : process.env.ANTHROPIC_API_KEY ? "claude" : mergedContext.geminiKey ? "gemini" : "agriexpert"
     });
   } catch (err) {
     console.error("AgriExpert API error:", err);
-    return res.status(502).json({
+    return res.status(500).json({
       success: false,
       error: err.message || "AgriExpert is temporarily unavailable. Please try again."
     });

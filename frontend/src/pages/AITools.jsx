@@ -7,7 +7,7 @@ import DiagnosticReport from "../components/common/DiagnosticReport";
 import { extractErrorMessage } from "../utils/errorUtils";
 
 
-const TABS = ["Disease Detection", "Irrigation", "Fertilizer / NPK", "Smart Calendar"];
+const TABS = ["Irrigation", "Fertilizer / NPK", "Smart Calendar"];
 
 const CROP_NPK_TARGETS = {
   Tomato: { n: 120, p: 60, k: 60, ph: "6.0 - 7.0", name: "Tomato" },
@@ -68,7 +68,7 @@ const DIAGNOSTIC_CROPS = [
 const AITools = () => {
   const { t, language } = useLanguage();
   const { addHistoryEntry } = useHistory();
-  const [activeTab, setActiveTab] = useState("Disease Detection");
+  const [activeTab, setActiveTab] = useState("Irrigation");
   const isLoggedIn = !!localStorage.getItem("sk_token");
 
   // Q&A states
@@ -78,7 +78,6 @@ const AITools = () => {
   const [qaCrop, setQaCrop] = useState("Tomato");
 
   const displayTabName = (tab) => {
-    if (tab === "Disease Detection") return t("leafDiagnostics");
     if (tab === "Irrigation") return language === 'mr' ? 'सिंचन वेळापत्रक' : 'Irrigation';
     if (tab === "Fertilizer / NPK") return language === 'mr' ? 'खत / NPK' : 'Fertilizer / NPK';
     if (tab === "Smart Calendar") return language === 'mr' ? 'स्मार्ट कॅलेंडर' : 'Smart Calendar';
@@ -113,24 +112,18 @@ const AITools = () => {
     }
   };
 
-  // State: Disease Detection
   const location = useLocation();
-  const [diseaseSubTab, setDiseaseSubTab] = useState("crop_cv"); // "crop_cv" | "leaf_diag" | "crop_disease"
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tabParam = params.get("tab");
-    const subtabParam = params.get("subtab");
 
     if (tabParam === "calendar") {
       setActiveTab("Smart Calendar");
     } else if (tabParam === "npk") {
       setActiveTab("Fertilizer / NPK");
-    } else if (tabParam === "disease") {
-      setActiveTab("Disease Detection");
-      if (subtabParam) {
-        setDiseaseSubTab(subtabParam);
-      }
+    } else if (tabParam === "irrigation") {
+      setActiveTab("Irrigation");
     }
   }, [location.search]);
 
@@ -868,232 +861,6 @@ const AITools = () => {
 
       {/* Dynamic Content Panel */}
       <div className="ai-content">
-        
-        {/* --- DISEASE DETECTION TAB --- */}
-        {activeTab === "Disease Detection" && (
-          <div>
-            <div className="grid-2">
-              {/* Upload Card */}
-              <div className="card">
-                <h3>
-                  {language === 'mr' ? '🌾 पीक रोग निदान (Claude Vision)' : '🌾 Crop Diagnostics'}
-                </h3>
-
-                <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>
-                  {language === 'mr'
-                    ? 'पिकाचा किंवा पानाचा फोटो अपलोड करा. Claude Vision द्वारे पीक आरोग्य, वाढीचा टप्पा आणि रोग निदानाचे विश्लेषण मिळवा.'
-                    : 'Upload a photo of your crop or plant. Claude Vision analyzes crop health, growth stage, and possible disease signs.'}
-                </p>
-
-                <label style={{ fontWeight: 600, fontSize: 13 }}>{t("cropTypeHint")}</label>
-                <select 
-                  className="input"
-                  value={diseaseCropHint}
-                  onChange={(e) => setDiseaseCropHint(e.target.value)}
-                >
-                  {DIAGNOSTIC_CROPS.map(crop => (
-                    <option key={crop.id} value={crop.id}>
-                      {language === 'mr' ? crop.mr : language === 'hi' ? crop.hi : crop.en}
-                    </option>
-                  ))}
-                </select>
-
-                {diseaseCropHint === "Other" && (
-                  <div style={{ marginTop: 8, marginBottom: 12 }}>
-                    <label style={{ fontWeight: 600, fontSize: 13 }}>
-                      {language === 'mr' ? 'पिकाचे नाव प्रविष्ट करा' : 'Type Crop Name'}
-                    </label>
-                    <input
-                      type="text"
-                      className="input"
-                      placeholder={language === 'mr' ? 'उदा. सोयाबीन, कांदा, आंबा...' : 'e.g. Soyabean, Onion, Mango...'}
-                      value={diseaseCustomCrop}
-                      onChange={(e) => setDiseaseCustomCrop(e.target.value)}
-                      required
-                    />
-                  </div>
-                )}
-
-                <input
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/webp"
-                  ref={fileInputRef}
-                  style={{ display: "none" }}
-                  onChange={(e) => handleDiseaseFileSelected(e.target.files?.[0])}
-                />
-
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", margin: "20px 0", gap: 16, textAlign: "center" }}>
-                  {!diseasePreview ? (
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      style={{
-                        background: "#16a34a",
-                        color: "#ffffff",
-                        borderRadius: "10px",
-                        height: "48px",
-                        width: "220px",
-                        fontSize: "15px",
-                        fontWeight: 600,
-                        border: "none",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 8,
-                        transition: "background-color 0.2s ease",
-                        margin: "0 auto",
-                        boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-                      }}
-                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#15803d"}
-                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = "#16a34a"}
-                    >
-                      📷 {language === 'mr' ? 'पिकाचा फोटो अपलोड करा' : 'Upload Crop Photo'}
-                    </button>
-                  ) : (
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-                      <div style={{ position: "relative", width: "250px", maxHeight: "250px", borderRadius: "10px", overflow: "hidden", border: "1px solid var(--border-color)", background: "#f8fafc" }}>
-                        <img
-                          src={diseasePreview}
-                          alt="Selected Preview"
-                          style={{
-                            width: "250px",
-                            maxHeight: "250px",
-                            borderRadius: "10px",
-                            objectFit: "contain",
-                            display: "block"
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            clearDiseaseImage();
-                          }}
-                          style={{
-                            position: "absolute",
-                            top: 8,
-                            right: 8,
-                            background: "rgba(220, 38, 38, 0.9)",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "50%",
-                            width: 28,
-                            height: 28,
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 14,
-                            fontWeight: "bold",
-                            zIndex: 10,
-                            boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
-                          }}
-                          title="Clear Image"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  className="button"
-                  style={{ width: "100%", marginTop: 8 }}
-                  onClick={handleAnalyzeDisease}
-                  disabled={diseaseLoading || !diseaseFile}
-                >
-                  {diseaseLoading 
-                    ? (language === 'mr' ? 'तपासत आहे (Stage 1 & 2)...' : 'Analyzing with Claude Vision...') 
-                    : (language === 'mr' ? 'पीक निदान करा' : 'Analyze Crop Health')}
-                </button>
-                
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
-                  {diseaseLoading && <span className="spinner-dot" style={{ display: "inline-block" }}></span>}
-                  <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>
-                    {diseaseStatus}
-                  </p>
-                </div>
-              </div>
-
-              {/* Report / Rejection Card */}
-              <div className="card" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <h3 style={{ margin: 0 }}>
-                    {language === 'mr' ? '🩺 निदान अहवाल' : '🩺 Diagnostics Report'}
-                  </h3>
-                  {diseaseResult && (
-                    <button className="button" style={{ background: "#0284c7", padding: "6px 12px", fontSize: 12, margin: 0 }} onClick={printPrescription}>
-                      {t("printPrescription")}
-                    </button>
-                  )}
-                </div>
-
-                {/* Step 1 Validation Rejection State */}
-                {diseaseRejection ? (
-                  <div
-                    id="plant-gate-rejection-banner"
-                    style={{
-                      background: "linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)",
-                      border: "1.5px solid #ef4444",
-                      borderRadius: 14,
-                      padding: "24px 20px",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: 12,
-                      textAlign: "center"
-                    }}
-                  >
-                    <div style={{ fontSize: 48, lineHeight: 1 }}>🚫</div>
-                    <h4 style={{ margin: 0, color: "#991b1b", fontSize: 16, fontWeight: 800 }}>
-                      {language === 'mr' ? 'अवैध प्रतिमा आढळली' : 'Invalid Image Detected'}
-                    </h4>
-                    <p style={{ margin: 0, color: "#7f1d1d", fontSize: 13.5, lineHeight: 1.5 }}>
-                      ⚠️ {diseaseRejection.message || "Only crop & plant photos are accepted."}
-                    </p>
-                    <button
-                      className="button"
-                      style={{
-                        marginTop: 4,
-                        background: "#dc2626",
-                        padding: "8px 20px",
-                        fontSize: 13,
-                        fontWeight: 700
-                      }}
-                      onClick={() => {
-                        setDiseaseRejection(null);
-                        clearDiseaseImage();
-                      }}
-                    >
-                      {language === 'mr' ? '📷 नवीन फोटो निवडा' : '📷 Upload Crop Photo'}
-                    </button>
-                  </div>
-                ) : !diseaseResult ? (
-                  /* Initial Empty State */
-                  <div style={{ padding: "60px 20px", textAlign: "center", color: "var(--text-muted)", flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-                    <span style={{ fontSize: 52 }}>🌾</span>
-                    <p style={{ marginTop: 14, fontSize: 14, fontWeight: 600, color: "var(--text-dark)" }}>
-                      {language === 'mr'
-                        ? 'पिकाचा फोटो अपलोड करून Claude Vision द्वारे निदान मिळवा'
-                        : 'Upload a photo of your crop or plant to get AI-powered diagnosis'}
-                    </p>
-                    <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 6, maxWidth: 360, lineHeight: 1.5 }}>
-                      {language === 'mr'
-                        ? '⚠️ फक्त पिकाचे किंवा झाडाचे फोटो स्वीकारले जातात. (Stage 1 validation gate)'
-                        : '⚠️ Only crop & plant photos are accepted. (Stage 1 image validation gate)'}
-                    </p>
-                  </div>
-                ) : (
-                  /* Real Claude Vision Report Rendering */
-                  <DiagnosticReport report={diseaseResult} />
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* --- IRRIGATION TAB --- */}
         {activeTab === "Irrigation" && (
           <div className="grid-2">

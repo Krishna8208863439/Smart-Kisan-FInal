@@ -99,10 +99,10 @@ const Navbar = () => {
                           <div className="nav-tools-item-desc">{language === 'mr' ? 'जमिनीच्या पोषणाचा अचूक अंदाज' : 'Soil nutrient optimization'}</div>
                         </div>
                       </NavLink>
-                      <NavLink to="/ai-tools?tab=disease" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
+                      <NavLink to="/ai-tools?tab=irrigation" className="nav-tools-dropdown-item" onClick={() => setToolsOpen(false)}>
                         <div>
-                          <div className="nav-tools-item-title">{language === 'mr' ? 'पीक रोग निदान' : 'Crop Diagnostics'}</div>
-                          <div className="nav-tools-item-desc">{language === 'mr' ? 'Claude Vision AI द्वारे पिकांची तपासणी' : 'Claude Vision AI crop health scan'}</div>
+                          <div className="nav-tools-item-title">{language === 'mr' ? 'सिंचन वेळापत्रक' : 'Irrigation Scheduler'}</div>
+                          <div className="nav-tools-item-desc">{language === 'mr' ? 'पिकांच्या वाढीनुसार पाण्याचे नियोजन' : 'Smart crop watering plans'}</div>
                         </div>
                       </NavLink>
 
@@ -253,7 +253,7 @@ const Navbar = () => {
                 <NavLink to="/weather" className={navLinkClass}>{t('weather')}</NavLink>
                 <NavLink to="/market" className={navLinkClass}>{t('mandiPrices')}</NavLink>
                 <NavLink to="/ai-tools?tab=npk" className={navLinkClass}>{language === 'mr' ? 'NPK खत सल्लागार' : 'NPK Advisor'}</NavLink>
-                <NavLink to="/ai-tools?tab=disease" className={navLinkClass}>{language === 'mr' ? 'पीक रोग निदान' : 'Crop Diagnostics'}</NavLink>
+                <NavLink to="/ai-tools?tab=irrigation" className={navLinkClass}>{language === 'mr' ? 'सिंचन वेळापत्रक' : 'Irrigation Scheduler'}</NavLink>
 
                 <NavLink to="/predictive-yield" className={navLinkClass}>{language === 'mr' ? 'उत्पादन अंदाज' : 'Predictive Yield'}</NavLink>
                 <NavLink to="/marketplace" className={navLinkClass}>{t('bazaar')}</NavLink>

@@ -62,10 +62,13 @@ const handleAnalyze = async (req, res) => {
       });
     }
 
+    const geminiKey = (req.headers["x-gemini-key"] || req.body?.geminiKey || process.env.GEMINI_API_KEY || "").trim();
+
     const result = await runCropDiagnosticsPipeline({
       base64Image,
       mimeType,
-      cropTypeHint
+      cropTypeHint,
+      geminiKey
     });
 
     if (result.isAgriculturalImage === false || result.isPlant === false) {
@@ -95,7 +98,7 @@ const handleAnalyze = async (req, res) => {
     });
   } catch (err) {
     console.error("[CropDiagnostics] Route error:", err.message);
-    return res.status(502).json({
+    return res.status(500).json({
       success: false,
       error: err.message || "Diagnosis failed. Please check your image and try again."
     });

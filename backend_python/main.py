@@ -349,10 +349,31 @@ async def diagnose_crop_disease(
     with open(file_path, "rb") as f:
          img_bytes = f.read()
 
-    # 2. Run ML pipeline (Gemini → HuggingFace → Static)
+    # 2. Run ML pipeline (with strict crop isolation guardrails)
     prediction = predict_image(img_bytes, crop_hint=crop, filename=image.filename, custom_key=x_gemini_key)
 
-    # 3. Save report to Relational Database
+    # 3. Guardrail Gate: Reject human selfies, indoor rooms, vehicles, animals, and non-plant objects
+    if prediction.get("isAgriculturalImage") is False or prediction.get("is_plant") is False or prediction.get("isPlant") is False:
+        return {
+            "success": True,
+            "isAgriculturalImage": False,
+            "isPlant": False,
+            "is_plant": False,
+            "crop": "Not a Crop",
+            "disease": "Invalid Image (Non-Crop Detected)",
+            "severity": "Low",
+            "confidence": 0.0,
+            "certaintyPercent": 0,
+            "error": prediction.get("error") or prediction.get("advice") or "Please upload a clear crop, plant, or leaf image for agricultural diagnosis.",
+            "message": prediction.get("message") or prediction.get("advice") or "Please upload a clear crop, plant, or leaf image for agricultural diagnosis.",
+            "advice": prediction.get("advice", ""),
+            "symptoms": ["Non-crop or human/indoor image detected."],
+            "treatment": ["Please take a clear photo of your crop, plant leaves, fruit, or farm produce."],
+            "imageUrl": image_url,
+            "ai_model": "Smart Kisan Crop Isolation Guardrail"
+        }
+
+    # 4. Save valid agricultural report to Relational Database
     report = DiseaseReport(
         user_id=user_id,
         crop=prediction.get("crop", "Unknown"),
@@ -369,6 +390,9 @@ async def diagnose_crop_disease(
 
     return {
         "success": True,
+        "isAgriculturalImage": True,
+        "isPlant": True,
+        "is_plant": True,
         "report_id": report.id,
         "crop": report.crop,
         "plant_name": prediction.get("plant_name", report.crop),

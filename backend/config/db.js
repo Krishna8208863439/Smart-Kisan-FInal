@@ -7,10 +7,12 @@ mongoose.set("bufferCommands", false);
 
 export const connectDB = async () => {
   try {
-    const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb://localhost:27017/smart_kisan";
-    // Attempt connecting to mongoose with a fast timeout (3 seconds)
+    const rawUri = process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/smart_kisan";
+    const mongoUri = rawUri.replace("localhost", "127.0.0.1");
+    // Attempt connecting to mongoose with a fast timeout (1.5 seconds)
     await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 3000
+      serverSelectionTimeoutMS: 1500,
+      connectTimeoutMS: 1500
     });
     console.log("MongoDB connected successfully");
   } catch (err) {

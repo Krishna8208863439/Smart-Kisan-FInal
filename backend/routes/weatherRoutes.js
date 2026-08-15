@@ -57,6 +57,42 @@ async function geocodeCity(cityName) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  Reverse Geocode GPS coordinates (lat, lon) → City / Village, State, Country
+// ─────────────────────────────────────────────────────────────────────────────
+async function reverseGeocode(lat, lon) {
+  // Service 1: BigDataCloud Reverse Geocoding (Fast, accurate, no key needed)
+  try {
+    const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      const place = data.locality || data.city || data.localityInfo?.administrative?.find(a => a.order === 3 || a.adminLevel === 6)?.name;
+      const state = data.principalSubdivision;
+      const country = data.countryName || "India";
+      const parts = [place, state, country].filter(Boolean);
+      if (parts.length > 0) return parts.join(", ");
+    }
+  } catch (_e) {}
+
+  // Service 2: OpenStreetMap Nominatim with User-Agent
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`;
+    const res = await fetch(url, { headers: { "User-Agent": "SmartKisanApp/1.0" } });
+    if (res.ok) {
+      const data = await res.json();
+      const addr = data.address || {};
+      const place = addr.village || addr.town || addr.city || addr.suburb || addr.county || addr.state_district;
+      const state = addr.state;
+      const country = addr.country;
+      const parts = [place, state, country].filter(Boolean);
+      if (parts.length > 0) return parts.join(", ");
+    }
+  } catch (_e) {}
+
+  return `${lat.toFixed(3)}°N, ${lon.toFixed(3)}°E`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  Fetch full weather forecast from Open-Meteo — free, no API key required.
 //  Fetches: current conditions, 7-day daily, 24h hourly (temp + precip + UV).
 // ─────────────────────────────────────────────────────────────────────────────
@@ -166,11 +202,15 @@ router.get("/", protect, async (req, res) => {
 
     let lat, lon, displayName;
 
-    // ── Path 1: GPS coordinates (My Location button) ──────────────────────────
+    // ── Path 1: GPS coordinates (My Location button / Live Geolocation) ───────
     if (qLat && qLon) {
       lat = parseFloat(qLat);
       lon = parseFloat(qLon);
-      displayName = qName?.trim() || `${lat.toFixed(3)}°N, ${lon.toFixed(3)}°E`;
+      if (qName && qName.trim() && qName.trim() !== "My Location" && !qName.includes("°")) {
+        displayName = qName.trim();
+      } else {
+        displayName = await reverseGeocode(lat, lon);
+      }
       console.log(`[Weather] GPS path — lat:${lat}, lon:${lon}, display:"${displayName}"`);
     }
     // ── Path 2: City name search ───────────────────────────────────────────────

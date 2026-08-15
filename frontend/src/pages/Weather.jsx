@@ -169,29 +169,24 @@ const Weather = () => {
         const { latitude, longitude } = pos.coords;
         setLoading(true);
         try {
-          // Reverse geocode using Open-Meteo
-          const geoRes = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
-          );
-          const geoData = await geoRes.json();
-          const cityName = geoData.address?.city || geoData.address?.town || geoData.address?.village || geoData.address?.county || "My Location";
-          setLocation(cityName);
           const res = await api.get("/weather", {
-            params: { lat: latitude, lon: longitude, name: cityName }
+            params: { lat: latitude, lon: longitude }
           });
+          const resolvedLocation = res.data.location || "My Location";
+          setLocation(resolvedLocation);
           setData(res.data);
           setActiveDay(0);
-          localStorage.setItem("sk_last_city", cityName);
-          setLastCity(cityName);
+          localStorage.setItem("sk_last_city", resolvedLocation);
+          setLastCity(resolvedLocation);
           // Record in Activity History
           if (res.data?.current) {
             addHistoryEntry({
               type: "weather",
-              title: `Weather — ${cityName}`,
+              title: `Weather — ${resolvedLocation}`,
               icon: "🌤️",
               summary: `${res.data.current.temperature}°C · ${res.data.current.condition} · Humidity ${res.data.current.humidity}%`,
               data: {
-                location: cityName,
+                location: resolvedLocation,
                 temperature: `${res.data.current.temperature}°C`,
                 condition: res.data.current.condition,
                 humidity: `${res.data.current.humidity}%`,
@@ -199,16 +194,18 @@ const Weather = () => {
             });
           }
         } catch (err) {
-          setError("Could not detect your location's weather. Try typing your city.");
+          setError(err.response?.data?.error || "Could not detect your live location's weather. Try typing your city.");
         } finally {
           setLoading(false);
           setLocating(false);
         }
       },
-      () => {
-        setError("Location permission denied. Please type your city manually.");
+      (err) => {
+        console.warn("Geolocation access denied or timed out:", err);
+        setError("Location permission denied. Please allow location access in your browser or type your city.");
         setLocating(false);
-      }
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
     );
   };
 

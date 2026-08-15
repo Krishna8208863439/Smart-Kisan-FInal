@@ -10,8 +10,8 @@ import { extractErrorMessage } from '../../utils/errorUtils';
  * Features:
  * - HTML5 Camera Stream with live leaf frame guide overlay
  * - Direct camera photo capture & gallery image upload
- * - Preview State with "Analyze Image", "Retake", and "Upload Another" options
- * - AI Vision Analysis via OpenAI (/api/crop-diagnosis)
+ * - Interactive Crop Selector & Custom Crop Name Input in Preview mode
+ * - Multi-tier AI Vision Analysis (/api/crop-diagnosis)
  * - Agricultural image validation gate (rejects non-plant images)
  * - Full structured diagnosis output display
  */
@@ -33,6 +33,25 @@ export default function CameraScannerModal({ isOpen, onClose, onCaptureImage }) 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [diagnosisResult, setDiagnosisResult] = useState(null);
   const [diagnosisError, setDiagnosisError] = useState(null);
+
+  // Selected Crop State
+  const [selectedCrop, setSelectedCrop] = useState('Potato');
+  const [customCropName, setCustomCropName] = useState('Potato');
+
+  // Popular crops list with multi-lingual support
+  const popularCrops = [
+    { id: 'Potato', emoji: '🥔', nameEn: 'Potato', nameMr: 'बटाटा', nameHi: 'आलू' },
+    { id: 'Tomato', emoji: '🍅', nameEn: 'Tomato', nameMr: 'टोमॅटो', nameHi: 'टमाटर' },
+    { id: 'Paddy', emoji: '🌾', nameEn: 'Rice / Paddy', nameMr: 'भात / धान', nameHi: 'धान' },
+    { id: 'Wheat', emoji: '🌾', nameEn: 'Wheat', nameMr: 'गहू', nameHi: 'गेहूं' },
+    { id: 'Sugarcane', emoji: '🎋', nameEn: 'Sugarcane', nameMr: 'ऊस', nameHi: 'गन्ना' },
+    { id: 'Onion', emoji: '🧅', nameEn: 'Onion', nameMr: 'कांदा', nameHi: 'प्याज' },
+    { id: 'Chilli', emoji: '🌶️', nameEn: 'Chilli', nameMr: 'मिरची', nameHi: 'मिर्च' },
+    { id: 'Cotton', emoji: '🌿', nameEn: 'Cotton', nameMr: 'कापूस', nameHi: 'कपास' },
+    { id: 'Maize', emoji: '🌽', nameEn: 'Maize / Corn', nameMr: 'मका', nameHi: 'मक्का' },
+    { id: 'Soybean', emoji: '🫘', nameEn: 'Soybean', nameMr: 'सोयाबीन', nameHi: 'सोयाबीन' },
+    { id: 'other', emoji: '✏️', nameEn: 'Other Crop', nameMr: 'इतर पीक', nameHi: 'अन्य फसल' }
+  ];
 
   // Monitor network status
   useEffect(() => {
@@ -141,7 +160,7 @@ export default function CameraScannerModal({ isOpen, onClose, onCaptureImage }) 
     setModalMode('camera');
   };
 
-  // Execute AI Vision Analysis via OpenAI API endpoint /api/crop-diagnosis
+  // Execute AI Vision Analysis via endpoint /api/crop-diagnosis
   const handleAnalyzeImage = async () => {
     if (!capturedFile) return;
 
@@ -149,8 +168,14 @@ export default function CameraScannerModal({ isOpen, onClose, onCaptureImage }) 
     setDiagnosisError(null);
 
     try {
+      const cropToUse = selectedCrop === 'other'
+        ? (customCropName.trim() || 'Cultivated Crop')
+        : (customCropName.trim() || selectedCrop);
+
       const formData = new FormData();
       formData.append('image', capturedFile);
+      formData.append('crop', cropToUse);
+      formData.append('cropHint', cropToUse);
 
       const res = await api.post('/crop-diagnosis', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -196,7 +221,7 @@ export default function CameraScannerModal({ isOpen, onClose, onCaptureImage }) 
               {modalMode === 'result' 
                 ? (language === 'mr' ? 'एआय पीक निदान अहवाल' : 'AI Crop Diagnosis Report')
                 : modalMode === 'preview'
-                  ? (language === 'mr' ? 'पिकाचा फोटो पूर्वावलोकन' : 'Crop Photo Preview')
+                  ? (language === 'mr' ? 'पिकाचा फोटो व तपशील' : 'Crop Photo & Details')
                   : (language === 'mr' ? 'पीक पान स्कॅनर' : 'Field Camera Diagnostics')}
             </span>
           </div>
@@ -293,12 +318,98 @@ export default function CameraScannerModal({ isOpen, onClose, onCaptureImage }) 
         {/* ── MODE 2: PREVIEW / ANALYZING VIEW ─────────────────────────────── */}
         {modalMode === 'preview' && (
           <div style={{ padding: 20, textAlign: 'center' }}>
-            <div style={{ position: 'relative', width: '100%', maxHeight: '320px', borderRadius: 12, overflow: 'hidden', border: '1px solid #334155', background: '#0f172a', marginBottom: 20 }}>
+            <div style={{ position: 'relative', width: '100%', maxHeight: '280px', borderRadius: 12, overflow: 'hidden', border: '1px solid #334155', background: '#0f172a', marginBottom: 16 }}>
               <img
                 src={previewUrl}
                 alt="Captured Crop Preview"
-                style={{ width: '100%', maxHeight: '320px', objectFit: 'contain', display: 'block' }}
+                style={{ width: '100%', maxHeight: '280px', objectFit: 'contain', display: 'block' }}
               />
+            </div>
+
+            {/* Crop Name Selector & Input Section */}
+            <div style={{
+              background: '#1e293b',
+              borderRadius: 12,
+              border: '1px solid #334155',
+              padding: '16px 18px',
+              marginBottom: 16,
+              textAlign: 'left'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#38bdf8', fontWeight: 800, fontSize: 13.5 }}>
+                  <Sprout size={18} color="#38bdf8" />
+                  {language === 'mr' ? 'पिकाचे नाव निवडा किंवा लिहा:' : language === 'hi' ? 'फसल का नाम चुनें या लिखें:' : 'Select or Specify Crop Name:'}
+                </label>
+                <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                  {language === 'mr' ? 'अचूक निदानासाठी आवश्यक' : 'Required for tailored diagnosis'}
+                </span>
+              </div>
+
+              {/* Quick-Select Crop Chips */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+                {popularCrops.map((c) => {
+                  const isSelected = selectedCrop === c.id;
+                  const label = language === 'mr' ? c.nameMr : language === 'hi' ? c.nameHi : c.nameEn;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCrop(c.id);
+                        if (c.id !== 'other') {
+                          setCustomCropName(c.nameEn);
+                        } else {
+                          setCustomCropName('');
+                        }
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 20,
+                        fontSize: 12.5,
+                        fontWeight: isSelected ? 800 : 600,
+                        background: isSelected ? '#15803d' : '#0f172a',
+                        color: isSelected ? '#ffffff' : '#cbd5e1',
+                        border: isSelected ? '1.5px solid #22c55e' : '1px solid #334155',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <span>{c.emoji}</span>
+                      <span>{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Editable Crop Name Input Field */}
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  value={customCropName || (selectedCrop !== 'other' ? selectedCrop : '')}
+                  onChange={(e) => {
+                    setCustomCropName(e.target.value);
+                    if (selectedCrop !== 'other') {
+                      setSelectedCrop('other');
+                    }
+                  }}
+                  placeholder={language === 'mr' ? 'उदा. कांदा, बटाटा, गहू, ऊस, किंवा वाण टाइप करा...' : 'Type crop name or variety (e.g. Potato, Tomato, Kufri Jyoti)...'}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: 8,
+                    background: '#0f172a',
+                    border: '1.5px solid #475569',
+                    color: '#f8fafc',
+                    fontSize: 13.5,
+                    fontWeight: 600,
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
             </div>
 
             {diagnosisError && (
@@ -383,7 +494,7 @@ export default function CameraScannerModal({ isOpen, onClose, onCaptureImage }) 
                   }}
                 >
                   <Upload size={16} />
-                  {language === 'mr' ? 'इतर फोटो निवडा' : 'Upload Another'}
+                  {language === 'mr' ? 'दुसरा फोटो निवडा' : 'Upload Another'}
                 </button>
               </div>
             )}
@@ -604,4 +715,3 @@ export default function CameraScannerModal({ isOpen, onClose, onCaptureImage }) 
     </div>
   );
 }
-

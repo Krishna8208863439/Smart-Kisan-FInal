@@ -47,7 +47,7 @@ const Recommendations = () => {
   // Get custom gemini key from local storage (if user configured it in chat)
   const getCustomKey = () => localStorage.getItem("sk_gemini_key") || "";
 
-  // Auto-detect geolocation
+  // Auto-detect geolocation and live climate parameters
   const detectLocation = () => {
     if (!navigator.geolocation) {
       alert("Geolocation is not supported by your browser.");
@@ -56,21 +56,37 @@ const Recommendations = () => {
     setLocating(true);
     setError(null);
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setForm((prev) => ({
-          ...prev,
-          lat: position.coords.latitude,
-          lon: position.coords.longitude,
-          region: "Detected GPS Location"
-        }));
-        setLocating(false);
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        try {
+          const wxRes = await api.get("/weather", { params: { lat, lon } });
+          const place = wxRes.data?.location || `${lat.toFixed(2)}°N, ${lon.toFixed(2)}°E`;
+          setForm((prev) => ({
+            ...prev,
+            lat,
+            lon,
+            region: place,
+            temperature: wxRes.data?.current?.temperature ?? prev.temperature,
+            humidity: wxRes.data?.current?.humidity ?? prev.humidity
+          }));
+        } catch {
+          setForm((prev) => ({
+            ...prev,
+            lat,
+            lon,
+            region: `${lat.toFixed(3)}°N, ${lon.toFixed(3)}°E`
+          }));
+        } finally {
+          setLocating(false);
+        }
       },
       (err) => {
         console.warn("Geolocation access denied or failed:", err);
         setError("Could not access your location. Please enter your region name manually.");
         setLocating(false);
       },
-      { timeout: 8000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 

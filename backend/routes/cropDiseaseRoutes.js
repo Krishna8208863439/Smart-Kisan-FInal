@@ -729,10 +729,12 @@ router.post("/analyze", protect, upload.single("image"), async (req, res) => {
       console.error("[HuggingFace] Error during analysis:", err.message);
     }
 
-    // ── TIER 3: Disabled Fallback to comply with strict AI vision requirement ──
+    // ── TIER 3: Smart Local Agronomy Engine Fallback ─────────────────────
+    const localResult = smartLocalFallback(crop, imageBuffer);
     return res.json({
-      success: false,
-      error: "AI Computer Vision model is temporarily offline or unable to process this image. Please try again later."
+      success: true,
+      imageUrl,
+      ...localResult
     });
 
   } catch (err) {

@@ -211,6 +211,8 @@ router.post("/chat", async (req, res) => {
     return res.status(400).json({ error: "message is required" });
   }
 
+  const geminiKey = (req.headers["x-gemini-key"] || (typeof req.body?.geminiKey === "string" ? req.body.geminiKey : "") || "").trim();
+
   try {
     const reply = await getAgriExpertReply({
       message: userMsg,
@@ -219,13 +221,19 @@ router.post("/chat", async (req, res) => {
         location: gps,
         weather,
         waterSource: waterAvailability,
-        language: language === "mr" ? "Marathi" : "English"
+        language: language === "mr" ? "Marathi" : language === "hi" ? "Hindi" : "English",
+        geminiKey
       }
     });
-    return res.json({ success: true, response: reply, reply, source: "claude-haiku" });
+    return res.json({
+      success: true,
+      response: reply,
+      reply,
+      source: process.env.OPENAI_API_KEY ? "chatgpt" : process.env.ANTHROPIC_API_KEY ? "claude" : geminiKey ? "gemini" : "agriexpert"
+    });
   } catch (err) {
     console.error("AgriExpert API error:", err);
-    return res.status(502).json({
+    return res.status(500).json({
       error: "AgriExpert is temporarily unavailable. Please try again.",
     });
   }

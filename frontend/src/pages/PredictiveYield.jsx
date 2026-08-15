@@ -154,16 +154,28 @@ const PredictiveYield = () => {
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setForm((prev) => ({
-          ...prev,
-          region: `${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`
-        }));
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        try {
+          const wxRes = await api.get("/weather", { params: { lat, lon } });
+          const place = wxRes.data?.location || `${lat.toFixed(3)}°N, ${lon.toFixed(3)}°E`;
+          setForm((prev) => ({
+            ...prev,
+            region: place
+          }));
+        } catch {
+          setForm((prev) => ({
+            ...prev,
+            region: `${lat.toFixed(3)}°N, ${lon.toFixed(3)}°E`
+          }));
+        }
       },
       (err) => {
-        console.error(err);
+        console.warn("GPS detection failed:", err);
         alert("GPS detection failed. Please type location manually.");
-      }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
