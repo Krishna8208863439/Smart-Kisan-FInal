@@ -12,26 +12,42 @@ if "pythonanywhere" in os.environ.get("PYTHONANYWHERE_DOMAIN", "") or "PYTHONANY
 import base64
 import json
 import io
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-from dotenv import load_dotenv
-from PIL import Image
-from anthropic import Anthropic
-
 import time
+from flask import Flask, request, jsonify, send_from_directory
 
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
+
+try:
+    from anthropic import Anthropic
+except ImportError:
+    Anthropic = None
 
 app = Flask(__name__)
-CORS(app)
 
-@app.route("/", methods=["GET"])
-def root_status():
-    return jsonify({
-        "status": "Smart Kisan AI Backend is Running",
-        "ok": True,
-        "api_endpoints": ["/api/chat", "/api/crop-diagnosis", "/api/auth/register", "/api/auth/login", "/api/health"]
-    })
+try:
+    from flask_cors import CORS
+    CORS(app)
+except ImportError:
+    @app.after_request
+    def add_cors_headers(response):
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+        return response
+
+dist_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
+if not os.path.exists(dist_folder):
+    dist_folder = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'frontend', 'dist')
+
 
 @app.route("/api/health", methods=["GET"])
 def health_check():
@@ -279,7 +295,10 @@ def chatbot_message():
 
 def get_openai_client(api_key):
     is_pa = "pythonanywhere" in os.environ.get("PYTHONANYWHERE_DOMAIN", "") or "PYTHONANYWHERE_SITE" in os.environ or "PYTHONANYWHERE_HOST" in os.environ
-    from openai import OpenAI
+    try:
+        from openai import OpenAI
+    except ImportError:
+        return None
     if is_pa:
         try:
             import httpx
@@ -416,6 +435,24 @@ def analyze_crop():
     })
 
 
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_spa(path):
+    if path.startswith("api/"):
+        return jsonify({"error": "Endpoint not found"}), 404
+    if os.path.exists(os.path.join(dist_folder, path)) and path != "":
+        return send_from_directory(dist_folder, path)
+    if os.path.exists(os.path.join(dist_folder, "index.html")):
+        return send_from_directory(dist_folder, "index.html")
+    return jsonify({
+        "status": "Smart Kisan AI Backend is Running",
+        "ok": True,
+        "message": "Frontend build not detected. Please run npm run build."
+    })
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+

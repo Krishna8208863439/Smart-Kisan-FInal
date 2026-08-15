@@ -9,7 +9,10 @@ if "pythonanywhere" in os.environ.get("PYTHONANYWHERE_DOMAIN", "") or "PYTHONANY
     os.environ["http_proxy"] = proxy_url
     os.environ["https_proxy"] = proxy_url
 
-from anthropic import Anthropic
+try:
+    from anthropic import Anthropic
+except ImportError:
+    Anthropic = None
 
 SYSTEM_PROMPT = """You are AgriExpert, an elite agricultural advisor embedded in the Smart Kisan platform for Indian farmers.
 
@@ -37,7 +40,10 @@ STRICT RULES:
 
 def get_openai_client(api_key):
     is_pa = "pythonanywhere" in os.environ.get("PYTHONANYWHERE_DOMAIN", "") or "PYTHONANYWHERE_SITE" in os.environ or "PYTHONANYWHERE_HOST" in os.environ
-    from openai import OpenAI
+    try:
+        from openai import OpenAI
+    except ImportError:
+        return None
     if is_pa:
         try:
             import httpx
