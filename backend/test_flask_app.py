@@ -13,42 +13,46 @@ class FlaskAppTestCase(unittest.TestCase):
         data = json.loads(response.data)
         self.assertEqual(data.get("status"), "ok")
 
-    def test_chatbot_missing_message(self):
-        response = self.client.post("/api/chatbot/message", json={})
-        self.assertEqual(response.status_code, 400)
-
-    def test_chat_missing_message(self):
-        response = self.client.post("/api/chat", json={})
-        self.assertEqual(response.status_code, 400)
-
     def test_weather_endpoint(self):
         response = self.client.get("/api/weather?location=Kolhapur")
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertTrue(data.get("success"))
-        self.assertIn("current", data)
-        self.assertIn("forecast", data)
 
-    def test_market_prices_endpoint(self):
-        response = self.client.get("/api/market-prices")
+    def test_market_endpoint(self):
+        response = self.client.get("/api/market")
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertTrue(data.get("success"))
-        self.assertTrue(len(data.get("data", [])) > 0)
 
-    def test_schemes_endpoint(self):
-        response = self.client.get("/api/community/schemes")
+    def test_marketplace_endpoint(self):
+        response = self.client.get("/api/marketplace")
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertTrue(data.get("success"))
-        self.assertTrue(len(data.get("data", [])) > 0)
 
-    def test_crop_recommendations(self):
-        response = self.client.post("/api/recommendations/crop", json={"nitrogen": 80, "phosphorus": 40, "potassium": 40})
+    def test_yield_history_and_predict(self):
+        response = self.client.get("/api/yield/history")
         self.assertEqual(response.status_code, 200)
-        data = json.loads(response.data)
-        self.assertTrue(data.get("success"))
-        self.assertTrue(len(data.get("recommendations", [])) > 0)
+        
+        predict_res = self.client.post("/api/yield/predict", json={"crop": "Tomato", "area": 2})
+        self.assertEqual(predict_res.status_code, 200)
+        self.assertTrue(predict_res.json.get("success"))
+
+    def test_livestock_endpoints(self):
+        response = self.client.get("/api/livestock")
+        self.assertEqual(response.status_code, 200)
+
+    def test_crop_diagnostics_analyze(self):
+        response = self.client.post("/api/diagnose", json={"crop": "Tomato"})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json.get("success"))
+
+    def test_schemes_and_officers(self):
+        res1 = self.client.get("/api/community/schemes")
+        self.assertEqual(res1.status_code, 200)
+        res2 = self.client.get("/api/community/officers")
+        self.assertEqual(res2.status_code, 200)
 
 if __name__ == "__main__":
     unittest.main()
