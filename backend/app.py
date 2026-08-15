@@ -881,7 +881,7 @@ def predict_market_price():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  SMART CROP CALENDAR API
+#  SMART CROP CALENDAR API (MULTI-CROP & DYNAMIC LIFECYCLE ENGINE)
 # ─────────────────────────────────────────────────────────────────────────────
 CROP_TEMPLATES = {
     "Tomato": [
@@ -894,7 +894,8 @@ CROP_TEMPLATES = {
         {"title": "Staking & Trellising Tomato Vines", "dayOffset": 55, "category": "Land Preparation"},
         {"title": "Preventive Spray against Early Blight & Whiteflies", "dayOffset": 65, "category": "Disease Prevention"},
         {"title": "Fruiting Micronutrient Spray (Boron + Calcium)", "dayOffset": 75, "category": "Fertilizer Schedule"},
-        {"title": "First Harvest of Grade-A Ripe Tomatoes", "dayOffset": 95, "category": "Harvest Time"}
+        {"title": "First Harvest of Grade-A Ripe Tomatoes", "dayOffset": 95, "category": "Harvest Time"},
+        {"title": "Post-Harvest Cleaning, Grading & Cold Storage", "dayOffset": 110, "category": "Storage Recommendations"}
     ],
     "Paddy": [
         {"title": "Puddling, Summer Ploughing & Bunding", "dayOffset": -15, "category": "Land Preparation"},
@@ -904,7 +905,19 @@ CROP_TEMPLATES = {
         {"title": "Standing Water Irrigation Maintenance (3-5 cm)", "dayOffset": 35, "category": "Irrigation"},
         {"title": "First Tillering Urea Top Dressing + Zinc Sulfate", "dayOffset": 45, "category": "Fertilizer Schedule"},
         {"title": "Panicle Initiation Top Dressing & Blast Prevention Spray", "dayOffset": 75, "category": "Disease Prevention"},
-        {"title": "Harvesting & Threshing Paddy Grains", "dayOffset": 120, "category": "Harvest Time"}
+        {"title": "Terminal Drainage before Harvest", "dayOffset": 110, "category": "Irrigation"},
+        {"title": "Harvesting & Threshing Paddy Grains", "dayOffset": 125, "category": "Harvest Time"}
+    ],
+    "Rice": [
+        {"title": "Puddling, Summer Ploughing & Bunding", "dayOffset": -15, "category": "Land Preparation"},
+        {"title": "Seed Treatment & Wet Bed Nursery Sowing", "dayOffset": 0, "category": "Sowing"},
+        {"title": "Main Field Flooding & Levelling", "dayOffset": 15, "category": "Land Preparation"},
+        {"title": "Transplanting Seedlings into Main Field", "dayOffset": 25, "category": "Sowing"},
+        {"title": "Standing Water Irrigation Maintenance (3-5 cm)", "dayOffset": 35, "category": "Irrigation"},
+        {"title": "First Tillering Urea Top Dressing + Zinc Sulfate", "dayOffset": 45, "category": "Fertilizer Schedule"},
+        {"title": "Panicle Initiation Top Dressing & Blast Prevention Spray", "dayOffset": 75, "category": "Disease Prevention"},
+        {"title": "Terminal Drainage before Harvest", "dayOffset": 110, "category": "Irrigation"},
+        {"title": "Harvesting & Threshing Paddy Grains", "dayOffset": 125, "category": "Harvest Time"}
     ],
     "Wheat": [
         {"title": "Disc Harrowing & Field Leveling", "dayOffset": -7, "category": "Land Preparation"},
@@ -914,8 +927,123 @@ CROP_TEMPLATES = {
         {"title": "Second Irrigation at Jointing Stage & Rust Inspection", "dayOffset": 60, "category": "Disease Prevention"},
         {"title": "Third Irrigation at Flowering & Grain Filling Stage", "dayOffset": 85, "category": "Irrigation"},
         {"title": "Combine Harvesting of Dry Mature Wheat", "dayOffset": 125, "category": "Harvest Time"}
+    ],
+    "Banana": [
+        {"title": "Pit Digging (60x60x60 cm) & FYM Drenching", "dayOffset": -20, "category": "Land Preparation"},
+        {"title": "Planting Tissue Culture Banana Plantlets", "dayOffset": 0, "category": "Sowing"},
+        {"title": "Immediate Drip Irrigation & Basin Mulching", "dayOffset": 5, "category": "Irrigation"},
+        {"title": "Desuckering & Weeding around Stems", "dayOffset": 45, "category": "Weed Control"},
+        {"title": "Monthly NPK + Fertigation Split Schedule", "dayOffset": 90, "category": "Fertilizer Schedule"},
+        {"title": "Sigatoka Leaf Spot & Stem Weevil Inspection/Spray", "dayOffset": 150, "category": "Disease Prevention"},
+        {"title": "Bunch Emergence & Bunch Sleeving", "dayOffset": 240, "category": "Land Preparation"},
+        {"title": "Bunch Propping & Drip Fertigation Boost", "dayOffset": 280, "category": "Irrigation"},
+        {"title": "Bunch Harvesting at 75% Maturity", "dayOffset": 350, "category": "Harvest Time"}
+    ],
+    "Sugarcane": [
+        {"title": "Trench/Furrow Digging & Heavy Manuring", "dayOffset": -15, "category": "Land Preparation"},
+        {"title": "Sett Treatment in Fungicide & Planting in Furrows", "dayOffset": 0, "category": "Sowing"},
+        {"title": "First Irrigation & Light Weeding", "dayOffset": 20, "category": "Irrigation"},
+        {"title": "Sprouting Top Dressing & Inter-cultivation", "dayOffset": 45, "category": "Fertilizer Schedule"},
+        {"title": "First Earthing Up & Weed Removal", "dayOffset": 75, "category": "Weed Control"},
+        {"title": "Red Rot & Smut Prophylactic Fungicide Spray", "dayOffset": 105, "category": "Disease Prevention"},
+        {"title": "Grand Growth Stage Trash Mulching & Drip Irrigation", "dayOffset": 150, "category": "Irrigation"},
+        {"title": "Cane Propping against Lodging", "dayOffset": 210, "category": "Land Preparation"},
+        {"title": "Harvesting Mature Sugarcane Stalks", "dayOffset": 330, "category": "Harvest Time"}
+    ],
+    "Cotton": [
+        {"title": "Deep Summer Tillage & FYM Application", "dayOffset": -15, "category": "Land Preparation"},
+        {"title": "Dibbling Treated Bt-Cotton Seeds on Ridges", "dayOffset": 0, "category": "Sowing"},
+        {"title": "Gap Filling & Thinning", "dayOffset": 15, "category": "Land Preparation"},
+        {"title": "First Inter-Culture & Hand Weeding", "dayOffset": 30, "category": "Weed Control"},
+        {"title": "Square Formation Stage Irrigation & NPK Top Dressing", "dayOffset": 50, "category": "Fertilizer Schedule"},
+        {"title": "Bollworm & Whitefly Monitoring & Neem Oil Spray", "dayOffset": 70, "category": "Disease Prevention"},
+        {"title": "Peak Flowering & Boll Development Drip Irrigation", "dayOffset": 90, "category": "Irrigation"},
+        {"title": "First Cotton Fiber Picking", "dayOffset": 120, "category": "Harvest Time"}
+    ],
+    "Maize": [
+        {"title": "Ploughing & Raised Bed Preparation", "dayOffset": -7, "category": "Land Preparation"},
+        {"title": "Ridge & Furrow Sowing of Hybrid Maize Seeds", "dayOffset": 0, "category": "Sowing"},
+        {"title": "Pre-Emergence Atrazine Spray for Weed Control", "dayOffset": 5, "category": "Weed Control"},
+        {"title": "Knee-High Stage First Top Dressing (Urea)", "dayOffset": 30, "category": "Fertilizer Schedule"},
+        {"title": "Fall Armyworm Inspection & Whorl Drenching", "dayOffset": 40, "category": "Disease Prevention"},
+        {"title": "Tasseling & Silking Stage Drip Irrigation", "dayOffset": 60, "category": "Irrigation"},
+        {"title": "Cob Development Potassium Micronutrient Spray", "dayOffset": 75, "category": "Fertilizer Schedule"},
+        {"title": "Harvesting Dry Maize Cobs", "dayOffset": 105, "category": "Harvest Time"}
+    ],
+    "Soybean": [
+        {"title": "Tillage & Rhizobium Inoculation", "dayOffset": -5, "category": "Land Preparation"},
+        {"title": "Line Sowing at Optimum Soil Moisture", "dayOffset": 0, "category": "Sowing"},
+        {"title": "First Irrigation / Rain Water Management", "dayOffset": 15, "category": "Irrigation"},
+        {"title": "Inter-culture & Weed Removal", "dayOffset": 25, "category": "Weed Control"},
+        {"title": "Flowering Stage DAP + Sulfur Application", "dayOffset": 45, "category": "Fertilizer Schedule"},
+        {"title": "Yellow Mosaic Virus & Caterpillar Bio-Spray", "dayOffset": 55, "category": "Disease Prevention"},
+        {"title": "Pod Filling Stage Moisture Maintenance", "dayOffset": 70, "category": "Irrigation"},
+        {"title": "Harvesting when 85% Pods Turn Brown", "dayOffset": 95, "category": "Harvest Time"}
+    ],
+    "Groundnut": [
+        {"title": "Fine Seed Bed Prep & Gypsum Incorporation", "dayOffset": -10, "category": "Land Preparation"},
+        {"title": "Sowing Kernel Seeds treated with Trichoderma", "dayOffset": 0, "category": "Sowing"},
+        {"title": "Pre-Emergence Weed Management", "dayOffset": 10, "category": "Weed Control"},
+        {"title": "Pegging Stage Gypsum Application & Earthing Up", "dayOffset": 40, "category": "Fertilizer Schedule"},
+        {"title": "Tikka Leaf Spot & Stem Rot Fungicidal Spray", "dayOffset": 50, "category": "Disease Prevention"},
+        {"title": "Pod Development Stage Critical Irrigation", "dayOffset": 65, "category": "Irrigation"},
+        {"title": "Harvesting / Pod Pulling at Maturity", "dayOffset": 105, "category": "Harvest Time"}
+    ],
+    "Onion": [
+        {"title": "Nursery Bed Prep & Organic FYM Blending", "dayOffset": -40, "category": "Land Preparation"},
+        {"title": "Nursery Seed Sowing", "dayOffset": -35, "category": "Sowing"},
+        {"title": "Transplanting 6-Week Seedlings to Main Field", "dayOffset": 0, "category": "Sowing"},
+        {"title": "Drip Irrigation & Pre-Emergence Herbicide", "dayOffset": 10, "category": "Weed Control"},
+        {"title": "First Split Top Dressing (NPK 19:19:19)", "dayOffset": 30, "category": "Fertilizer Schedule"},
+        {"title": "Purple Blotch & Thrips Insecticidal Spray", "dayOffset": 45, "category": "Disease Prevention"},
+        {"title": "Bulb Enlargement Stage Potassium Boost & Irrigation", "dayOffset": 65, "category": "Irrigation"},
+        {"title": "Withhold Water 15 Days Before Harvest", "dayOffset": 90, "category": "Irrigation"},
+        {"title": "Harvesting & Neck Cutting (Topping)", "dayOffset": 105, "category": "Harvest Time"}
+    ],
+    "Potato": [
+        {"title": "Deep Ploughing & Organic Compost Bed Prep", "dayOffset": -10, "category": "Land Preparation"},
+        {"title": "Planting Sprouted Disease-Free Seed Tubers", "dayOffset": 0, "category": "Sowing"},
+        {"title": "First Irrigation & Light Soil Covering", "dayOffset": 12, "category": "Irrigation"},
+        {"title": "First Earthing Up & NPK Top Dressing", "dayOffset": 25, "category": "Fertilizer Schedule"},
+        {"title": "Hand Weeding & Inter-row Tillage", "dayOffset": 35, "category": "Weed Control"},
+        {"title": "Late Blight Prophylactic Copper Spray", "dayOffset": 50, "category": "Disease Prevention"},
+        {"title": "Tuber Initiation Drip Irrigation", "dayOffset": 65, "category": "Irrigation"},
+        {"title": "Haulm Cutting (Dehalming) to Harden Skins", "dayOffset": 90, "category": "Harvest Time"},
+        {"title": "Tuber Digging & Sorting", "dayOffset": 105, "category": "Harvest Time"}
+    ],
+    "Chilli": [
+        {"title": "Nursery Bed Preparation & Solarization", "dayOffset": -30, "category": "Land Preparation"},
+        {"title": "Nursery Seed Sowing", "dayOffset": -25, "category": "Sowing"},
+        {"title": "Seedling Transplanting on Raised Beds", "dayOffset": 0, "category": "Sowing"},
+        {"title": "First Weeding & Earthing Up", "dayOffset": 20, "category": "Weed Control"},
+        {"title": "First Split NPK Fertilizer & Bio-Stimulant", "dayOffset": 35, "category": "Fertilizer Schedule"},
+        {"title": "Drip Irrigation Maintenance", "dayOffset": 45, "category": "Irrigation"},
+        {"title": "Chilli Leaf Curl & Mite Prevention Spray", "dayOffset": 60, "category": "Disease Prevention"},
+        {"title": "First Green Chilli Picking", "dayOffset": 85, "category": "Harvest Time"}
     ]
 }
+
+def generate_dynamic_crop_schedule(crop_name: str, custom_crop_name: str = "") -> list:
+    """Finds matching template or dynamically builds realistic milestones for any crop."""
+    target = (crop_name or "").strip().lower()
+    for k, v in CROP_TEMPLATES.items():
+        if k.lower() == target:
+            return v
+
+    disp = custom_crop_name.strip() if custom_crop_name else crop_name.strip()
+    disp = disp.capitalize() if disp else "Crop"
+
+    return [
+        {"title": f"Land Tillage & Soil Solarization for {disp}", "dayOffset": -10, "category": "Land Preparation"},
+        {"title": f"Sowing / Planting {disp} Seeds or Seedlings", "dayOffset": 0, "category": "Sowing"},
+        {"title": f"First Light Irrigation & Germination Check", "dayOffset": 7, "category": "Irrigation"},
+        {"title": f"First Weeding & Hoeing", "dayOffset": 20, "category": "Weed Control"},
+        {"title": f"Basal Top Dressing (NPK 19:19:19 + Micronutrients)", "dayOffset": 35, "category": "Fertilizer Schedule"},
+        {"title": f"Vegetative Stage Prophylactic Bio-Fungicide Spray", "dayOffset": 50, "category": "Disease Prevention"},
+        {"title": f"Flowering / Pod Development Drip Irrigation Boost", "dayOffset": 70, "category": "Irrigation"},
+        {"title": f"Harvesting Mature {disp} Yield", "dayOffset": 95, "category": "Harvest Time"},
+        {"title": f"Post-Harvest Grading, Cleaning & Storage", "dayOffset": 105, "category": "Storage Recommendations"}
+    ]
 
 MEM_CALENDARS = [
     {
@@ -924,12 +1052,12 @@ MEM_CALENDARS = [
         "sowingDate": "2026-08-01",
         "createdAt": "2026-08-01T00:00:00Z",
         "tasks": [
-            {"id": "task_1", "_id": "task_1", "title": "Field Deep Ploughing & Solarization", "day": "Day -10", "category": "Land Preparation", "status": "completed", "completed": True, "targetDate": "2026-07-22"},
-            {"id": "task_2", "_id": "task_2", "title": "Nursery Sowing & Seedling Bed Care", "day": "Day 0", "category": "Sowing", "status": "completed", "completed": True, "targetDate": "2026-08-01"},
-            {"id": "task_3", "_id": "task_3", "title": "Drip Irrigation Setup & Field Beds", "day": "Day 15", "category": "Irrigation", "status": "pending", "completed": False, "targetDate": "2026-08-16"},
-            {"id": "task_4", "_id": "task_4", "title": "Transplanting Seedlings & Root Drenching", "day": "Day 25", "category": "Sowing", "status": "pending", "completed": False, "targetDate": "2026-08-26"},
-            {"id": "task_5", "_id": "task_5", "title": "First Top Dressing (Basal NPK + Manure)", "day": "Day 45", "category": "Fertilizer Schedule", "status": "pending", "completed": False, "targetDate": "2026-09-15"},
-            {"id": "task_6", "_id": "task_6", "title": "First Harvest of Ripe Tomatoes", "day": "Day 95", "category": "Harvest Time", "status": "pending", "completed": False, "targetDate": "2026-11-04"}
+            {"id": "task_1", "_id": "task_1", "title": "Field Deep Ploughing & Solarization", "day": "Day -10", "dayOffset": -10, "offsetDays": -10, "category": "Land Preparation", "status": "completed", "completed": True, "targetDate": "2026-07-22"},
+            {"id": "task_2", "_id": "task_2", "title": "Nursery Sowing & Seedling Bed Care", "day": "Day 0", "dayOffset": 0, "offsetDays": 0, "category": "Sowing", "status": "completed", "completed": True, "targetDate": "2026-08-01"},
+            {"id": "task_3", "_id": "task_3", "title": "Drip Irrigation Setup & Field Beds", "day": "Day 15", "dayOffset": 15, "offsetDays": 15, "category": "Irrigation", "status": "pending", "completed": False, "targetDate": "2026-08-16"},
+            {"id": "task_4", "_id": "task_4", "title": "Transplanting Seedlings & Root Drenching", "day": "Day 25", "dayOffset": 25, "offsetDays": 25, "category": "Sowing", "status": "pending", "completed": False, "targetDate": "2026-08-26"},
+            {"id": "task_5", "_id": "task_5", "title": "First Top Dressing (Basal NPK + Manure)", "day": "Day 45", "dayOffset": 45, "offsetDays": 45, "category": "Fertilizer Schedule", "status": "pending", "completed": False, "targetDate": "2026-09-15"},
+            {"id": "task_6", "_id": "task_6", "title": "First Harvest of Ripe Tomatoes", "day": "Day 95", "dayOffset": 95, "offsetDays": 95, "category": "Harvest Time", "status": "pending", "completed": False, "targetDate": "2026-11-04"}
         ]
     }
 ]
@@ -940,16 +1068,15 @@ def crop_calendar():
     if request.method == "POST":
         data = request.get_json(silent=True) or {}
         crop_name = data.get("cropName") or "Tomato"
-        if crop_name == "Other":
-            crop_name = data.get("customCropName") or "Custom Crop"
+        custom_crop_name = data.get("customCropName") or ""
         sowing_date_str = data.get("sowingDate") or time.strftime("%Y-%m-%d")
 
         try:
-            sowing_dt = datetime.strptime(sowing_date_str, "%Y-%m-%d")
+            sowing_dt = datetime.strptime(sowing_date_str.split("T")[0], "%Y-%m-%d")
         except Exception:
             sowing_dt = datetime.now()
 
-        template = CROP_TEMPLATES.get(crop_name) or CROP_TEMPLATES.get("Tomato")
+        template = generate_dynamic_crop_schedule(crop_name, custom_crop_name)
         generated_tasks = []
         for i, item in enumerate(template):
             target_dt = sowing_dt + timedelta(days=item["dayOffset"])
@@ -961,16 +1088,19 @@ def crop_calendar():
                 "title": item["title"],
                 "category": item["category"],
                 "day": day_label,
+                "dayOffset": item["dayOffset"],
                 "offsetDays": item["dayOffset"],
                 "targetDate": target_dt.strftime("%Y-%m-%d"),
                 "status": "pending",
                 "completed": False
             })
 
+        display_name = (custom_crop_name if crop_name == "Other" and custom_crop_name else crop_name)
         new_calendar = {
             "_id": "cal_" + str(int(time.time())),
-            "cropName": crop_name,
-            "sowingDate": sowing_date_str,
+            "cropName": display_name,
+            "customCropName": custom_crop_name,
+            "sowingDate": sowing_date_str.split("T")[0],
             "createdAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "tasks": generated_tasks
         }
@@ -980,45 +1110,86 @@ def crop_calendar():
     # GET: return array of calendars for direct frontend consumption
     return jsonify(MEM_CALENDARS)
 
+@app.route("/api/crop-calendar/<cal_id>/task", methods=["PATCH", "POST"])
 @app.route("/api/crop-calendar/<cal_id>/task/<task_id>", methods=["PATCH", "POST"])
-def toggle_calendar_task(cal_id, task_id):
+def toggle_calendar_task(cal_id, task_id=None):
     data = request.get_json(silent=True) or {}
+    target_task_id = str(task_id or data.get("taskId") or "").strip()
+    target_status = data.get("status")
+
     for cal in MEM_CALENDARS:
-        if cal["_id"] == cal_id:
-            for t in cal["tasks"]:
-                if str(t.get("id")) == str(task_id) or str(t.get("_id")) == str(task_id):
-                    new_status = data.get("status") or ("completed" if t.get("status") == "pending" else "pending")
+        if str(cal.get("_id")) == str(cal_id):
+            for t in cal.get("tasks", []):
+                t_id_str = str(t.get("_id") or t.get("id") or "")
+                if t_id_str == target_task_id or not target_task_id:
+                    new_status = target_status if target_status else ("completed" if t.get("status") == "pending" else "pending")
                     t["status"] = new_status
                     t["completed"] = (new_status == "completed")
-                    return jsonify(cal)
+                    if target_task_id:
+                        return jsonify(cal)
+            return jsonify(cal)
     return jsonify({"success": True})
+
+@app.route("/api/crop-calendar/<cal_id>", methods=["PATCH", "PUT"])
+def update_calendar_sowing_date(cal_id):
+    data = request.get_json(silent=True) or {}
+    new_sowing = (data.get("sowingDate") or "").split("T")[0]
+    
+    if not new_sowing:
+        return jsonify({"success": False, "error": "No sowing date provided"}), 400
+
+    try:
+        sowing_dt = datetime.strptime(new_sowing, "%Y-%m-%d")
+    except Exception:
+        sowing_dt = datetime.now()
+
+    for cal in MEM_CALENDARS:
+        if str(cal.get("_id")) == str(cal_id):
+            cal["sowingDate"] = new_sowing
+            # Recalculate targetDate for all tasks
+            for t in cal.get("tasks", []):
+                offset = int(t.get("dayOffset") if t.get("dayOffset") is not None else t.get("offsetDays", 0))
+                target_dt = sowing_dt + timedelta(days=offset)
+                t["targetDate"] = target_dt.strftime("%Y-%m-%d")
+            return jsonify(cal)
+
+    return jsonify({"success": False, "error": "Calendar not found"}), 404
 
 @app.route("/api/crop-calendar/<cal_id>/custom-task", methods=["POST"])
 def add_calendar_custom_task(cal_id):
     data = request.get_json(silent=True) or {}
     for cal in MEM_CALENDARS:
-        if cal["_id"] == cal_id:
+        if str(cal.get("_id")) == str(cal_id):
             t_id = "task_" + str(int(time.time()))
-            offset = int(data.get("offsetDays", 10))
+            offset = int(data.get("dayOffset") if data.get("dayOffset") is not None else data.get("offsetDays", 10))
+            
+            try:
+                sowing_dt = datetime.strptime(cal["sowingDate"].split("T")[0], "%Y-%m-%d")
+            except Exception:
+                sowing_dt = datetime.now()
+
+            target_dt = sowing_dt + timedelta(days=offset)
+
             new_task = {
                 "id": t_id,
                 "_id": t_id,
                 "title": data.get("title", "Custom Milestone"),
-                "category": data.get("category", "General"),
-                "day": f"Day {offset}",
+                "category": data.get("category", "custom"),
+                "day": f"Day {offset}" if offset != 0 else "Sowing Day",
+                "dayOffset": offset,
                 "offsetDays": offset,
-                "targetDate": time.strftime("%Y-%m-%d"),
+                "targetDate": target_dt.strftime("%Y-%m-%d"),
                 "status": "pending",
                 "completed": False
             }
-            cal["tasks"].append(new_task)
+            cal.setdefault("tasks", []).append(new_task)
             return jsonify(cal)
     return jsonify({"success": False, "error": "Calendar not found"}), 404
 
 @app.route("/api/crop-calendar/<cal_id>", methods=["DELETE"])
 def delete_calendar(cal_id):
     global MEM_CALENDARS
-    MEM_CALENDARS = [c for c in MEM_CALENDARS if c["_id"] != cal_id]
+    MEM_CALENDARS = [c for c in MEM_CALENDARS if str(c.get("_id")) != str(cal_id)]
     return jsonify({"success": True, "message": "Calendar deleted"})
 
 

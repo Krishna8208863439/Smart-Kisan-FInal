@@ -646,15 +646,18 @@ const AITools = () => {
   };
 
   const handleToggleTask = async (calId, taskId, currentStatus) => {
-    const nextStatus = currentStatus === "pending" ? "completed" : "pending";
-    // Optimistic update first for responsive UI
+    const nextStatus = currentStatus === "completed" ? "pending" : "completed";
+    const nextCompleted = nextStatus === "completed";
+    // Optimistic update first for instant responsive UI
     setActiveCalendars((prev) =>
       prev.map((c) => {
         if (c._id !== calId) return c;
         return {
           ...c,
-          tasks: c.tasks.map((task) =>
-            task._id === taskId ? { ...task, status: nextStatus } : task
+          tasks: (c.tasks || []).map((task) =>
+            (String(task._id) === String(taskId) || String(task.id) === String(taskId))
+              ? { ...task, status: nextStatus, completed: nextCompleted }
+              : task
           )
         };
       })
@@ -664,20 +667,24 @@ const AITools = () => {
         taskId,
         status: nextStatus
       });
-      // Sync with server response
-      setActiveCalendars((prev) =>
-        prev.map((c) => (c._id === calId ? res.data : c))
-      );
+      // Sync with server response if valid
+      if (res.data && res.data.tasks) {
+        setActiveCalendars((prev) =>
+          prev.map((c) => (c._id === calId ? res.data : c))
+        );
+      }
     } catch (err) {
-      console.error(err);
+      console.error("Task toggle error:", err);
       // Revert optimistic update on error
       setActiveCalendars((prev) =>
         prev.map((c) => {
           if (c._id !== calId) return c;
           return {
             ...c,
-            tasks: c.tasks.map((task) =>
-              task._id === taskId ? { ...task, status: currentStatus } : task
+            tasks: (c.tasks || []).map((task) =>
+              (String(task._id) === String(taskId) || String(task.id) === String(taskId))
+                ? { ...task, status: currentStatus, completed: currentStatus === "completed" }
+                : task
             )
           };
         })
@@ -692,21 +699,22 @@ const AITools = () => {
       const res = await api.post(`/crop-calendar/${selectedCalId}/custom-task`, {
         title: customTaskTitle,
         dayOffset: Number(customTaskOffset),
+        offsetDays: Number(customTaskOffset),
         category: "custom"
       });
       setActiveCalendars((prev) =>
         prev.map((c) => (c._id === selectedCalId ? res.data : c))
       );
       setCustomTaskTitle("");
-      alert("Custom milestone added successfully!");
+      alert(language === 'mr' ? "नवीन टप्पा यशस्वीरित्या जोडला!" : "Custom milestone added successfully!");
     } catch (err) {
       console.error("Error adding custom task:", err);
-      alert("Failed to add custom milestone.");
+      alert(language === 'mr' ? "टप्पा जोडण्यात अयशस्वी." : "Failed to add custom milestone.");
     }
   };
 
   const handleDeleteCalendar = async (calId) => {
-    if (!window.confirm("Are you sure you want to delete this crop calendar?")) return;
+    if (!window.confirm(language === 'mr' ? "तुम्हाला खात्री आहे का की हे पीक वेळापत्रक हटवायचे आहे?" : "Are you sure you want to delete this crop calendar?")) return;
     try {
       await api.delete(`/crop-calendar/${calId}`);
       setActiveCalendars((prev) => prev.filter((c) => c._id !== calId));
@@ -737,51 +745,68 @@ const AITools = () => {
 
   // Calendar metrics
   const getProgressPercent = (cal) => {
-    if (!cal || !cal.tasks.length) return 0;
-    const completed = cal.tasks.filter((t) => t.status === "completed").length;
+    if (!cal || !cal.tasks || !cal.tasks.length) return 0;
+    const completed = cal.tasks.filter((t) => t.status === "completed" || t.completed === true).length;
     return Math.round((completed / cal.tasks.length) * 100);
   };
 
   const getCropLifecycleStage = (cal) => {
-    if (!cal) return { stage: "Nursery", progress: 0, daysElapsed: 0, stages: [] };
-    // Parse sowing date at midnight local time to avoid timezone offset issues
-    const sowingRaw = new Date(cal.sowingDate);
+    if (!cal) return { stage: "Nursery", progress: 0, daysElapsed: 0, stages: [], activeStageIdx: 0, stageLinePercent: 0, allCompleted: false };
+    const sowingRaw = cal.sowingDate ? new Date(cal.sowingDate) : new Date();
     const sowing = new Date(sowingRaw.getFullYear(), sowingRaw.getMonth(), sowingRaw.getDate());
     const today = new Date();
     const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const naturalDays = Math.max(0, Math.floor((todayMidnight - sowing) / (1000 * 60 * 60 * 24)));
     
-    // Calculate the maximum dayOffset of completed tasks to dynamically advance the lifecycle
-    const completedTasks = cal.tasks ? cal.tasks.filter((t) => t.status === "completed") : [];
+    const tasks = cal.tasks || [];
+    const completedTasks = tasks.filter((t) => t.status === "completed" || t.completed === true);
     const maxCompletedOffset = completedTasks.length > 0 
-      ? Math.max(...completedTasks.map((t) => t.dayOffset)) 
+      ? Math.max(...completedTasks.map((t) => Number(t.dayOffset !== undefined ? t.dayOffset : (t.offsetDays !== undefined ? t.offsetDays : 0)))) 
       : 0;
 
-    const daysElapsed = Math.max(
-      Math.max(0, Math.floor((todayMidnight - sowing) / (1000 * 60 * 60 * 24))),
-      maxCompletedOffset
-    );
+    const allCompleted = tasks.length > 0 && completedTasks.length === tasks.length;
+    const maxTaskOffset = tasks.length > 0
+      ? Math.max(...tasks.map((t) => Number(t.dayOffset !== undefined ? t.dayOffset : (t.offsetDays !== undefined ? t.offsetDays : 0))))
+      : 90;
+
+    const daysElapsed = allCompleted ? Math.max(naturalDays, maxTaskOffset) : Math.max(naturalDays, maxCompletedOffset);
 
     let stages = [];
-    if (cal.cropName === "Tomato") {
+    const cropName = (cal.cropName || "").toLowerCase();
+    if (cropName.includes("tomato")) {
       stages = [
         { name: "Nursery", range: [0, 25] },
         { name: "Vegetative", range: [26, 60] },
         { name: "Flowering", range: [61, 80] },
         { name: "Harvest", range: [81, 999] }
       ];
-    } else if (cal.cropName === "Paddy") {
+    } else if (cropName.includes("paddy") || cropName.includes("rice")) {
       stages = [
         { name: "Nursery", range: [0, 25] },
         { name: "Tillering", range: [26, 80] },
         { name: "Flowering", range: [81, 110] },
         { name: "Harvest", range: [111, 999] }
       ];
-    } else if (cal.cropName === "Wheat") {
+    } else if (cropName.includes("wheat")) {
       stages = [
         { name: "Germination", range: [0, 20] },
         { name: "Tillering", range: [21, 60] },
         { name: "Jointing", range: [61, 95] },
         { name: "Harvest", range: [96, 999] }
+      ];
+    } else if (cropName.includes("banana")) {
+      stages = [
+        { name: "Sowing", range: [0, 45] },
+        { name: "Vegetative", range: [46, 180] },
+        { name: "Reproductive", range: [181, 280] },
+        { name: "Harvest", range: [281, 999] }
+      ];
+    } else if (cropName.includes("sugarcane")) {
+      stages = [
+        { name: "Sowing", range: [0, 45] },
+        { name: "Tillering", range: [46, 120] },
+        { name: "Vegetative", range: [121, 240] },
+        { name: "Harvest", range: [241, 999] }
       ];
     } else {
       stages = [
@@ -792,11 +817,27 @@ const AITools = () => {
       ];
     }
 
-    const current = stages.find(s => daysElapsed >= s.range[0] && daysElapsed <= s.range[1]) || stages[stages.length - 1];
+    let activeStageIdx = stages.findIndex(s => daysElapsed >= s.range[0] && daysElapsed <= s.range[1]);
+    if (activeStageIdx === -1) {
+      activeStageIdx = daysElapsed >= stages[stages.length - 1].range[0] ? stages.length - 1 : 0;
+    }
+    if (allCompleted) {
+      activeStageIdx = stages.length - 1;
+    }
+
+    const stageLinePercent = allCompleted
+      ? 100
+      : stages.length > 1
+        ? Math.min(100, Math.max(0, (activeStageIdx / (stages.length - 1)) * 100))
+        : 0;
+
     return {
-      stage: current.name,
+      stage: stages[activeStageIdx].name,
+      activeStageIdx,
+      stageLinePercent,
       daysElapsed,
-      stages
+      stages,
+      allCompleted
     };
   };
 
@@ -1327,17 +1368,19 @@ const AITools = () => {
                 </div>
               ) : (
                 <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
-                    <h4 style={{ margin: 0 }}>{selectedCalendar.cropName === "Other" ? (selectedCalendar.customCropName || "Custom Crop") : t(selectedCalendar.cropName)} {t("lifecycleTimeline") || "Lifecycle Timeline"}</h4>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
+                    <h4 style={{ margin: 0, fontSize: 16 }}>
+                      {selectedCalendar.cropName === "Other" ? (selectedCalendar.customCropName || "Custom Crop") : (t(selectedCalendar.cropName) || selectedCalendar.cropName)} {t("lifecycleTimeline") || "Lifecycle Timeline"}
+                    </h4>
                     {isEditingSowingDate ? (
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-muted)" }}>
-                        {t("sowingLabel") || "Sowing"}:
+                        {t("sowingLabel") || "Sowing Date"}:
                         <input
                           type="date"
                           value={tempSowingDate}
                           onChange={(e) => setTempSowingDate(e.target.value)}
                           style={{
-                            padding: "2px 4px",
+                            padding: "2px 6px",
                             fontSize: 12,
                             border: "1px solid var(--border-color)",
                             borderRadius: 4,
@@ -1361,8 +1404,8 @@ const AITools = () => {
                         </button>
                       </span>
                     ) : (
-                      <span style={{ fontSize: 12, color: "var(--text-muted)", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                        {t("sowingLabel") || "Sowing"}: {formatDate(selectedCalendar.sowingDate, language)}
+                      <span style={{ fontSize: 12, color: "var(--text-muted)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        {t("sowingLabel") || "Sowing Date"}: <strong>{formatDate(selectedCalendar.sowingDate, language)}</strong>
                         <button
                           onClick={() => {
                             setTempSowingDate(selectedCalendar.sowingDate.split('T')[0]);
@@ -1378,59 +1421,100 @@ const AITools = () => {
                   </div>
 
                   {/* Circular SVG Progress & Stage info */}
-                  <div style={{ display: "flex", gap: 16, alignItems: "center", background: "var(--bg-main)", padding: 12, borderRadius: 8, marginBottom: 16 }}>
-                    <div style={{ position: "relative", width: 64, height: 64 }}>
-                      <svg width="64" height="64" viewBox="0 0 36 36">
+                  <div style={{ display: "flex", gap: 16, alignItems: "center", background: "var(--bg-main)", padding: 14, borderRadius: 10, marginBottom: 18, border: "1px solid var(--border-color)" }}>
+                    <div style={{ position: "relative", width: 68, height: 68, flexShrink: 0 }}>
+                      <svg width="68" height="68" viewBox="0 0 36 36">
                         <path
                           d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                           fill="none"
-                          stroke="#e2e8f0"
+                          stroke="var(--border-color, #334155)"
                           strokeWidth="3.5"
                         />
                         <path
                           d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                           fill="none"
-                          stroke="var(--primary)"
+                          stroke="#22c55e"
                           strokeWidth="3.5"
                           strokeDasharray={`${getProgressPercent(selectedCalendar)}, 100`}
+                          strokeLinecap="round"
+                          style={{ transition: "stroke-dasharray 0.5s ease" }}
                         />
                       </svg>
-                      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", fontSize: 13, fontWeight: 800 }}>
+                      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", fontSize: 13, fontWeight: 800, color: "var(--text-dark)" }}>
                         {getProgressPercent(selectedCalendar)}%
                       </div>
                     </div>
 
-                    <div>
-                      <span style={{ fontSize: 11, color: "var(--text-muted)", display: "block" }}>{t("activeStageLabel") || "Active Stage"}</span>
-                      <strong style={{ fontSize: 16, color: "var(--primary-hover)" }}>{t(lifecycle.stage)}</strong>
-                      <span style={{ fontSize: 11, color: "var(--text-muted)", display: "block" }}>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)", display: "block", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        {t("activeStageLabel") || "Active Stage"}
+                      </span>
+                      <strong style={{ fontSize: 17, color: "var(--primary, #22c55e)", display: "block", marginTop: 2 }}>
+                        {t(lifecycle.stage) || lifecycle.stage}
+                      </strong>
+                      <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block", marginTop: 2 }}>
                         {language === 'mr' ? `पीक चक्राचा दिवस ${lifecycle.daysElapsed}` : `Day ${lifecycle.daysElapsed} of crop lifecycle`}
                       </span>
                     </div>
                   </div>
 
-                  {/* Horizontal Lifecycle Stepper */}
-                  <div style={{ margin: "20px 0", borderTop: "2px solid #e2e8f0", paddingTop: 10, position: "relative" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  {/* Horizontal Lifecycle Stepper with Moving Progress Fill */}
+                  <div style={{ margin: "24px 0 20px 0", position: "relative", padding: "0 10px" }}>
+                    {/* Background line & Active fill */}
+                    <div style={{ position: "relative", width: "100%", height: 4, background: "var(--border-color, #334155)", borderRadius: 2 }}>
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          height: "100%",
+                          width: `${lifecycle.stageLinePercent}%`,
+                          background: "linear-gradient(90deg, #10b981, #22c55e)",
+                          borderRadius: 2,
+                          boxShadow: "0 0 8px rgba(34, 197, 94, 0.6)",
+                          transition: "width 0.4s ease"
+                        }}
+                      />
+                    </div>
+
+                    {/* Stage nodes */}
+                    <div style={{ display: "flex", justifyContent: "space-between", position: "relative", top: -10 }}>
                       {lifecycle.stages.map((stg, sIdx) => {
-                        const activeStageIdx = lifecycle.stages.findIndex(s => s.name === lifecycle.stage);
-                        const isCompletedOrActive = sIdx <= activeStageIdx;
+                        const isCompletedOrActive = sIdx <= lifecycle.activeStageIdx;
+                        const isCurrent = lifecycle.stage === stg.name;
                         return (
-                          <div key={stg.name} style={{ textAlign: "center", position: "relative", top: -16 }}>
+                          <div key={stg.name} style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 70 }}>
                             <div 
                               style={{ 
-                                width: 12, 
-                                height: 12, 
+                                width: 16, 
+                                height: 16, 
                                 borderRadius: "50%", 
-                                background: isCompletedOrActive ? "var(--primary)" : "#cbd5e1",
-                                margin: "0 auto 4px auto",
-                                border: lifecycle.stage === stg.name ? "3px solid var(--primary-light)" : "none",
-                                boxShadow: isCompletedOrActive ? "0 0 8px var(--primary)" : "none",
-                                transition: "all 0.3s ease"
+                                background: isCompletedOrActive ? "#22c55e" : "#475569",
+                                border: isCurrent ? "3px solid #bbf7d0" : "2px solid var(--bg-card)",
+                                boxShadow: isCompletedOrActive ? "0 0 10px rgba(34, 197, 94, 0.8)" : "none",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: 9,
+                                color: "#fff",
+                                fontWeight: 800,
+                                transition: "all 0.3s ease",
+                                marginBottom: 4
                               }} 
-                            />
-                            <span style={{ fontSize: 10, fontWeight: isCompletedOrActive ? 700 : 500, color: isCompletedOrActive ? "var(--primary-hover)" : "var(--text-muted)" }}>
-                              {t(stg.name)}
+                            >
+                              {sIdx < lifecycle.activeStageIdx ? "✓" : ""}
+                            </div>
+                            <span 
+                              style={{ 
+                                fontSize: 11, 
+                                fontWeight: isCompletedOrActive ? 700 : 500, 
+                                color: isCompletedOrActive ? "var(--primary-hover, #22c55e)" : "var(--text-muted, #94a3b8)",
+                                textAlign: "center",
+                                whiteSpace: "nowrap",
+                                transition: "color 0.3s ease"
+                              }}
+                            >
+                              {t(stg.name) || stg.name}
                             </span>
                           </div>
                         );
@@ -1440,7 +1524,9 @@ const AITools = () => {
 
                   {/* Add Custom Task Form */}
                   <div style={{ border: "1px solid var(--border-color)", padding: 12, borderRadius: 8, marginBottom: 16, background: "var(--bg-main)" }}>
-                    <h5 style={{ margin: "0 0 8px 0", fontSize: 12, textTransform: "uppercase", color: "var(--text-muted)" }}>{t("addCustomMilestone") || "Add Custom Milestone"}</h5>
+                    <h5 style={{ margin: "0 0 8px 0", fontSize: 12, textTransform: "uppercase", color: "var(--text-muted)" }}>
+                      {t("addCustomMilestone") || "Add Custom Milestone"}
+                    </h5>
                     <form onSubmit={handleAddCustomTask} style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                       <input
                         type="text"
@@ -1454,7 +1540,7 @@ const AITools = () => {
                       <input
                         type="number"
                         className="input"
-                        style={{ width: 80, margin: 0, padding: "6px 10px", fontSize: 13 }}
+                        style={{ width: 90, margin: 0, padding: "6px 10px", fontSize: 13 }}
                         placeholder={t("dayOffsetPlaceholder") || "Day offset"}
                         value={customTaskOffset}
                         onChange={(e) => setCustomTaskOffset(e.target.value)}
@@ -1468,38 +1554,42 @@ const AITools = () => {
                   </div>
 
                   {/* Timeline Checklist */}
-                  <div className="timeline" style={{ maxHeight: 350, overflowY: "auto", paddingRight: 4 }}>
-                    {selectedCalendar.tasks.map((task) => (
-                      <div
-                        key={task._id}
-                        className={`timeline-item ${task.status === "completed" ? "timeline-item-completed" : "timeline-item-active"}`}
-                      >
-                        <div className="timeline-dot" style={{ background: task.category === "custom" ? "#f59e0b" : "var(--primary)" }} />
-                        <div className="timeline-content" style={{ padding: "8px 12px" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-                            <div style={{ flex: 1 }}>
-                              <strong style={{ fontSize: 13.5, color: task.status === "completed" ? "var(--primary-hover)" : "var(--text-dark)" }}>
-                                {t(task.title)}
-                              </strong>
-                              <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 2 }}>
-                                {language === 'mr' ? "दिवस" : "Day"} {task.dayOffset} • {t("dueLabel") || "Due"}: {formatDate(task.targetDate, language)} ({getRelativeDateString(task.targetDate)})
+                  <div className="timeline" style={{ maxHeight: 380, overflowY: "auto", paddingRight: 4 }}>
+                    {selectedCalendar.tasks.map((task) => {
+                      const taskOffsetVal = task.dayOffset !== undefined ? task.dayOffset : (task.offsetDays !== undefined ? task.offsetDays : 0);
+                      const isDone = task.status === "completed" || task.completed === true;
+                      return (
+                        <div
+                          key={task._id || task.id}
+                          className={`timeline-item ${isDone ? "timeline-item-completed" : "timeline-item-active"}`}
+                        >
+                          <div className="timeline-dot" style={{ background: task.category === "custom" ? "#f59e0b" : (isDone ? "#22c55e" : "var(--primary)") }} />
+                          <div className="timeline-content" style={{ padding: "10px 12px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                              <div style={{ flex: 1 }}>
+                                <strong style={{ fontSize: 13.5, color: isDone ? "var(--primary-hover, #22c55e)" : "var(--text-dark)", textDecoration: isDone ? "line-through" : "none", opacity: isDone ? 0.85 : 1 }}>
+                                  {t(task.title) || task.title}
+                                </strong>
+                                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>
+                                  {language === 'mr' ? "दिवस" : "Day"} {taskOffsetVal} • {t("dueLabel") || "Due"}: <strong>{formatDate(task.targetDate, language)}</strong> ({getRelativeDateString(task.targetDate)})
+                                </div>
+                                {task.category === "custom" && (
+                                  <span style={{ display: "inline-block", background: "#fef3c7", color: "#d97706", fontSize: 9, padding: "1px 5px", borderRadius: 4, fontWeight: 700, marginTop: 4 }}>
+                                    {t("customTaskLabel") || "Custom Task"}
+                                  </span>
+                                )}
                               </div>
-                              {task.category === "custom" && (
-                                <span style={{ display: "inline-block", background: "#fef3c7", color: "#d97706", fontSize: 9, padding: "1px 4px", borderRadius: 4, fontWeight: 700, marginTop: 4 }}>
-                                  {t("customTaskLabel") || "Custom Task"}
-                                </span>
-                              )}
+                              <input
+                                type="checkbox"
+                                checked={isDone}
+                                onChange={() => handleToggleTask(selectedCalendar._id, task._id || task.id, task.status)}
+                                style={{ width: 20, height: 20, cursor: "pointer", marginTop: 2, accentColor: "#22c55e" }}
+                              />
                             </div>
-                            <input
-                              type="checkbox"
-                              checked={task.status === "completed"}
-                              onChange={() => handleToggleTask(selectedCalendar._id, task._id, task.status)}
-                              style={{ width: 18, height: 18, cursor: "pointer", marginTop: 2 }}
-                            />
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                 </div>

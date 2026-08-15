@@ -68,6 +68,34 @@ const TRANSLATIONS = {
     milestonesTitle: "Sowing Milestones:",
     enterCustomCrop: "Enter Custom Crop Name",
 
+    // Sowing Milestone Calendar UI
+    sowingMilestoneCalendar: "Sowing Milestone Calendar",
+    sowingCalendarDesc: "Set crop sowing/planting dates to generate automated calendars and track progress.",
+    yourActiveCalendars: "Your Active Calendars",
+    noActiveCalendars: "No active crop calendars found.",
+    loginRequiredCalendar: "Login to generate and save calendars to the database.",
+    selectCalendarPrompt: "Select or generate a crop calendar to track milestones.",
+    lifecycleTimeline: "Lifecycle Timeline",
+    sowingLabel: "Sowing Date",
+    activeStageLabel: "Active Stage",
+    daysElapsedLabel: "Day of crop lifecycle",
+    addCustomMilestone: "Add Custom Milestone",
+    dayOffsetPlaceholder: "Day offset",
+    addBtn: "Add",
+    customTaskLabel: "Custom Task",
+    dueLabel: "Due",
+
+    // Lifecycle Stages
+    Nursery: "Nursery",
+    Vegetative: "Vegetative",
+    Flowering: "Flowering",
+    Harvest: "Harvest",
+    Tillering: "Tillering",
+    Germination: "Germination",
+    Jointing: "Jointing",
+    Sowing: "Sowing",
+    Reproductive: "Reproductive",
+
     // Login Page
     welcomeBack: "Welcome Back",
     loginSubtitle: "Log in to manage your fields and access agricultural insights.",
@@ -694,6 +722,34 @@ const TRANSLATIONS = {
     pipelineConfigureDesc: "बाएं हिस्से में पैरामीटर कॉन्फ़िगर करें और वृद्धि चरणों को देखने के लिए अनुकरण करें।",
     milestonesTitle: "बुवाई के मील के पत्थर:",
     enterCustomCrop: "कस्टम फसल का नाम दर्ज करें",
+
+    // Sowing Milestone Calendar UI
+    sowingMilestoneCalendar: "बुवाई मील का पत्थर कैलेंडर",
+    sowingCalendarDesc: "प्रगति को ट्रैक करने और स्वचालित कैलेंडर उत्पन्न करने के लिए फसल बुवाई की तारीख निर्धारित करें।",
+    yourActiveCalendars: "आपके सक्रिय कैलेंडर",
+    noActiveCalendars: "कोई सक्रिय फसल कैलेंडर नहीं मिला।",
+    loginRequiredCalendar: "डेटाबेस में कैलेंडर उत्पन्न और सहेजने के लिए लॉगिन करें।",
+    selectCalendarPrompt: "मील के पत्थर को ट्रैक करने के लिए फसल कैलेंडर चुनें या बनाएं।",
+    lifecycleTimeline: "जीवनचक्र समयरेखा",
+    sowingLabel: "बुवाई की तारीख",
+    activeStageLabel: "सक्रिय चरण",
+    daysElapsedLabel: "फसल चक्र का दिन",
+    addCustomMilestone: "कस्टम मील का पत्थर जोड़ें",
+    dayOffsetPlaceholder: "दिन का अंतर",
+    addBtn: "जोड़ें",
+    customTaskLabel: "कस्टम कार्य",
+    dueLabel: "नियत तिथि",
+
+    // Lifecycle Stages
+    Nursery: "नर्सरी",
+    Vegetative: "वानस्पतिक वृद्धि",
+    Flowering: "फूल आना",
+    Harvest: "कटाई",
+    Tillering: "कल्ले फूटना",
+    Germination: "अंकुरण",
+    Jointing: "गांठ बनना",
+    Sowing: "बुवाई",
+    Reproductive: "प्रजनन चरण",
 
     // Login Page
     welcomeBack: "आपका स्वागत है",
