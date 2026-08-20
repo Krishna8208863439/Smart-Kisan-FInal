@@ -1193,15 +1193,118 @@ const KisanCheckoutModal = ({
 
             {/* Payment Details Subform based on selection */}
             {paymentMethod === "upi" && (
-              <div style={{ background: "#f8fafc", padding: "14px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
-                <label style={{ display: "block", fontSize: "12px", fontWeight: "700", marginBottom: "4px" }}>Enter Virtual Payment Address (VPA / UPI ID)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. yourname@okaxis, mobile@upi"
-                  value={upiId}
-                  onChange={(e) => setUpiId(e.target.value)}
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: "6px", border: "1.5px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
-                />
+              <div style={{ background: "#0f172a", padding: "18px", borderRadius: "14px", color: "white", display: "flex", flexDirection: "column", gap: "14px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: "700", marginBottom: "6px", color: "#94a3b8" }}>
+                    Pay using UPI ID
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. user@ybl, mobile@upi"
+                    value={upiId}
+                    onChange={(e) => setUpiId(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "12px 14px",
+                      borderRadius: "8px",
+                      border: "1.5px solid #334155",
+                      backgroundColor: "#1e293b",
+                      color: "#ffffff",
+                      fontSize: "14px",
+                      boxSizing: "border-box",
+                      outline: "none"
+                    }}
+                  />
+                </div>
+
+                {/* QR Code Container matching user UI */}
+                <div
+                  style={{
+                    backgroundColor: "#ffffff",
+                    borderRadius: "14px",
+                    padding: "16px",
+                    textAlign: "center",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "10px",
+                    color: "#0f172a"
+                  }}
+                >
+                  <span style={{ fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>
+                    OR Scan BHIM UPI QR Code
+                  </span>
+
+                  {/* Dynamic QR Code with exact amount embedded */}
+                  <div
+                    style={{
+                      position: "relative",
+                      width: "190px",
+                      height: "190px",
+                      borderRadius: "12px",
+                      border: "2px solid #cbd5e1",
+                      padding: "6px",
+                      backgroundColor: "#ffffff",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    }}
+                  >
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=6&data=${encodeURIComponent(`upi://pay?pa=smartkisan@icici&pn=Smart%20Kisan%20AI%20Bazaar&am=${grandTotal}&cu=INR&tn=Kisan%20Order%20Payment`)}`}
+                      alt={`UPI QR Code for ₹${grandTotal}`}
+                      style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: "8px" }}
+                    />
+                    {/* Center GPay Logo Badge */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        backgroundColor: "#ffffff",
+                        borderRadius: "50%",
+                        width: "36px",
+                        height: "36px",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        border: "2px solid #ffffff"
+                      }}
+                    >
+                      <svg width="22" height="22" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                        <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.29 21.41 7.37 24 12 24z"/>
+                        <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.58H1.26C.46 8.16 0 9.94 0 12c0 2.06.46 3.84 1.26 5.42l4.02-3.15z"/>
+                        <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.37 0 3.29 2.59 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>
+                    Universal Dynamic QR Code generated securely
+                  </span>
+
+                  <div style={{ backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", padding: "6px 12px", borderRadius: "8px", fontSize: "12px", color: "#166534", fontWeight: "700" }}>
+                    Amount: ₹{grandTotal.toLocaleString("en-IN")} (Automatically filled upon scan)
+                  </div>
+
+                  {/* Mobile Deep Link */}
+                  <a
+                    href={`upi://pay?pa=smartkisan@icici&pn=Smart%20Kisan%20AI%20Bazaar&am=${grandTotal}&cu=INR&tn=Kisan%20Order`}
+                    style={{
+                      fontSize: "12px",
+                      color: "#0284c7",
+                      textDecoration: "none",
+                      fontWeight: "700",
+                      marginTop: "2px"
+                    }}
+                  >
+                    📲 Tap to Pay ₹{grandTotal.toLocaleString("en-IN")} via PhonePe / GPay / Paytm
+                  </a>
+                </div>
               </div>
             )}
 
@@ -1281,15 +1384,24 @@ const KisanCheckoutModal = ({
                   padding: "14px 24px",
                   borderRadius: "10px",
                   border: "none",
-                  background: "linear-gradient(135deg, #059669 0%, #0d9488 100%)",
+                  background: paymentMethod === "upi"
+                    ? "linear-gradient(135deg, #9a3412 0%, #c2410c 100%)"
+                    : "linear-gradient(135deg, #059669 0%, #0d9488 100%)",
                   color: "#ffffff",
                   fontWeight: "800",
                   fontSize: "15px",
                   cursor: "pointer",
-                  boxShadow: "0 4px 14px rgba(5, 150, 105, 0.35)"
+                  boxShadow: paymentMethod === "upi"
+                    ? "0 4px 14px rgba(154, 52, 18, 0.4)"
+                    : "0 4px 14px rgba(5, 150, 105, 0.35)",
+                  transition: "all 0.2s"
                 }}
               >
-                ⚡ {language === "mr" ? `₹${grandTotal} चे पेमेंट करा` : `Pay ₹${grandTotal.toLocaleString("en-IN")}`}
+                {paymentMethod === "upi"
+                  ? `Authorize Payment of ₹${grandTotal.toLocaleString("en-IN")}`
+                  : paymentMethod === "razorpay"
+                  ? `⚡ Pay ₹${grandTotal.toLocaleString("en-IN")} via Razorpay`
+                  : `Authorize Payment of ₹${grandTotal.toLocaleString("en-IN")}`}
               </button>
             </div>
           </div>
