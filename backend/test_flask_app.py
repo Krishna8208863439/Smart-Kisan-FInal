@@ -207,5 +207,60 @@ class FlaskAppTestCase(unittest.TestCase):
         res3 = self.client.get("/api/livestock")
         self.assertEqual(res3.status_code, 200)
 
+    def test_payment_workflow(self):
+        # 1. Invalid phone number rejection
+        res_invalid = self.client.post("/api/payment/create-order", json={
+            "customer": {
+                "name": "Ramesh",
+                "mobile": "12345",
+                "address": "Gat 45",
+                "city": "Kolhapur",
+                "pincode": "416001"
+            },
+            "items": [{"productId": "prod_1", "quantity": 1}]
+        })
+        self.assertEqual(res_invalid.status_code, 400)
+
+        # 2. Valid create order
+        res_valid = self.client.post("/api/payment/create-order", json={
+            "customer": {
+                "name": "Ramesh Patil",
+                "mobile": "9876543210",
+                "address": "Gat 45, Shivaji Nagar",
+                "city": "Kolhapur",
+                "state": "Maharashtra",
+                "pincode": "416001"
+            },
+            "items": [{"productId": "prod_1", "quantity": 2}]
+        })
+        self.assertEqual(res_valid.status_code, 200)
+        order_data = json.loads(res_valid.data)
+        self.assertTrue(order_data["success"])
+        self.assertIn("razorpayOrderId", order_data)
+        self.assertEqual(order_data["subtotal"], 1700.0)
+
+        # 3. Verify payment
+        res_verify = self.client.post("/api/payment/verify", json={
+            "razorpay_order_id": order_data["razorpayOrderId"],
+            "razorpay_payment_id": "pay_test_9988",
+            "razorpay_signature": "mock_sig",
+            "internalOrderId": order_data["orderId"],
+            "customer": order_data["customer"],
+            "items": order_data["items"],
+            "totalAmount": order_data["amountRupees"],
+            "paymentMethod": "Razorpay"
+        })
+        self.assertEqual(res_verify.status_code, 200)
+        verify_data = json.loads(res_verify.data)
+        self.assertTrue(verify_data["success"])
+        self.assertEqual(verify_data["order"]["paymentStatus"], "Paid")
+        self.assertEqual(verify_data["order"]["orderStatus"], "Confirmed")
+
+        # 4. Fetch orders history
+        res_orders = self.client.get("/api/payment/orders")
+        self.assertEqual(res_orders.status_code, 200)
+        orders_list = json.loads(res_orders.data)
+        self.assertTrue(len(orders_list["orders"]) > 0)
+
 if __name__ == "__main__":
     unittest.main()

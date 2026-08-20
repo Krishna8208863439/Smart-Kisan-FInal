@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import api from "../api";
 import { useLanguage } from "../context/LanguageContext";
 import { useHistory } from "../context/HistoryContext";
+import KisanCheckoutModal from "../components/marketplace/KisanCheckoutModal";
 
 const CATEGORIES = [
   { name: "All Products", icon: "📦", color: "#64748b" },
@@ -154,7 +155,8 @@ const Marketplace = () => {
     const saved = localStorage.getItem("sk_cart");
     return saved ? JSON.parse(saved) : [];
   });
-   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [checkoutStatus, setCheckoutStatus] = useState(null);
   
   // Delivery Address state (shown before payment modal)
@@ -246,11 +248,21 @@ const Marketplace = () => {
     if (!isLoggedIn) return;
     setOrdersLoading(true);
     try {
-      const res = await api.get("/marketplace/orders");
-      const list = Array.isArray(res.data) ? res.data : (res.data?.data || res.data?.orders || []);
-      setOrders(list);
+      const res = await api.get("/payment/orders");
+      const list = Array.isArray(res.data) ? res.data : (res.data?.orders || res.data?.data || []);
+      if (list && list.length > 0) {
+        setOrders(list);
+        return;
+      }
     } catch (err) {
-      console.error("Error fetching order history:", err);
+      console.warn("Payment orders endpoint check:", err.message);
+    }
+    try {
+      const res2 = await api.get("/marketplace/orders");
+      const list2 = Array.isArray(res2.data) ? res2.data : (res2.data?.orders || res2.data?.data || []);
+      setOrders(list2);
+    } catch (err2) {
+      console.error("Error fetching order history:", err2);
     } finally {
       setOrdersLoading(false);
     }
@@ -380,62 +392,12 @@ const Marketplace = () => {
 
   const handleCheckout = () => {
     if (!isLoggedIn) {
-      alert("Please log in to complete your purchase.");
+      alert(language === "mr" ? "कृपया खरेदी पूर्ण करण्यासाठी प्रथम लॉग इन करा." : "Please log in to complete your purchase.");
       window.location.href = "/login";
       return;
     }
-    // Step 1: Show address collection modal first
-    setShowAddressModal(true);
-    setAddressErrors({});
-  };
-
-  const handleAddressSubmit = (e) => {
-    e.preventDefault();
-    if (!validateAddress()) return;
-    // Address valid — close address modal and open payment modal
-    setShowAddressModal(false);
-    setShowBillDesk(true);
-    setPaymentStep(1);
-    setPaymentOtp("");
-  };
-
-  const completeBillDeskPayment = async () => {
-    setBillDeskLoading(true);
-    // Simulate brief verification delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    try {
-      const res = await api.post("/marketplace/checkout", {
-        cartItems: cart.map((i) => ({ productId: i.product._id, quantity: i.quantity })),
-        deliveryAddress,
-        paymentMethod,
-        totalAmount: cartTotal,
-      });
-      setCheckoutStatus(res.data);
-      // Record checkout in Activity History only after server confirms
-      const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
-      const totalVal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
-      addHistoryEntry({
-        type: "marketplace",
-        title: language === "mr" ? `बाजार खरेदी` : "Marketplace Order",
-        icon: "🛒",
-        summary: `Order ${res.data.orderId} · ${totalItems} items · ₹${totalVal.toLocaleString("en-IN")}`,
-        data: {
-          orderId: res.data.orderId,
-          items: totalItems,
-          total: `₹${totalVal.toLocaleString("en-IN")}`,
-          deliveredTo: `${deliveryAddress.name}, ${deliveryAddress.city}`,
-        },
-      });
-      setCart([]); // Clear cart only after server confirms order
-      setShowBillDesk(false);
-      fetchProducts();
-      fetchOrders();
-    } catch (err) {
-      console.error(err);
-      alert("Checkout failed. Please verify you are logged in.");
-    } finally {
-      setBillDeskLoading(false);
-    }
+    setIsCartOpen(false);
+    setShowCheckoutModal(true);
   };
 
   // Farmer listing upload
@@ -1695,404 +1657,24 @@ const Marketplace = () => {
         </div>
       )}
 
-      {/* --- Delivery Address Modal --- */}
-      {showAddressModal && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.65)", zIndex: 1200, display: "flex", justifyContent: "center", alignItems: "center", padding: 16 }}>
-          <div style={{ background: "var(--bg-card)", borderRadius: 16, width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 60px rgba(0,0,0,0.4)" }}>
-            {/* Modal Header */}
-            <div style={{ background: "linear-gradient(135deg, #16a34a, #059669)", padding: "20px 24px", borderRadius: "16px 16px 0 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <h3 style={{ margin: 0, color: "#fff", fontSize: 18, fontWeight: 800 }}>📦 Delivery Address</h3>
-                <p style={{ margin: "4px 0 0", color: "rgba(255,255,255,0.8)", fontSize: 12 }}>
-                  Step 1 of 2 — Enter your delivery details
-                </p>
-              </div>
-              <button onClick={() => setShowAddressModal(false)} style={{ background: "rgba(255,255,255,0.2)", border: "none", borderRadius: 8, padding: "6px 12px", color: "#fff", cursor: "pointer", fontSize: 16 }}>✕</button>
-            </div>
-
-            {/* Progress Indicator */}
-            <div style={{ display: "flex", gap: 0 }}>
-              <div style={{ flex: 1, height: 4, background: "#16a34a" }} />
-              <div style={{ flex: 1, height: 4, background: "var(--border-color)" }} />
-            </div>
-
-            {/* Address Form */}
-            <form onSubmit={handleAddressSubmit} style={{ padding: 24, display: "flex", flexDirection: "column", gap: 14 }}>
-              {/* Full Name */}
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 700, display: "block", marginBottom: 4 }}>Full Name *</label>
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="e.g. Suresh Patil"
-                  value={deliveryAddress.name}
-                  onChange={e => setDeliveryAddress(a => ({ ...a, name: e.target.value }))}
-                  style={{ borderColor: addressErrors.name ? "#ef4444" : undefined }}
-                />
-                {addressErrors.name && <span style={{ fontSize: 11, color: "#ef4444" }}>{addressErrors.name}</span>}
-              </div>
-
-              {/* Phone */}
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 700, display: "block", marginBottom: 4 }}>Mobile Number * (10-digit)</label>
-                <input
-                  type="tel"
-                  className="input"
-                  placeholder="e.g. 9876543210"
-                  maxLength={10}
-                  value={deliveryAddress.phone}
-                  onChange={e => setDeliveryAddress(a => ({ ...a, phone: e.target.value.replace(/\D/g, "") }))}
-                  style={{ borderColor: addressErrors.phone ? "#ef4444" : undefined }}
-                />
-                {addressErrors.phone && <span style={{ fontSize: 11, color: "#ef4444" }}>{addressErrors.phone}</span>}
-              </div>
-
-              {/* Address Line 1 */}
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 700, display: "block", marginBottom: 4 }}>Address Line 1 * (House No., Street)</label>
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="e.g. Plot 12, Shivaji Nagar"
-                  value={deliveryAddress.addressLine1}
-                  onChange={e => setDeliveryAddress(a => ({ ...a, addressLine1: e.target.value }))}
-                  style={{ borderColor: addressErrors.addressLine1 ? "#ef4444" : undefined }}
-                />
-                {addressErrors.addressLine1 && <span style={{ fontSize: 11, color: "#ef4444" }}>{addressErrors.addressLine1}</span>}
-              </div>
-
-              {/* Address Line 2 */}
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 700, display: "block", marginBottom: 4 }}>Address Line 2 (Landmark / Village — optional)</label>
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="e.g. Near Gram Panchayat"
-                  value={deliveryAddress.addressLine2}
-                  onChange={e => setDeliveryAddress(a => ({ ...a, addressLine2: e.target.value }))}
-                />
-              </div>
-
-              {/* City + State + Pincode */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, display: "block", marginBottom: 4 }}>City / Taluka *</label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="e.g. Kolhapur"
-                    value={deliveryAddress.city}
-                    onChange={e => setDeliveryAddress(a => ({ ...a, city: e.target.value }))}
-                    style={{ borderColor: addressErrors.city ? "#ef4444" : undefined }}
-                  />
-                  {addressErrors.city && <span style={{ fontSize: 11, color: "#ef4444" }}>{addressErrors.city}</span>}
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, display: "block", marginBottom: 4 }}>PIN Code *</label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="e.g. 416002"
-                    maxLength={6}
-                    value={deliveryAddress.pincode}
-                    onChange={e => setDeliveryAddress(a => ({ ...a, pincode: e.target.value.replace(/\D/g, "") }))}
-                    style={{ borderColor: addressErrors.pincode ? "#ef4444" : undefined }}
-                  />
-                  {addressErrors.pincode && <span style={{ fontSize: 11, color: "#ef4444" }}>{addressErrors.pincode}</span>}
-                </div>
-              </div>
-
-              {/* State */}
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 700, display: "block", marginBottom: 4 }}>State *</label>
-                <select className="input" value={deliveryAddress.state} onChange={e => setDeliveryAddress(a => ({ ...a, state: e.target.value }))}>
-                  {["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal"].map(s => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Order Summary */}
-              <div style={{ background: "var(--bg-main)", borderRadius: 10, padding: "12px 16px", border: "1px solid var(--border-color)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
-                  <span style={{ color: "var(--text-muted)" }}>Items ({cart.reduce((s, i) => s + i.quantity, 0)})</span>
-                  <span>₹{cartTotalBeforeDiscount.toLocaleString("en-IN")}</span>
-                </div>
-                {cartDiscount > 0 && (
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#16a34a", marginBottom: 4 }}>
-                    <span>Discount</span>
-                    <span>−₹{cartDiscount.toLocaleString("en-IN")}</span>
-                  </div>
-                )}
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 800, borderTop: "1px solid var(--border-color)", paddingTop: 8, marginTop: 4 }}>
-                  <span>Total Payable</span>
-                  <span style={{ color: "#16a34a" }}>₹{cartTotal.toLocaleString("en-IN")}</span>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                style={{ background: "linear-gradient(135deg, #16a34a, #059669)", color: "#fff", border: "none", borderRadius: 12, padding: "14px 24px", fontWeight: 800, fontSize: 15, cursor: "pointer", letterSpacing: 0.3 }}
-              >
-                Continue to Payment →
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAddressModal(false)}
-                style={{ background: "transparent", border: "1px solid var(--border-color)", borderRadius: 10, padding: "10px 24px", fontWeight: 600, fontSize: 13, cursor: "pointer", color: "var(--text-muted)" }}
-              >
-                ← Cancel
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* --- BillDesk Payment Gateway Modal --- */}
-      {showBillDesk && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "rgba(0,0,0,0.6)",
-            zIndex: 1200,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            padding: 20
-          }}
-        >
-          <div
-            className="card"
-            style={{
-              maxWidth: 620,
-              width: "100%",
-              borderRadius: 16,
-              overflow: "hidden",
-              padding: 0,
-              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.2)",
-              border: "1px solid #e2e8f0"
-            }}
-          >
-            {/* BillDesk Corporate Header */}
-            <div style={{ background: "#0c3161", color: "white", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 24 }}>💳</span>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: 18, color: "white", fontWeight: 800 }}>BillDesk</h3>
-                  <span style={{ fontSize: 10, opacity: 0.8, textTransform: "uppercase", letterSpacing: 0.5 }}>All Payments Secured</span>
-                </div>
-              </div>
-              <button 
-                style={{ background: "transparent", border: "none", color: "white", fontSize: 20, cursor: "pointer" }} 
-                onClick={() => setShowBillDesk(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Merchant Details Ribbon */}
-            <div style={{ background: "#f8fafc", padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e2e8f0" }}>
-              <div>
-                <span style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", display: "block" }}>Merchant Name</span>
-                <strong style={{ fontSize: 14, color: "#0f172a" }}>Smart Kisan AI Bazaar</strong>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <span style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", display: "block" }}>Amount Payable</span>
-                <strong style={{ fontSize: 18, color: "#15803d" }}>₹{cartTotal}</strong>
-              </div>
-            </div>
-
-            {/* Gateway UI Content */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1.8fr", minHeight: 280 }}>
-              
-              {/* Payment Methods Side Bar */}
-              <div style={{ background: "#f1f5f9", borderRight: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
-                <button
-                  style={{
-                    padding: "16px 20px", textAlign: "left", background: paymentMethod === "upi" ? "white" : "transparent",
-                    color: paymentMethod === "upi" ? "#0c3161" : "#64748b", fontWeight: 700, border: "none",
-                    borderLeft: paymentMethod === "upi" ? "4px solid #f97316" : "4px solid transparent", cursor: "pointer", transition: "all 0.2s"
-                  }}
-                  onClick={() => { setPaymentMethod("upi"); setPaymentStep(1); }}
-                >
-                  📱 UPI / QR Code
-                </button>
-                <button
-                  style={{
-                    padding: "16px 20px", textAlign: "left", background: paymentMethod === "cards" ? "white" : "transparent",
-                    color: paymentMethod === "cards" ? "#0c3161" : "#64748b", fontWeight: 700, border: "none",
-                    borderLeft: paymentMethod === "cards" ? "4px solid #f97316" : "4px solid transparent", cursor: "pointer", transition: "all 0.2s"
-                  }}
-                  onClick={() => { setPaymentMethod("cards"); setPaymentStep(1); }}
-                >
-                  💳 Credit & Debit Card
-                </button>
-                <button
-                  style={{
-                    padding: "16px 20px", textAlign: "left", background: paymentMethod === "netbanking" ? "white" : "transparent",
-                    color: paymentMethod === "netbanking" ? "#0c3161" : "#64748b", fontWeight: 700, border: "none",
-                    borderLeft: paymentMethod === "netbanking" ? "4px solid #f97316" : "4px solid transparent", cursor: "pointer", transition: "all 0.2s"
-                  }}
-                  onClick={() => { setPaymentMethod("netbanking"); setPaymentStep(1); }}
-                >
-                  🏛️ Net Banking
-                </button>
-              </div>
-
-              {/* Payment Input Panel */}
-              <div style={{ padding: 24, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                {billDeskLoading ? (
-                  <div style={{ textAlign: "center", padding: "40px 0" }}>
-                    <div style={{ border: "4px solid #f3f3f3", borderTop: "4px solid #f97316", borderRadius: "50%", width: 40, height: 40, animation: "spin 1s linear infinite", margin: "0 auto 16px auto" }} />
-                    <strong style={{ color: "#0c3161", display: "block" }}>Verifying secure token...</strong>
-                    <span style={{ fontSize: 11, color: "#64748b" }}>Please do not close this window or hit back.</span>
-                  </div>
-                ) : paymentStep === 1 ? (
-                  <div>
-                    {paymentMethod === "upi" && (
-                      <div style={{ animation: "fadeIn 0.2s" }}>
-                        <h4 style={{ margin: "0 0 12px 0", color: "#0f172a" }}>Pay using UPI ID</h4>
-                        <input
-                          type="text"
-                          className="input"
-                          placeholder="e.g. user@ybl, mobile@upi"
-                          value={paymentDetails.upiId}
-                          onChange={(e) => setPaymentDetails({ ...paymentDetails, upiId: e.target.value })}
-                          style={{ marginBottom: 12 }}
-                        />
-                        <div style={{ textAlign: "center", background: "#f8fafc", padding: 12, borderRadius: 8, border: "1px dashed #cbd5e1", marginBottom: 12 }}>
-                          <span style={{ fontSize: 12, color: "#475569", display: "block", fontWeight: 600, marginBottom: 8 }}>OR Scan BHIM UPI QR Code</span>
-                          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", margin: "8px 0" }}>
-                            <img
-                              src="/upi_qr_code.png"
-                              alt="BHIM UPI QR Code"
-                              style={{
-                                width: "160px",
-                                height: "160px",
-                                borderRadius: "8px",
-                                border: "1px solid #cbd5e1",
-                                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                                objectFit: "contain",
-                                background: "white",
-                                padding: "4px"
-                              }}
-                            />
-                          </div>
-                          <span style={{ fontSize: 10, color: "#64748b" }}>Universal Dynamic QR Code generated securely</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {paymentMethod === "cards" && (
-                      <div style={{ animation: "fadeIn 0.2s", display: "flex", flexDirection: "column", gap: 10 }}>
-                        <h4 style={{ margin: 0, color: "#0f172a" }}>Enter Card Credentials</h4>
-                        <div>
-                          <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>Card Number</label>
-                          <input
-                            type="text"
-                            className="input"
-                            placeholder="xxxx xxxx xxxx xxxx"
-                            value={paymentDetails.cardNumber}
-                            onChange={(e) => setPaymentDetails({ ...paymentDetails, cardNumber: e.target.value })}
-                            maxLength="19"
-                          />
-                        </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                          <div>
-                            <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>Expiry Date</label>
-                            <input
-                              type="text"
-                              className="input"
-                              placeholder="MM/YY"
-                              value={paymentDetails.expiry}
-                              onChange={(e) => setPaymentDetails({ ...paymentDetails, expiry: e.target.value })}
-                              maxLength="5"
-                            />
-                          </div>
-                          <div>
-                            <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>CVV</label>
-                            <input
-                              type="password"
-                              className="input"
-                              placeholder="***"
-                              value={paymentDetails.cvv}
-                              onChange={(e) => setPaymentDetails({ ...paymentDetails, cvv: e.target.value })}
-                              maxLength="3"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {paymentMethod === "netbanking" && (
-                      <div style={{ animation: "fadeIn 0.2s" }}>
-                        <h4 style={{ margin: "0 0 12px 0", color: "#0f172a" }}>Select Your Bank</h4>
-                        <select
-                          className="input"
-                          value={paymentDetails.netBank}
-                          onChange={(e) => setPaymentDetails({ ...paymentDetails, netBank: e.target.value })}
-                        >
-                          <option value="sbi">State Bank of India</option>
-                          <option value="hdfc">HDFC Bank</option>
-                          <option value="icici">ICICI Bank</option>
-                          <option value="axis">Axis Bank</option>
-                          <option value="boi">Bank of India</option>
-                        </select>
-                        <div style={{ fontSize: 12, color: "#64748b", marginTop: 12 }}>
-                          💻 You will be redirected to the secure NetBanking credentials portal of your choice.
-                        </div>
-                      </div>
-                    )}
-
-                    <button
-                      className="button"
-                      onClick={() => setPaymentStep(2)}
-                      style={{ width: "100%", background: "#f97316", border: "none", color: "white", fontSize: 15, fontWeight: 700, marginTop: 20 }}
-                      disabled={paymentMethod === "upi" && !paymentDetails.upiId.includes("@")}
-                    >
-                      Authorize Payment of ₹{cartTotal}
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ textAlign: "center" }}>
-                    <h4 style={{ margin: "0 0 12px 0", color: "#0f172a" }}>Verify Secure OTP Code</h4>
-                    <span style={{ fontSize: 12, color: "#475569", display: "block", marginBottom: 12 }}>
-                      A secure OTP verification pin has been sent to your linked mobile number via Indian Telecom services.
-                    </span>
-                    <input
-                      type="text"
-                      className="input"
-                      placeholder="Enter 6-Digit OTP"
-                      maxLength="6"
-                      value={paymentOtp}
-                      onChange={(e) => setPaymentOtp(e.target.value)}
-                      style={{ width: 180, textAlign: "center", fontSize: 18, fontWeight: "bold", letterSpacing: 3, margin: "0 auto 12px auto" }}
-                    />
-                    <button
-                      className="button"
-                      onClick={completeBillDeskPayment}
-                      style={{ width: "100%", background: "#16a34a", border: "none", color: "white", fontSize: 14, fontWeight: 700, marginTop: 12 }}
-                      disabled={paymentOtp.length < 4}
-                    >
-                      Confirm Payment Action
-                    </button>
-                  </div>
-                )}
-              </div>
-
-            </div>
-
-            {/* BillDesk Footer */}
-            <div style={{ background: "#f1f5f9", padding: "12px 24px", fontSize: 11, color: "#64748b", textAlign: "center", borderTop: "1px solid #e2e8f0" }}>
-              🔒 Verified by Visa • MasterCard SecureCode • RuPay PaySecure • ISO 27001 Certified Gateway
-            </div>
-          </div>
-        </div>
-      )}
+      {/* --- Kisan Bazaar Professional Checkout & Razorpay Modal --- */}
+      <KisanCheckoutModal
+        isOpen={showCheckoutModal}
+        onClose={() => setShowCheckoutModal(false)}
+        cart={cart}
+        onClearCart={() => {
+          setCart([]);
+          localStorage.removeItem("sk_cart");
+        }}
+        onOrderSuccess={() => {
+          fetchProducts();
+          fetchOrders();
+        }}
+        onOpenMyOrders={() => {
+          setViewMode("dashboard");
+          setDashboardTab("orders");
+        }}
+      />
     </main>
   );
 };

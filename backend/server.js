@@ -31,6 +31,7 @@ import schemesRoutes from "./routes/schemesRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import chatbotRoutes from "./routes/chatbotRoutes.js";
 import cropDiagnosticsRoutes from "./routes/cropDiagnosticsRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
 
 
 dotenv.config();
@@ -236,6 +237,7 @@ app.use("/api/crop-disease", aiLimiter, cropDiseaseRoutes);
 app.use("/api/ai", aiLimiter, aiRoutes);
 app.use("/api/crop-calendar", cropCalendarRoutes);
 app.use("/api/marketplace", marketplaceRoutes);
+app.use("/api/payment", paymentRoutes);
 app.use("/api/yield", yieldRoutes);
 app.use("/api/livestock", livestockRoutes);
 app.use("/api/farms", farmRoutes);
