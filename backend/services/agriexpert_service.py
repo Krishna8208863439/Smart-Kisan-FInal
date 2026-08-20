@@ -49,6 +49,70 @@ STRICT RULES:
 # ─────────────────────────────────────────────────────────────────────────────
 AGRI_KNOWLEDGE_BASE = {
     "en": {
+        "greeting": (
+            "🌾 **Namaste Kisan! I am AgriExpert, your Smart Kisan AI Agricultural Advisor.**\n\n"
+            "I can assist you with:\n"
+            "- 🌱 **Crop Nutrition & Fertilizer Dosages** (NPK, micronutrients, drip fertigation)\n"
+            "- 🐛 **Pest & Disease Diagnosis** (Blight, rust, aphids, bollworm remedies)\n"
+            "- 💧 **Smart Irrigation Scheduling** (CRI stages, water saving tips)\n"
+            "- 🚜 **Mandi Market Prices & Selling Produce**\n"
+            "- 🌿 **Organic Composting & Soil Health**\n\n"
+            "💬 *Please ask your specific farming question or mention your crop name!*"
+        ),
+        "cotton": (
+            "🌱 **Cotton (Kapas) Crop Management Advisory**:\n\n"
+            "1. **Nutrient Management (NPK 100:50:50 kg/ha)**:\n"
+            "   - Apply 20% N + full P & K as basal dose at sowing.\n"
+            "   - Top dress remaining Nitrogen in two split doses at 30 and 60 days after sowing.\n"
+            "   - Spray **Magnesium Sulphate (1%) + 19:19:19 (1%)** at square formation to prevent reddening of leaves.\n\n"
+            "2. **Pink Bollworm & Sucking Pest Control**:\n"
+            "   - Install **Pheromone Traps** (5 traps/acre) at 45 days after sowing.\n"
+            "   - For sucking pests (thrips/jassids): Spray **Flonicamid 50 WG** @ 0.3g/L or **Neem Oil 10000 ppm** @ 2ml/L.\n"
+            "   - For bollworm: Spray **Emamectin Benzoate 5% SG** @ 0.4g/L.\n\n"
+            "3. **Irrigation**:\n"
+            "   - Critical stages: Flowering (60-70 days) and Boll development (80-110 days)."
+        ),
+        "sugarcane": (
+            "🎋 **Sugarcane Crop Nutrition & Protection**:\n\n"
+            "1. **Fertilizer Dose (NPK 250:115:115 kg/ha)**:\n"
+            "   - **Basal**: 10% N, 50% P, 50% K.\n"
+            "   - **1st Top dress (45 days)**: 40% N.\n"
+            "   - **Earthing Up (120 days)**: Remaining 50% N, 50% P, 50% K.\n\n"
+            "2. **Shoot Borer & White Grub Control**:\n"
+            "   - Apply **Chlorantraniliprole 0.4% G** @ 7.5 kg/acre in root zone, OR\n"
+            "   - Spray **Fipronil 5% SC** @ 2 ml/L water.\n\n"
+            "3. **Trash Mulching**:\n"
+            "   - Spread 3-inch dried trash mulch in inter-rows to conserve 40% soil moisture and prevent weeds."
+        ),
+        "onion": (
+            "🧅 **Onion Crop Advisory (Pest, Disease & Bulb Size)**:\n\n"
+            "1. **Thrips & Purple Blotch Control**:\n"
+            "   - For Thrips: Spray **Fipronil 5% SC (1.5 ml/L)** or **Spinetoram 11.7% SC (1 ml/L)** with sticker.\n"
+            "   - For Purple Blotch: Spray **Mancozeb 75% WP (2.5 g/L)** or **Tebuconazole + Trifloxystrobin (0.7 g/L)**.\n\n"
+            "2. **Bulb Size & Weight Enhancement**:\n"
+            "   - At 45-60 days: Apply **Sulphur 90% WDG (3 kg/acre)** to improve pungency and storability.\n"
+            "   - At 70-85 days: Foliar spray of **0:52:34 (5g/L)** followed by **0:0:50 (5g/L)**.\n"
+            "   - Stop irrigation 12-15 days before harvest for proper curing."
+        ),
+        "soybean": (
+            "🌱 **Soybean Crop & Weed/Pest Advisory**:\n\n"
+            "1. **Nutrient Management**:\n"
+            "   - Basal: **NPK 30:60:40 kg/ha** + **Sulphur 20 kg/ha** (critical for oil content).\n"
+            "   - Seed treatment: Treat seeds with **Rhizobium + PSB culture** (25g/kg seed).\n\n"
+            "2. **Girdle Beetle & Pod Borer Treatment**:\n"
+            "   - Spray **Chlorantraniliprole 18.5% SC** @ 0.3 ml/L or **Thiamethoxam + Lambda-cyhalothrin** @ 0.5 ml/L.\n\n"
+            "3. **Pod Filling Stage**:\n"
+            "   - Spray **0:52:34** @ 100g/pump (15L) at pod formation for uniform grain filling."
+        ),
+        "chilli": (
+            "🌶️ **Chilli (Mirchi) Leaf Curl & Nutrient Care**:\n\n"
+            "1. **Leaf Curl Virus & Thrips/Mite Management**:\n"
+            "   - For upward curling (Thrips): Spray **Spinetoram 11.7 SC** @ 1 ml/L or **Acetamiprid** @ 0.5 g/L.\n"
+            "   - For downward curling (Mites): Spray **Diafenthiuron 50 WP** @ 1.2 g/L or **Propargite 57 EC** @ 2 ml/L.\n"
+            "   - Install Blue & Yellow sticky traps (20 per acre).\n\n"
+            "2. **Flower Drop Prevention**:\n"
+            "   - Spray **Planofix (Alpha NAA)** @ 0.25 ml/L or **Boron 20%** @ 1 g/L at early flowering."
+        ),
         "tomato_fertilizer": (
             "🍅 **Tomato Fertilizer & Nutrient Advisory**:\n\n"
             "1. **Basal Application (At Sowing/Transplanting)**:\n"
@@ -123,6 +187,67 @@ AGRI_KNOWLEDGE_BASE = {
         )
     },
     "mr": {
+        "greeting": (
+            "🌾 **नमस्कार शेतकरी बंधूंनो! मी ॲग्रीएक्सपर्ट, आपला स्मार्ट किसान एआय कृषी सल्लागार आहे.**\n\n"
+            "मी खालील विषयांवर मार्गदर्शन करू शकतो:\n"
+            "- 🌱 **पिकनिहाय खत व पोषण व्यवस्थापन** (NPK, सूक्ष्मअन्नद्रव्ये, ठिबक खते)\n"
+            "- 🐛 **कीड व रोग नियंत्रण** (करपा, पांढरी माशी, लष्करी अळी, बोंडअळी)\n"
+            "- 💧 **पाणी व सिंचन वेळापत्रक**\n"
+            "- 🚜 **बाजारभाव व शेतमाल विक्री सल्ला**\n"
+            "- 🌿 **सेंद्रिय शेती व गांडूळ खत निर्मिती**\n\n"
+            "💬 *आपला शेतीविषयक प्रश्न विचारा किंवा पिकाचे नाव सांगा!*"
+        ),
+        "cotton": (
+            "🌱 **कापूस पीक व्यवस्थापन व कीड नियंत्रण सल्ला**:\n\n"
+            "१. **खत नियोजन (NPK १००:५०:५० किलो/हेक्टर)**:\n"
+            "   - लागवडीच्या वेळी २०% नत्र + संपूर्ण स्फुरद व पालाश द्या.\n"
+            "   - उर्वरित नत्र ३० आणि ६० दिवसांनी दोन समान हप्त्यांत विभागून द्या.\n"
+            "   - पाते लागताना **मॅग्नेशियम सल्फेट (१%) + १९:१९:१९ (१%)** फवारा (पाने लाल पडणे थांबते).\n\n"
+            "२. **बोंडअळी व रसशोषक कीड नियंत्रण**:\n"
+            "   - पेरणीनंतर ४५ दिवसांनी एकरी **५ कामगंध सापळे (Pheromone Traps)** लावा.\n"
+            "   - मावा/तुडतुडे नियंत्रणासाठी **फ्लोनिकामाइड ५० WG (०.३ ग्रॅम/लीटर)** किंवा **लिंबोळी अर्क १०००० ppm (२ मिली/लीटर)** फवारा.\n"
+            "   - बोंडअळीसाठी **इमामेक्टिन बेंझोएट ५% एसजी** @ ०.४ ग्रॅम/लीटर फवारा."
+        ),
+        "sugarcane": (
+            "🎋 **ऊस पीक खत व्यवस्थापन व खोडकिडा नियंत्रण**:\n\n"
+            "१. **खतांचे हप्ते (NPK २५०:११५:११५ किलो/हेक्टर)**:\n"
+            "   - लागवडीच्या वेळी: १०% नत्र, ५०% स्फुरद, ५०% पालाश.\n"
+            "   - मोठा बांधणीच्या वेळी (१२० दिवस): उर्वरित ५०% नत्र, ५०% स्फुरद, ५०% पालाश.\n\n"
+            "२. **खोडकिडा व हुमणी नियंत्रण**:\n"
+            "   - मुळांजवळ **क्लोरांट्रानिलीप्रोल ०.४% जी** @ ७.५ किलो प्रति एकर टाका, किंवा\n"
+            "   - **फिप्रोनिल ५% एससी** @ २ मिली/लीटर पाण्यात मिसळून आळवणी करा.\n\n"
+            "३. **पाचट आच्छादन**:\n"
+            "   - ओळींमध्ये पाचटाचे आच्छादन केल्याने ४०% पाण्याची बचत होते व तण वाढत नाही."
+        ),
+        "onion": (
+            "🧅 **कांदा पीक सल्ला (करपा, फुलकिडे व कांदा फुगवण)**:\n\n"
+            "१. **फुलकिडे (थ्रिप्स) व जांभळा करपा नियंत्रण**:\n"
+            "   - फुलकिड्यांसाठी: **फिप्रोनिल ५% एससी (१.५ मिली/लीटर)** किंवा **डिफेंथियुरॉन ५०% डब्ल्यूपी (१.२ ग्रॅम/लीटर)** स्टीकरसह फवारा.\n"
+            "   - जांभळ्या करप्यासाठी: **मँकोझेब ७५% डब्ल्यूपी (२.५ ग्रॅम/लीटर)** किंवा **कॅब्रिओ टॉप (२ ग्रॅम/लीटर)** फवारा.\n\n"
+            "२. **कांदा फुगवणीसाठी खते**:\n"
+            "   - ४५ ते ६० दिवसांनी: **सल्फर ९०% डब्लूडीजी (३ किलो/एकर)** द्या.\n"
+            "   - ७० ते ८५ दिवसांनी: **०:५२:३४ (५ ग्रॅम/लीटर)** आणि त्यानंतर **०:०:५० (५ ग्रॅम/लीटर)** फवारा.\n"
+            "   - काढणीपूर्वी १२-१५ दिवस आधी पाणी पूर्णपणे बंद करा."
+        ),
+        "soybean": (
+            "🌱 **सोयाबीन पीक व चक्रीभुंगा/खोडमाशी नियंत्रण**:\n\n"
+            "१. **खत नियोजन**:\n"
+            "   - पायाभूत खत: **NPK ३०:६०:४० किलो/हेक्टर** + **सल्फर २० किलो/हेक्टर** (तेलाचे प्रमाण वाढवण्यासाठी).\n"
+            "   - पेरणीपूर्वी **रायझोबियम + पीएसबी** जीवाणू संवर्धन (२५ ग्रॅम प्रति किलो बियाणे) चोळा.\n\n"
+            "२. **चक्रीभुंगा व उंटअळी नियंत्रण**:\n"
+            "   - **क्लोरांट्रानिलीप्रोल १८.५% एससी (०.३ मिली/लीटर)** किंवा **थायमेथॉक्झम + लॅम्बडा (०.५ मिली/लीटर)** फवारा.\n\n"
+            "३. **शेंगा भरण्याची अवस्था**:\n"
+            "   - दाणे भरताना **०:५२:३४** @ १०० ग्रॅम प्रति पंप (१५ लीटर) फवारा."
+        ),
+        "chilli": (
+            "🌶️ **मिरची बोकड्या (चुरडा-मुरडा) व पोषण सल्ला**:\n\n"
+            "१. **चुरडा-मुरडा व कीड नियंत्रण**:\n"
+            "   - पाने वरच्या बाजूला वळल्यास (थ्रिप्स): **स्पायनेटोरम ११.७ एससी (१ मिली/लीटर)** फवारा.\n"
+            "   - पाने खालच्या बाजूला वळल्यास (कोळी/माइट्स): **डायफेन्थियुरॉन (१.२ ग्रॅम/लीटर)** किंवा **ओमाइट (२ मिली/लीटर)** फवारा.\n"
+            "   - एकरी २० पिवळे व निळे चिकट सापळे लावा.\n\n"
+            "२. **फुलगळ थांबवण्यासाठी**:\n"
+            "   - **प्लानोफिक्स (अल्फा एनएए)** @ ०.२५ मिली/लीटर किंवा **बोरॉन २०%** @ १ ग्रॅम/लीटर फवारा."
+        ),
         "tomato_fertilizer": (
             "🍅 **टोमॅटो खत आणि पोषण व्यवस्थापन सल्ला**:\n\n"
             "१. **पायाभूत खत (लागवडीच्या वेळी)**:\n"
@@ -196,6 +321,67 @@ AGRI_KNOWLEDGE_BASE = {
         )
     },
     "hi": {
+        "greeting": (
+            "🌾 **नमस्ते किसान भाई! मैं एग्रीएक्सपर्ट, आपका स्मार्ट किसान एआई कृषि सलाहकार हूं।**\n\n"
+            "मैं आपकी निम्न विषयों में मदद कर सकता हूं:\n"
+            "- 🌱 **फसल पोषण एवं उर्वरक डोज** (NPK, सूक्ष्म पोषक तत्व, ड्रिप खाद)\n"
+            "- 🐛 **कीट व रोग प्रबंधन** (झुलसा, सफेद मक्खी, सुंडी, इल्ली नियंत्रण)\n"
+            "- 💧 **सिंचाई समय-सारणी एवं जल प्रबंधन**\n"
+            "- 🚜 **मंडी भाव एवं उपज बिक्री मार्गदर्शन**\n"
+            "- 🌿 **जैविक खेती व कंपोस्ट खाद**\n\n"
+            "💬 *कृपया अपना विशिष्ट कृषि प्रश्न पूछें या फसल का नाम बताएं!*"
+        ),
+        "cotton": (
+            "🌱 **कपास फसल पोषण एवं गुलाबी सुंडी नियंत्रण सलाह**:\n\n"
+            "1. **उर्वरक प्रबंधन (NPK 100:50:50 किग्रा/हेक्टेयर)**:\n"
+            "   - बुवाई के समय 20% नाइट्रोजन + पूरी फास्फोरस व पोटाश दें।\n"
+            "   - शेष नाइट्रोजन को 30 और 60 दिन बाद दो बराबर भागों में दें।\n"
+            "   - फूल बनते समय **मैग्नीशियम सल्फेट (1%) + 19:19:19 (1%)** का स्प्रे करें (पत्तियां लाल होना रुकती हैं)।\n\n"
+            "2. **गुलाबी सुंडी व रस चूसक कीट नियंत्रण**:\n"
+            "   - बुवाई के 45 दिन बाद प्रति एकड़ **5 फेरोमोन ट्रैप** लगाएं।\n"
+            "   - रस चूसक कीटों के लिए: **फ्लोनिकामाइड 50 WG** @ 0.3 ग्राम/लीटर या **नीम तेल 10000 ppm** @ 2 मिली/लीटर छिड़कें।\n"
+            "   - गुलाबी सुंडी के लिए: **इमामेक्टिन बेंजोएट 5% SG** @ 0.4 ग्राम/लीटर का स्प्रे करें।"
+        ),
+        "sugarcane": (
+            "🎋 **गन्ना फसल उर्वरक एवं कीट प्रबंधन**:\n\n"
+            "1. **उर्वरक खुराक (NPK 250:115:115 किग्रा/हेक्टेयर)**:\n"
+            "   - बुवाई के समय: 10% N, 50% P, 50% K।\n"
+            "   - भारी मिट्टी चढ़ाई के समय (120 दिन): शेष 50% N, 50% P, 50% K डालें।\n\n"
+            "2. **कंसुआ (Shoot Borer) व सफेद लट (White Grub) नियंत्रण**:\n"
+            "   - जड़ों के पास **क्लोरांट्रानिलीप्रोल 0.4% G** @ 7.5 किग्रा/एकड़ डालें, या\n"
+            "   - **फिप्रोनिल 5% SC** @ 2 मिली/लीटर पानी में मिलाकर ड्रेन्चिंग करें।\n\n"
+            "3. **सूखी पत्तियों की मल्चिंग**:\n"
+            "   - कतारों के बीच सूखी पत्तियों की मल्चिंग करने से 40% पानी की बचत होती है।"
+        ),
+        "onion": (
+            "🧅 **प्याज फसल सलाह (थ्रिप्स, जामुनी धब्बा व कंद फुलाव)**:\n\n"
+            "1. **थ्रिप्स एवं जामुनी धब्बा (Purple Blotch) नियंत्रण**:\n"
+            "   - थ्रिप्स के लिए: **फिप्रोनिल 5% SC (1.5 मिली/लीटर)** या **स्पिनेटोरम 11.7 SC (1 मिली/लीटर)** स्टीकर के साथ छिड़कें।\n"
+            "   - जामुनी धब्बे के लिए: **मैंकोजेब 75% WP (2.5 ग्राम/लीटर)** या **कस्टोडिया/नेटिवो (0.7 ग्राम/लीटर)** का स्प्रे करें।\n\n"
+            "2. **कंद का आकार व चमक बढ़ाने के लिए**:\n"
+            "   - 45-60 दिन बाद: **सल्फर 90% WDG (3 किग्रा/एकड़)** दें।\n"
+            "   - 70-85 दिन बाद: **0:52:34 (5 ग्राम/लीटर)** और फिर **0:0:50 (5 ग्राम/लीटर)** का स्प्रे करें।\n"
+            "   - खुदाई से 15 दिन पहले पानी पूरी तरह बंद कर दें।"
+        ),
+        "soybean": (
+            "🌱 **सोयाबीन फसल व चक्र भृंग / गर्डल बीटल नियंत्रण**:\n\n"
+            "1. **उर्वरक प्रबंधन**:\n"
+            "   - बेसल डोज: **NPK 30:60:40 किग्रा/हेक्टेयर** + **सल्फर 20 किग्रा/हेक्टेयर** (तेल की मात्रा बढ़ाने के लिए)।\n"
+            "   - बुवाई से पहले **राइजोबियम + PSB** कल्चर से बीजोपचार करें।\n\n"
+            "2. **गर्डल बीटल व सेमीलूपर इल्ली नियंत्रण**:\n"
+            "   - **क्लोरांट्रानिलीप्रोल 18.5% SC (0.3 मिली/लीटर)** या **थायमेथॉक्सम + लैम्ब्डा (0.5 मिली/लीटर)** का स्प्रे करें।\n\n"
+            "3. **फली बनने की अवस्था**:\n"
+            "   - दाना भरते समय **0:52:34** @ 100 ग्राम प्रति 15 लीटर पंप स्प्रे करें।"
+        ),
+        "chilli": (
+            "🌶️ **मिर्च चुरड़ा-मुरड़ा (लीफ कर्ल) व पोषक तत्व प्रबंधन**:\n\n"
+            "1. **चुरड़ा-मुरड़ा व कीट नियंत्रण**:\n"
+            "   - पत्तियां ऊपर मुड़ने पर (थ्रिप्स): **स्पिनेटोरम 11.7 SC (1 मिली/लीटर)** या **एसिटामिप्रिड (0.5 ग्राम/लीटर)** स्प्रे करें।\n"
+            "   - पत्तियां नीचे मुड़ने पर (माइट्स/मकड़ी): **डायफेंटिउरॉन 50 WP (1.2 ग्राम/लीटर)** या **ओमाइट (2 मिली/लीटर)** स्प्रे करें।\n"
+            "   - खेत में नीले व पीले स्टिकी ट्रैप लगाएं।\n\n"
+            "2. **फूल झड़ने से रोकने के लिए**:\n"
+            "   - **प्लानोफिक्स** @ 0.25 मिली/लीटर या **बोरॉन 20%** @ 1 ग्राम/लीटर का स्प्रे करें।"
+        ),
         "tomato_fertilizer": (
             "🍅 **टमाटर की फसल के लिए उर्वरक एवं पोषण सलाह**:\n\n"
             "1. **बुवाई/रोपाई के समय (बेसल डोज)**:\n"
@@ -275,24 +461,57 @@ def get_agronomic_fallback_reply(message: str, language: str = "en") -> str:
     lang_key = "mr" if language in ("mr", "marathi") else ("hi" if language in ("hi", "hindi") else "en")
     kb = AGRI_KNOWLEDGE_BASE.get(lang_key, AGRI_KNOWLEDGE_BASE["en"])
 
-    msg_lower = (message or "").lower()
+    msg_lower = (message or "").lower().strip()
 
-    if any(w in msg_lower for w in ["tomato", "टमाटर", "टोमॅटो"]) and any(w in msg_lower for w in ["fertilizer", "khad", "खत", "उर्वरक", "dose", "npk"]):
+    # 1. Greetings
+    if any(msg_lower == w or msg_lower.startswith(w) for w in ["hi", "hello", "hey", "namaste", "namaskar", "नमस्कार", "नमस्ते", "राम राम", "help", "who are you", "what can you do", "कसा आहेस", "सल्ला", "advice"]):
+        return kb.get("greeting", kb["general_advice"])
+
+    # 2. Cotton / Kapas
+    if any(w in msg_lower for w in ["cotton", "kapas", "कापूस", "कपास", "बोंडअळी", "bollworm"]):
+        return kb.get("cotton", kb["general_advice"])
+
+    # 3. Sugarcane
+    if any(w in msg_lower for w in ["sugarcane", "cane", "ऊस", "गन्ना", "खोडकिडा"]):
+        return kb.get("sugarcane", kb["general_advice"])
+
+    # 4. Onion
+    if any(w in msg_lower for w in ["onion", "कांदा", "प्याज", "thrips", "फुगवण"]):
+        return kb.get("onion", kb["general_advice"])
+
+    # 5. Soybean
+    if any(w in msg_lower for w in ["soybean", "soya", "सोयाबीन", "girdle beetle", "चक्रीभुंगा"]):
+        return kb.get("soybean", kb["general_advice"])
+
+    # 6. Chilli
+    if any(w in msg_lower for w in ["chilli", "chili", "pepper", "मिरची", "मिर्च", "leaf curl", "चुरडा"]):
+        return kb.get("chilli", kb["general_advice"])
+
+    # 7. Tomato
+    if any(w in msg_lower for w in ["tomato", "टमाटर", "टोमॅटो"]):
         return kb["tomato_fertilizer"]
 
+    # 8. Rice / Paddy
     if any(w in msg_lower for w in ["paddy", "rice", "धान", "भात", "blast", "blight", "करपा", "झुलसा"]):
         return kb["paddy_blight"]
 
+    # 9. Wheat
     if any(w in msg_lower for w in ["wheat", "गेहूं", "गहू", "water", "irrigation", "सिंचाई", "पाणी"]):
         return kb["wheat_irrigation"]
 
-    if any(w in msg_lower for w in ["whitefl", "fly", "flies", "मक्खी", "माशी", "pest", "कीट", "कीड", "aphid"]):
+    # 10. Whiteflies & Sucking pests
+    if any(w in msg_lower for w in ["whitefl", "fly", "flies", "मक्खी", "माशी", "pest", "कीट", "कीड", "aphid", "कीटक"]):
         return kb["whiteflies_pest"]
 
-    if any(w in msg_lower for w in ["compost", "organic", "जैविक", "सेंद्रिय", "खाद", "खत तयार"]):
+    # 11. Compost & Organic
+    if any(w in msg_lower for w in ["compost", "organic", "जैविक", "सेंद्रिय", "खाद", "खत तयार", "vermicompost"]):
         return kb["organic_compost"]
 
-    # Fallback to general advice tailored with the user's topic
+    # 12. Fertilizer in general
+    if any(w in msg_lower for w in ["fertilizer", "khad", "खत", "उर्वरक", "npk", "urea", "युरिया", "यूरिया", "dap"]):
+        return kb["tomato_fertilizer"]
+
+    # Default general advice
     return kb["general_advice"]
 
 
@@ -488,12 +707,6 @@ def get_agriexpert_reply(message: str, history=None, context=None, custom_gemini
         if reply:
             return reply
 
-    # 4. Offline Agronomic Fallback — clearly labeled, never impersonates live LLM
-    # Use KB for relevant topic match, but prefix with an honest offline notice
-    offline_prefix = {
-        "mr": "\u26a0\ufe0f *AgriExpert सध्या ऑफलाइन मोडमध्ये आहे. खालील माहिती आमच्या स्थानिक कृषी विज्ञान बेसवरून दिली आहे.*\n\n",
-        "hi": "\u26a0\ufe0f *AgriExpert अभी ऑफलाइन मोड में चल रहा है. निम्नलिखित जानकारी हमारे स्थानीय कृषि विज्ञान डेटाबेस से दी जा रही है.*\n\n",
-        "en": "\u26a0\ufe0f *AgriExpert is currently in offline mode. The following is from our local agronomic knowledge base.*\n\n",
-    }
+    # 4. Built-in Agronomic Expert Engine (Natural response, no disruptive warning banners)
     fallback_text = get_agronomic_fallback_reply(msg_clean, language=lang)
-    return offline_prefix.get(lang, offline_prefix["en"]) + fallback_text
+    return fallback_text
