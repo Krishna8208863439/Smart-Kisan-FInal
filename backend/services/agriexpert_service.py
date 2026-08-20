@@ -519,11 +519,10 @@ def get_agronomic_fallback_reply(message: str, language: str = "en") -> str:
 #  AI PROVIDER CALLS (Gemini -> OpenAI -> Anthropic -> Fallback)
 # ─────────────────────────────────────────────────────────────────────────────
 def try_gemini_api(api_key: str, message: str, history: list, context_str: str) -> str:
-    """Sends chat request to Google Gemini API with proxy support."""
+    """Sends chat request to Google Gemini API with fallback across flash and pro models."""
     try:
         import requests
         headers = {"Content-Type": "application/json"}
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key.strip()}"
         
         contents = []
         # Add system context
@@ -533,7 +532,7 @@ def try_gemini_api(api_key: str, message: str, history: list, context_str: str) 
         })
         contents.append({
             "role": "model",
-            "parts": [{"text": "Understood. I am AgriExpert and will provide elite agricultural advice based on this context."}]
+            "parts": [{"text": "Understood. I am AgriExpert, your Smart Kisan AI Agricultural Advisor. I will provide accurate, actionable, and friendly agricultural guidance based on your questions and context."}]
         })
 
         # Add history
@@ -550,14 +549,23 @@ def try_gemini_api(api_key: str, message: str, history: list, context_str: str) 
         if IS_PYTHONANYWHERE:
             proxies = {"http": "http://proxy.server:3128", "https": "http://proxy.server:3128"}
 
-        res = requests.post(url, headers=headers, json={"contents": contents}, proxies=proxies, timeout=12)
-        if res.status_code == 200:
-            data = res.json()
-            candidates = data.get("candidates", [])
-            if candidates:
-                parts = candidates[0].get("content", {}).get("parts", [])
-                if parts:
-                    return parts[0].get("text", "").strip()
+        models = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.0-pro"]
+        for model in models:
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key.strip()}"
+                res = requests.post(url, headers=headers, json={"contents": contents}, proxies=proxies, timeout=12)
+                if res.status_code == 200:
+                    data = res.json()
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts:
+                            ans = parts[0].get("text", "").strip()
+                            if ans:
+                                return ans
+            except Exception as em:
+                print(f"[AgriExpert] Model {model} attempt failed: {em}")
+                continue
     except Exception as e:
         print(f"[AgriExpert] Gemini call failed: {e}")
     return ""
