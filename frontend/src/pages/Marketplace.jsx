@@ -245,27 +245,50 @@ const Marketplace = () => {
   };
 
   const fetchOrders = async () => {
-    if (!isLoggedIn) return;
     setOrdersLoading(true);
+    let allOrders = [];
+
     try {
       const res = await api.get("/payment/orders");
       const list = Array.isArray(res.data) ? res.data : (res.data?.orders || res.data?.data || []);
       if (list && list.length > 0) {
-        setOrders(list);
-        return;
+        allOrders = [...list];
       }
     } catch (err) {
       console.warn("Payment orders endpoint check:", err.message);
     }
+
     try {
       const res2 = await api.get("/marketplace/orders");
       const list2 = Array.isArray(res2.data) ? res2.data : (res2.data?.orders || res2.data?.data || []);
-      setOrders(list2);
+      if (list2 && list2.length > 0) {
+        allOrders = [...allOrders, ...list2];
+      }
     } catch (err2) {
-      console.error("Error fetching order history:", err2);
-    } finally {
-      setOrdersLoading(false);
+      console.warn("Marketplace orders endpoint check:", err2.message);
     }
+
+    // Merge with Local Storage Orders to guarantee zero data loss
+    try {
+      const localOrders = JSON.parse(localStorage.getItem("sk_kisan_orders") || "[]");
+      if (localOrders && localOrders.length > 0) {
+        allOrders = [...allOrders, ...localOrders];
+      }
+    } catch (storageErr) {
+      console.warn("Local storage orders read error:", storageErr);
+    }
+
+    // Deduplicate by orderId
+    const orderMap = new Map();
+    allOrders.forEach((o) => {
+      const id = o.orderId || o._id || o.id;
+      if (id && !orderMap.has(id)) {
+        orderMap.set(id, o);
+      }
+    });
+
+    setOrders(Array.from(orderMap.values()));
+    setOrdersLoading(false);
   };
 
   useEffect(() => {

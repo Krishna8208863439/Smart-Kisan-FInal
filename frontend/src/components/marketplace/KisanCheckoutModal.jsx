@@ -315,6 +315,15 @@ const KisanCheckoutModal = ({
         setStep("success");
         onClearCart();
 
+        // Persist Order in LocalStorage History
+        try {
+          const existingOrders = JSON.parse(localStorage.getItem("sk_kisan_orders") || "[]");
+          const updatedOrders = [data.order, ...existingOrders.filter((o) => (o.orderId || o._id) !== (data.order.orderId || data.order._id))];
+          localStorage.setItem("sk_kisan_orders", JSON.stringify(updatedOrders));
+        } catch (storageErr) {
+          console.warn("Could not save order to local storage:", storageErr);
+        }
+
         // Record in Activity History
         addHistoryEntry({
           type: "marketplace",
@@ -1219,83 +1228,124 @@ const KisanCheckoutModal = ({
                   />
                 </div>
 
-                {/* QR Code Container matching user UI */}
+                {/* Google Pay Verified Merchant Card matching Krishna Devadkar screenshot */}
                 <div
                   style={{
-                    backgroundColor: "#ffffff",
-                    borderRadius: "14px",
-                    padding: "16px",
+                    backgroundColor: "#f1f5f9",
+                    borderRadius: "20px",
+                    padding: "20px 16px",
                     textAlign: "center",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
-                    gap: "10px",
+                    gap: "14px",
                     color: "#0f172a"
                   }}
                 >
-                  <span style={{ fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>
-                    OR Scan BHIM UPI QR Code
-                  </span>
-
-                  {/* Dynamic QR Code with exact amount embedded */}
-                  <div
-                    style={{
-                      position: "relative",
-                      width: "190px",
-                      height: "190px",
-                      borderRadius: "12px",
-                      border: "2px solid #cbd5e1",
-                      padding: "6px",
-                      backgroundColor: "#ffffff",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center"
-                    }}
-                  >
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=6&data=${encodeURIComponent(`upi://pay?pa=smartkisan@icici&pn=Smart%20Kisan%20AI%20Bazaar&am=${grandTotal}&cu=INR&tn=Kisan%20Order%20Payment`)}`}
-                      alt={`UPI QR Code for ₹${grandTotal}`}
-                      style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: "8px" }}
-                    />
-                    {/* Center GPay Logo Badge */}
+                  {/* Top Merchant Profile Header */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", justifyContent: "center" }}>
                     <div
                       style={{
-                        position: "absolute",
-                        top: "50%",
-                        left: "50%",
-                        transform: "translate(-50%, -50%)",
-                        backgroundColor: "#ffffff",
+                        width: "42px",
+                        height: "42px",
                         borderRadius: "50%",
-                        width: "36px",
-                        height: "36px",
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+                        backgroundColor: "#00796b",
+                        color: "#ffffff",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        border: "2px solid #ffffff"
+                        fontSize: "20px",
+                        fontWeight: "700",
+                        boxShadow: "0 2px 8px rgba(0, 121, 107, 0.3)"
                       }}
                     >
-                      <svg width="22" height="22" viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
-                        <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.29 21.41 7.37 24 12 24z"/>
-                        <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.58H1.26C.46 8.16 0 9.94 0 12c0 2.06.46 3.84 1.26 5.42l4.02-3.15z"/>
-                        <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.37 0 3.29 2.59 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-                      </svg>
+                      K
+                    </div>
+                    <div style={{ textAlign: "left" }}>
+                      <strong style={{ fontSize: "18px", color: "#1e293b", display: "block", letterSpacing: "-0.2px" }}>
+                        Krishna Devadkar
+                      </strong>
                     </div>
                   </div>
 
-                  <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>
-                    Universal Dynamic QR Code generated securely
+                  {/* White QR Card Container */}
+                  <div
+                    style={{
+                      backgroundColor: "#ffffff",
+                      borderRadius: "22px",
+                      padding: "16px 20px 14px 20px",
+                      boxShadow: "0 8px 24px rgba(0, 0, 0, 0.08)",
+                      border: "1px solid #e2e8f0",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "10px",
+                      width: "100%",
+                      maxWidth: "280px",
+                      boxSizing: "border-box"
+                    }}
+                  >
+                    <div
+                      style={{
+                        position: "relative",
+                        width: "210px",
+                        height: "210px",
+                        borderRadius: "14px",
+                        padding: "6px",
+                        backgroundColor: "#ffffff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center"
+                      }}
+                    >
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=4&data=${encodeURIComponent(`upi://pay?pa=krishnadevadkar@okaxis&pn=Krishna%20Devadkar&am=${grandTotal}&cu=INR&tn=Kisan%20Bazaar%20Order`)}`}
+                        alt="Krishna Devadkar Google Pay QR Code"
+                        style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: "8px" }}
+                      />
+                      {/* Center GPay Logo Badge */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "50%",
+                          left: "50%",
+                          transform: "translate(-50%, -50%)",
+                          backgroundColor: "#ffffff",
+                          borderRadius: "50%",
+                          width: "38px",
+                          height: "38px",
+                          boxShadow: "0 3px 10px rgba(0,0,0,0.22)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          border: "2px solid #ffffff"
+                        }}
+                      >
+                        <svg width="22" height="22" viewBox="0 0 24 24">
+                          <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                          <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.29 21.41 7.37 24 12 24z"/>
+                          <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.58H1.26C.46 8.16 0 9.94 0 12c0 2.06.46 3.84 1.26 5.42l4.02-3.15z"/>
+                          <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.37 0 3.29 2.59 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                        </svg>
+                      </div>
+                    </div>
+
+                    <span style={{ fontSize: "13px", fontWeight: "700", color: "#334155" }}>
+                      UPI ID: krishnadevadkar@okaxis
+                    </span>
+                  </div>
+
+                  <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>
+                    Scan to pay with any UPI app
                   </span>
 
-                  <div style={{ backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", padding: "6px 12px", borderRadius: "8px", fontSize: "12px", color: "#166534", fontWeight: "700" }}>
+                  <div style={{ backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", padding: "6px 14px", borderRadius: "8px", fontSize: "12px", color: "#166534", fontWeight: "700" }}>
                     Amount: ₹{grandTotal.toLocaleString("en-IN")} (Automatically filled upon scan)
                   </div>
 
                   {/* Mobile Deep Link */}
                   <a
-                    href={`upi://pay?pa=smartkisan@icici&pn=Smart%20Kisan%20AI%20Bazaar&am=${grandTotal}&cu=INR&tn=Kisan%20Order`}
+                    href={`upi://pay?pa=krishnadevadkar@okaxis&pn=Krishna%20Devadkar&am=${grandTotal}&cu=INR&tn=Kisan%20Bazaar%20Order`}
                     style={{
                       fontSize: "12px",
                       color: "#0284c7",
@@ -1304,7 +1354,7 @@ const KisanCheckoutModal = ({
                       marginTop: "2px"
                     }}
                   >
-                    📲 Tap to Pay ₹{grandTotal.toLocaleString("en-IN")} via PhonePe / GPay / Paytm
+                    📲 Tap to Pay ₹{grandTotal.toLocaleString("en-IN")} via Google Pay / PhonePe / Paytm
                   </a>
                 </div>
               </div>
