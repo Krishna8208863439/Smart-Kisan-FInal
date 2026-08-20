@@ -227,6 +227,41 @@ const AITools = () => {
   const [fertK, setFertK] = useState(25);
   const [fertArea, setFertArea] = useState(1);
   const [fertResult, setFertResult] = useState(null);
+  // NPK auto-populate state
+  const [soilProfileBadge, setSoilProfileBadge] = useState(null); // { source, date, crop } | null
+  const [soilProfileLoading, setSoilProfileLoading] = useState(false);
+
+  // Auto-populate N/P/K from saved soil profile when user opens the NPK tab
+  useEffect(() => {
+    if (activeTab !== "Fertilizer / NPK") return;
+    if (!isLoggedIn) {
+      setSoilProfileBadge({ source: "none" });
+      return;
+    }
+    setSoilProfileLoading(true);
+    setSoilProfileBadge(null);
+    const userId = (() => {
+      try { return JSON.parse(atob((localStorage.getItem("sk_token") || "").split(".")[1] || "{}"))?.id || ""; }
+      catch { return ""; }
+    })();
+    api.get(`${PY_API_BASE}/soil-profile`, { headers: userId ? { "x-user-id": String(userId) } : {} })
+      .then(res => {
+        if (res.data?.success && res.data?.data) {
+          const { n, p, k, soilType, crop, savedAt } = res.data.data;
+          if (n != null) setFertN(n);
+          if (p != null) setFertP(p);
+          if (k != null) setFertK(k);
+          if (soilType) setFertSoil(soilType.toLowerCase());
+          const dateLabel = savedAt ? new Date(savedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "previously";
+          setSoilProfileBadge({ source: "saved", date: dateLabel, crop: crop || "last advisory" });
+        } else {
+          setSoilProfileBadge({ source: "none" });
+        }
+      })
+      .catch(() => setSoilProfileBadge({ source: "none" }))
+      .finally(() => setSoilProfileLoading(false));
+  }, [activeTab, isLoggedIn]);
+
 
   // State: Smart Calendar
   const [calCrop, setCalCrop] = useState("Tomato");
@@ -1070,6 +1105,31 @@ const AITools = () => {
                 </div>
 
                 {/* N-P-K Sliders */}
+                {/* Soil Profile Auto-Populate Badge */}
+                <div style={{ marginBottom: 12 }}>
+                  {soilProfileLoading ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-muted)", padding: "8px 12px", background: "var(--bg-main)", borderRadius: 8 }}>
+                      <span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⏳</span>
+                      {language === 'mr' ? 'माती प्रोफाइल लोड होत आहे...' : 'Loading saved soil profile...'}
+                    </div>
+                  ) : soilProfileBadge?.source === "saved" ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, padding: "8px 14px", borderRadius: 10, background: "#ecfdf5", border: "1.5px solid #10b981", color: "#065f46", fontWeight: 600 }}>
+                      <span>🧪</span>
+                      <span>
+                        {language === 'mr'
+                          ? `जतन केलेल्या माती चाचणीतून ({soilProfileBadge.date}) — {soilProfileBadge.crop}`
+                          : `From saved soil test (${soilProfileBadge.date}) — ${soilProfileBadge.crop}`}
+                      </span>
+                      <span style={{ marginLeft: "auto", fontWeight: 400, opacity: 0.75, fontSize: 11 }}>Sliders pre-filled ✓</span>
+                    </div>
+                  ) : soilProfileBadge?.source === "none" ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, padding: "8px 14px", borderRadius: 10, background: "var(--bg-main)", border: "1px solid var(--border-color)", color: "var(--text-muted)" }}>
+                      <span>📋</span>
+                      <span>{language === 'mr' ? 'जतन केलेला माती डेटा नाही — स्वतः मूल्ये टाका' : 'No saved soil data — enter values manually below'}</span>
+                    </div>
+                  ) : null}
+                </div>
+
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <label style={{ fontWeight: 600, fontSize: 13 }}>Nitrogen (N): <strong>{fertN} kg/ha</strong></label>

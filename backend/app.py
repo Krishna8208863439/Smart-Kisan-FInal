@@ -446,28 +446,67 @@ def get_wmo(code):
 @app.route("/api/weather/forecast", methods=["GET"])
 @app.route("/api/weather/kolhapur", methods=["GET"])
 def get_weather():
-    lat = request.args.get("lat", default="16.7050", type=str)
-    lon = request.args.get("lon", default="74.2433", type=str)
-    location_name = request.args.get("location") or request.args.get("city") or "Kolhapur, Maharashtra"
+    import requests as _req
+    from datetime import datetime as _dt
+
+    lat_param = request.args.get("lat", type=str)
+    lon_param = request.args.get("lon", type=str)
+    location_name = request.args.get("location") or request.args.get("city") or ""
+    proxies = {"http": "http://proxy.server:3128", "https": "http://proxy.server:3128"} if IS_PYTHONANYWHERE else None
+    now_iso = _dt.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    # Resolve lat/lon from city name via Nominatim (free, no API key required)
+    resolved_lat = float(lat_param) if lat_param else None
+    resolved_lon = float(lon_param) if lon_param else None
+
+    if (resolved_lat is None or resolved_lon is None) and location_name:
+        try:
+            geo_url = f"https://nominatim.openstreetmap.org/search?q={location_name}&format=json&limit=1"
+            geo_res = _req.get(geo_url, headers={"User-Agent": "SmartKisan/1.0"}, timeout=5, proxies=proxies)
+            if geo_res.status_code == 200:
+                geo_data = geo_res.json()
+                if geo_data:
+                    resolved_lat = float(geo_data[0]["lat"])
+                    resolved_lon = float(geo_data[0]["lon"])
+        except Exception as geo_err:
+            app.logger.warning(f"Geocoding failed for '{location_name}': {geo_err}")
+
+    # Defaults (Kolhapur, Maharashtra)
+    if resolved_lat is None:
+        resolved_lat = 16.7050
+    if resolved_lon is None:
+        resolved_lon = 74.2433
+    if not location_name:
+        location_name = "Kolhapur, Maharashtra"
 
     try:
-        import requests
-        url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto"
-        proxies = {"http": "http://proxy.server:3128", "https": "http://proxy.server:3128"} if IS_PYTHONANYWHERE else None
-        res = requests.get(url, timeout=5, proxies=proxies)
+        url = (
+            f"https://api.open-meteo.com/v1/forecast"
+            f"?latitude={resolved_lat}&longitude={resolved_lon}"
+            f"&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,"
+            f"weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,uv_index,is_day"
+            f"&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,"
+            f"precipitation_sum,wind_speed_10m_max,uv_index_max"
+            f"&timezone=auto"
+        )
+        res = _req.get(url, timeout=8, proxies=proxies)
         if res.status_code == 200:
             data = res.json()
             curr = data.get("current", {})
             code = curr.get("weather_code", 0)
             cond = get_wmo(code)
-            
+            is_day = bool(curr.get("is_day", 1))
+
             daily = data.get("daily", {})
             forecast_list = []
             dates = daily.get("time", [])
             max_temps = daily.get("temperature_2m_max", [])
             min_temps = daily.get("temperature_2m_min", [])
             w_codes = daily.get("weather_code", [])
-            precips = daily.get("precipitation_probability_max", [])
+            precip_prob = daily.get("precipitation_probability_max", [])
+            precip_sum = daily.get("precipitation_sum", [])
+            max_wind_d = daily.get("wind_speed_10m_max", [])
+            uv_daily = daily.get("uv_index_max", [])
 
             for i in range(min(7, len(dates))):
                 f_cond = get_wmo(w_codes[i] if i < len(w_codes) else 0)
@@ -477,51 +516,88 @@ def get_weather():
                     "minTemp": min_temps[i] if i < len(min_temps) else 20,
                     "condition": f_cond["label"],
                     "icon": f_cond["icon"],
-                    "precipitation": precips[i] if i < len(precips) else 0
+                    "rainChance": precip_prob[i] if i < len(precip_prob) and precip_prob[i] is not None else 0,
+                    "rainfall": round(float(precip_sum[i]), 1) if i < len(precip_sum) and precip_sum[i] is not None else 0,
+                    "maxWind": round(float(max_wind_d[i]), 1) if i < len(max_wind_d) and max_wind_d[i] is not None else 0,
+                    "uvIndex": round(float(uv_daily[i]), 1) if i < len(uv_daily) and uv_daily[i] is not None else 0,
                 })
+
+            # Server-side farming advice for today's conditions
+            rain_prob_today = precip_prob[0] if precip_prob else 0
+            uv_today = curr.get("uv_index") or (uv_daily[0] if uv_daily else 5)
+            temp_today = curr.get("temperature_2m", 28)
+            farming_advice = []
+            if rain_prob_today and rain_prob_today > 70:
+                farming_advice.append({"icon": "\ud83c\udf27\ufe0f", "type": "warning", "title": "Heavy Rain Expected",
+                    "text": f"{rain_prob_today}% rain chance today. Suspend irrigation and clear drainage channels."})
+            elif rain_prob_today is not None and rain_prob_today < 20:
+                farming_advice.append({"icon": "\ud83d\udca7", "type": "info", "title": "Good Day to Irrigate",
+                    "text": "Low rain probability. Irrigate in the early morning to minimize evaporation losses."})
+            if temp_today and temp_today > 38:
+                farming_advice.append({"icon": "\ud83d\udd25", "type": "danger", "title": "Heat Stress Alert",
+                    "text": f"Max {temp_today}\u00b0C. Apply mulching and irrigate in early morning or late evening."})
+            if uv_today and uv_today >= 8:
+                farming_advice.append({"icon": "\u2600\ufe0f", "type": "info", "title": "High UV Index",
+                    "text": f"UV Index {round(float(uv_today), 1)}. Field work recommended before 11 AM or after 4 PM."})
+            if not farming_advice:
+                farming_advice.append({"icon": "\ud83c\udf3e", "type": "success", "title": "Good Day for Farm Work",
+                    "text": "Weather conditions look favorable for general field activities."})
 
             return jsonify({
                 "success": True,
                 "location": location_name,
-                "lat": float(lat),
-                "lon": float(lon),
+                "lat": resolved_lat,
+                "lon": resolved_lon,
+                "lastUpdated": now_iso,
                 "current": {
                     "temperature": curr.get("temperature_2m", 28.5),
                     "feelsLike": curr.get("apparent_temperature", 29.0),
                     "humidity": curr.get("relative_humidity_2m", 65),
-                    "windSpeed": curr.get("wind_speed_10m", 12.0),
+                    "windSpeed": round(float(curr.get("wind_speed_10m") or 12.0), 1),
+                    "windDirection": curr.get("wind_direction_10m", 180),
+                    "pressure": round(float(curr.get("surface_pressure") or 1013.0), 1),
+                    "uvIndex": round(float(uv_today or 5), 1),
                     "condition": cond["label"],
                     "icon": cond["icon"],
-                    "precipitation": curr.get("precipitation", 0)
+                    "precipitation": curr.get("precipitation", 0),
+                    "isDay": is_day,
                 },
                 "forecast": forecast_list,
+                "farmingAdvice": farming_advice,
                 "advisory": "Weather is favorable for field operations and spraying during early morning hours."
             })
     except Exception as e:
         app.logger.warning(f"Live weather fallback: {e}")
 
-    # Fallback weather data
+    # Fallback weather data — all fields present so UI never renders 'undefined'
     return jsonify({
         "success": True,
         "location": location_name,
-        "lat": float(lat) if lat else 16.7050,
-        "lon": float(lon) if lon else 74.2433,
+        "lat": resolved_lat,
+        "lon": resolved_lon,
+        "lastUpdated": now_iso,
         "current": {
             "temperature": 28.5,
             "feelsLike": 29.0,
             "humidity": 65,
             "windSpeed": 11.5,
+            "windDirection": 180,
+            "pressure": 1013.0,
+            "uvIndex": 5,
             "condition": "Partly Cloudy",
-            "icon": "⛅",
-            "precipitation": 0
+            "icon": "\u26c5",
+            "precipitation": 0,
+            "isDay": True,
         },
         "forecast": [
-            {"date": "Day 1", "maxTemp": 31, "minTemp": 21, "condition": "Partly Cloudy", "icon": "⛅", "precipitation": 10},
-            {"date": "Day 2", "maxTemp": 32, "minTemp": 22, "condition": "Mainly Clear", "icon": "🌤️", "precipitation": 5},
-            {"date": "Day 3", "maxTemp": 30, "minTemp": 21, "condition": "Light Rain", "icon": "🌦️", "precipitation": 40},
-            {"date": "Day 4", "maxTemp": 29, "minTemp": 20, "condition": "Overcast", "icon": "☁️", "precipitation": 30},
-            {"date": "Day 5", "maxTemp": 31, "minTemp": 21, "condition": "Clear Sky", "icon": "☀️", "precipitation": 0}
+            {"date": "Day 1", "maxTemp": 31, "minTemp": 21, "condition": "Partly Cloudy", "icon": "\u26c5", "rainChance": 10, "rainfall": 0, "maxWind": 15, "uvIndex": 5},
+            {"date": "Day 2", "maxTemp": 32, "minTemp": 22, "condition": "Mainly Clear", "icon": "\ud83c\udf24\ufe0f", "rainChance": 5, "rainfall": 0, "maxWind": 12, "uvIndex": 6},
+            {"date": "Day 3", "maxTemp": 30, "minTemp": 21, "condition": "Light Rain", "icon": "\ud83c\udf26\ufe0f", "rainChance": 40, "rainfall": 2.5, "maxWind": 18, "uvIndex": 3},
+            {"date": "Day 4", "maxTemp": 29, "minTemp": 20, "condition": "Overcast", "icon": "\u2601\ufe0f", "rainChance": 30, "rainfall": 1.0, "maxWind": 14, "uvIndex": 2},
+            {"date": "Day 5", "maxTemp": 31, "minTemp": 21, "condition": "Clear Sky", "icon": "\u2600\ufe0f", "rainChance": 0, "rainfall": 0, "maxWind": 10, "uvIndex": 7},
         ],
+        "farmingAdvice": [{"icon": "\ud83c\udf3e", "type": "success", "title": "Good Day for Farm Work",
+            "text": "Moderate humidity. Ensure optimum soil moisture for standing crops."}],
         "advisory": "Moderate humidity. Ensure optimum soil moisture for standing crops."
     })
 
@@ -1418,19 +1494,66 @@ def marketplace_product_by_id(prod_id):
     return jsonify({"success": True, "message": "Product updated"})
 
 @app.route("/api/marketplace/checkout", methods=["POST"])
+@app.route("/api/orders/create", methods=["POST"])
 def marketplace_checkout():
     data = request.get_json(silent=True) or {}
     order_id = "ord_" + str(int(time.time()))
+
+    # Server-side price recomputation from live listing data
+    cart_items = data.get("cartItems") or data.get("items") or []
+    server_total = 0.0
+    enriched_items = []
+    for item in cart_items:
+        prod_id = str(item.get("productId") or item.get("_id") or "")
+        qty = int(item.get("quantity") or 1)
+        matched = next((p for p in MEM_MARKETPLACE_PRODUCTS if str(p.get("_id")) == prod_id), None)
+        if matched:
+            price = float(matched.get("price") or 0)
+            line_total = price * qty
+            server_total += line_total
+            enriched_items.append({
+                "productId": prod_id,
+                "name": matched.get("name", "Item"),
+                "quantity": qty,
+                "unitPrice": price,
+                "lineTotal": line_total
+            })
+        else:
+            # Unknown product — use client price as fallback, flag it
+            client_price = float(item.get("price") or item.get("unitPrice") or 0)
+            server_total += client_price * qty
+            enriched_items.append({"productId": prod_id, "quantity": qty, "unitPrice": client_price, "lineTotal": client_price * qty, "_clientFallback": True})
+
+    # Log if client total doesn't match server-computed total
+    client_total = float(data.get("totalAmount") or 0)
+    if client_total and abs(client_total - server_total) > 1:
+        app.logger.warning(f"[Checkout] Total mismatch: client=₹{client_total}, server=₹{server_total:.2f} for order {order_id}")
+
+    delivery_address = data.get("deliveryAddress") or {}
+    payment_method = data.get("paymentMethod") or "UPI"
+
     order_record = {
         "_id": order_id,
-        "items": data.get("items", []),
-        "totalAmount": data.get("totalAmount", 0),
-        "paymentMethod": data.get("paymentMethod", "UPI"),
-        "status": "Confirmed",
+        "items": enriched_items,
+        "serverComputedTotal": round(server_total, 2),
+        "clientTotal": client_total,
+        "paymentMethod": payment_method,
+        "deliveryAddress": delivery_address,
+        "status": "confirmed",
         "createdAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     }
     MEM_ORDERS.insert(0, order_record)
-    return jsonify({"success": True, "orderId": order_id, "message": "Order placed successfully."})
+
+    return jsonify({
+        "success": True,
+        "orderId": order_id,
+        "totalAmount": round(server_total, 2),
+        "paymentMethod": payment_method,
+        "deliveryAddress": delivery_address,
+        "estimatedDelivery": "3-5 business days",
+        "message": f"Order {order_id} confirmed. Delivery to {delivery_address.get('city', 'your address')} in 3-5 business days."
+    })
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────

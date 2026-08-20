@@ -157,6 +157,14 @@ const Marketplace = () => {
    const [isCartOpen, setIsCartOpen] = useState(false);
   const [checkoutStatus, setCheckoutStatus] = useState(null);
   
+  // Delivery Address state (shown before payment modal)
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [deliveryAddress, setDeliveryAddress] = useState({
+    name: "", phone: "", addressLine1: "", addressLine2: "", city: "", state: "Maharashtra", pincode: ""
+  });
+  const [addressErrors, setAddressErrors] = useState({});
+  const [addressSaving, setAddressSaving] = useState(false);
+
   // BillDesk gateway states
   const [showBillDesk, setShowBillDesk] = useState(false);
   const [billDeskLoading, setBillDeskLoading] = useState(false);
@@ -359,12 +367,33 @@ const Marketplace = () => {
 
   const cartTotal = cartTotalBeforeDiscount - cartDiscount;
 
+  const validateAddress = () => {
+    const errs = {};
+    if (!deliveryAddress.name.trim()) errs.name = "Full name is required";
+    if (!/^[6-9]\d{9}$/.test(deliveryAddress.phone)) errs.phone = "Enter a valid 10-digit Indian mobile number";
+    if (!deliveryAddress.addressLine1.trim()) errs.addressLine1 = "Address line 1 is required";
+    if (!deliveryAddress.city.trim()) errs.city = "City is required";
+    if (!/^\d{6}$/.test(deliveryAddress.pincode)) errs.pincode = "Enter a valid 6-digit PIN code";
+    setAddressErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const handleCheckout = () => {
     if (!isLoggedIn) {
       alert("Please log in to complete your purchase.");
       window.location.href = "/login";
       return;
     }
+    // Step 1: Show address collection modal first
+    setShowAddressModal(true);
+    setAddressErrors({});
+  };
+
+  const handleAddressSubmit = (e) => {
+    e.preventDefault();
+    if (!validateAddress()) return;
+    // Address valid — close address modal and open payment modal
+    setShowAddressModal(false);
     setShowBillDesk(true);
     setPaymentStep(1);
     setPaymentOtp("");
@@ -372,14 +401,17 @@ const Marketplace = () => {
 
   const completeBillDeskPayment = async () => {
     setBillDeskLoading(true);
-    // Simulate loading for verification
+    // Simulate brief verification delay
     await new Promise((resolve) => setTimeout(resolve, 1500));
     try {
       const res = await api.post("/marketplace/checkout", {
-        cartItems: cart.map((i) => ({ productId: i.product._id, quantity: i.quantity }))
+        cartItems: cart.map((i) => ({ productId: i.product._id, quantity: i.quantity })),
+        deliveryAddress,
+        paymentMethod,
+        totalAmount: cartTotal,
       });
       setCheckoutStatus(res.data);
-      // Record checkout in Activity History
+      // Record checkout in Activity History only after server confirms
       const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
       const totalVal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
       addHistoryEntry({
@@ -391,9 +423,10 @@ const Marketplace = () => {
           orderId: res.data.orderId,
           items: totalItems,
           total: `₹${totalVal.toLocaleString("en-IN")}`,
+          deliveredTo: `${deliveryAddress.name}, ${deliveryAddress.city}`,
         },
       });
-      setCart([]); // Clear cart
+      setCart([]); // Clear cart only after server confirms order
       setShowBillDesk(false);
       fetchProducts();
       fetchOrders();
@@ -1659,6 +1692,159 @@ const Marketplace = () => {
               </button>
             </footer>
           )}
+        </div>
+      )}
+
+      {/* --- Delivery Address Modal --- */}
+      {showAddressModal && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.65)", zIndex: 1200, display: "flex", justifyContent: "center", alignItems: "center", padding: 16 }}>
+          <div style={{ background: "var(--bg-card)", borderRadius: 16, width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 60px rgba(0,0,0,0.4)" }}>
+            {/* Modal Header */}
+            <div style={{ background: "linear-gradient(135deg, #16a34a, #059669)", padding: "20px 24px", borderRadius: "16px 16px 0 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <h3 style={{ margin: 0, color: "#fff", fontSize: 18, fontWeight: 800 }}>📦 Delivery Address</h3>
+                <p style={{ margin: "4px 0 0", color: "rgba(255,255,255,0.8)", fontSize: 12 }}>
+                  Step 1 of 2 — Enter your delivery details
+                </p>
+              </div>
+              <button onClick={() => setShowAddressModal(false)} style={{ background: "rgba(255,255,255,0.2)", border: "none", borderRadius: 8, padding: "6px 12px", color: "#fff", cursor: "pointer", fontSize: 16 }}>✕</button>
+            </div>
+
+            {/* Progress Indicator */}
+            <div style={{ display: "flex", gap: 0 }}>
+              <div style={{ flex: 1, height: 4, background: "#16a34a" }} />
+              <div style={{ flex: 1, height: 4, background: "var(--border-color)" }} />
+            </div>
+
+            {/* Address Form */}
+            <form onSubmit={handleAddressSubmit} style={{ padding: 24, display: "flex", flexDirection: "column", gap: 14 }}>
+              {/* Full Name */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, display: "block", marginBottom: 4 }}>Full Name *</label>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="e.g. Suresh Patil"
+                  value={deliveryAddress.name}
+                  onChange={e => setDeliveryAddress(a => ({ ...a, name: e.target.value }))}
+                  style={{ borderColor: addressErrors.name ? "#ef4444" : undefined }}
+                />
+                {addressErrors.name && <span style={{ fontSize: 11, color: "#ef4444" }}>{addressErrors.name}</span>}
+              </div>
+
+              {/* Phone */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, display: "block", marginBottom: 4 }}>Mobile Number * (10-digit)</label>
+                <input
+                  type="tel"
+                  className="input"
+                  placeholder="e.g. 9876543210"
+                  maxLength={10}
+                  value={deliveryAddress.phone}
+                  onChange={e => setDeliveryAddress(a => ({ ...a, phone: e.target.value.replace(/\D/g, "") }))}
+                  style={{ borderColor: addressErrors.phone ? "#ef4444" : undefined }}
+                />
+                {addressErrors.phone && <span style={{ fontSize: 11, color: "#ef4444" }}>{addressErrors.phone}</span>}
+              </div>
+
+              {/* Address Line 1 */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, display: "block", marginBottom: 4 }}>Address Line 1 * (House No., Street)</label>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="e.g. Plot 12, Shivaji Nagar"
+                  value={deliveryAddress.addressLine1}
+                  onChange={e => setDeliveryAddress(a => ({ ...a, addressLine1: e.target.value }))}
+                  style={{ borderColor: addressErrors.addressLine1 ? "#ef4444" : undefined }}
+                />
+                {addressErrors.addressLine1 && <span style={{ fontSize: 11, color: "#ef4444" }}>{addressErrors.addressLine1}</span>}
+              </div>
+
+              {/* Address Line 2 */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, display: "block", marginBottom: 4 }}>Address Line 2 (Landmark / Village — optional)</label>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="e.g. Near Gram Panchayat"
+                  value={deliveryAddress.addressLine2}
+                  onChange={e => setDeliveryAddress(a => ({ ...a, addressLine2: e.target.value }))}
+                />
+              </div>
+
+              {/* City + State + Pincode */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, display: "block", marginBottom: 4 }}>City / Taluka *</label>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="e.g. Kolhapur"
+                    value={deliveryAddress.city}
+                    onChange={e => setDeliveryAddress(a => ({ ...a, city: e.target.value }))}
+                    style={{ borderColor: addressErrors.city ? "#ef4444" : undefined }}
+                  />
+                  {addressErrors.city && <span style={{ fontSize: 11, color: "#ef4444" }}>{addressErrors.city}</span>}
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, display: "block", marginBottom: 4 }}>PIN Code *</label>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="e.g. 416002"
+                    maxLength={6}
+                    value={deliveryAddress.pincode}
+                    onChange={e => setDeliveryAddress(a => ({ ...a, pincode: e.target.value.replace(/\D/g, "") }))}
+                    style={{ borderColor: addressErrors.pincode ? "#ef4444" : undefined }}
+                  />
+                  {addressErrors.pincode && <span style={{ fontSize: 11, color: "#ef4444" }}>{addressErrors.pincode}</span>}
+                </div>
+              </div>
+
+              {/* State */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, display: "block", marginBottom: 4 }}>State *</label>
+                <select className="input" value={deliveryAddress.state} onChange={e => setDeliveryAddress(a => ({ ...a, state: e.target.value }))}>
+                  {["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal"].map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Order Summary */}
+              <div style={{ background: "var(--bg-main)", borderRadius: 10, padding: "12px 16px", border: "1px solid var(--border-color)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+                  <span style={{ color: "var(--text-muted)" }}>Items ({cart.reduce((s, i) => s + i.quantity, 0)})</span>
+                  <span>₹{cartTotalBeforeDiscount.toLocaleString("en-IN")}</span>
+                </div>
+                {cartDiscount > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#16a34a", marginBottom: 4 }}>
+                    <span>Discount</span>
+                    <span>−₹{cartDiscount.toLocaleString("en-IN")}</span>
+                  </div>
+                )}
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 800, borderTop: "1px solid var(--border-color)", paddingTop: 8, marginTop: 4 }}>
+                  <span>Total Payable</span>
+                  <span style={{ color: "#16a34a" }}>₹{cartTotal.toLocaleString("en-IN")}</span>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                style={{ background: "linear-gradient(135deg, #16a34a, #059669)", color: "#fff", border: "none", borderRadius: 12, padding: "14px 24px", fontWeight: 800, fontSize: 15, cursor: "pointer", letterSpacing: 0.3 }}
+              >
+                Continue to Payment →
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowAddressModal(false)}
+                style={{ background: "transparent", border: "1px solid var(--border-color)", borderRadius: 10, padding: "10px 24px", fontWeight: 600, fontSize: 13, cursor: "pointer", color: "var(--text-muted)" }}
+              >
+                ← Cancel
+              </button>
+            </form>
+          </div>
         </div>
       )}
 

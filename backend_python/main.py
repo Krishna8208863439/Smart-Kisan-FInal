@@ -931,6 +931,54 @@ def geocode_region(city_name: str) -> dict:
         print("[Geocode Error] Failed to resolve region coords:", e)
     return None
 
+
+# --- Soil Profile Endpoint (for NPK Auto-Population) ---
+@app.get("/api/soil-profile")
+async def get_soil_profile(
+    x_user_id: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Returns the most recent saved soil test / NPK values for a logged-in user.
+    The NPK Advisor uses this to auto-populate N/P/K sliders on load.
+    Returns 404 if no profile exists — frontend then shows manual entry mode.
+    """
+    if not x_user_id:
+        raise HTTPException(status_code=401, detail="User ID required to fetch soil profile.")
+    
+    try:
+        user_id_int = int(x_user_id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="Invalid user ID format.")
+
+    latest = (
+        db.query(CropLog)
+        .filter(CropLog.user_id == user_id_int)
+        .order_by(CropLog.created_at.desc())
+        .first()
+    )
+
+    if not latest:
+        raise HTTPException(
+            status_code=404,
+            detail="No saved soil profile found. Please run the Crop Advisory tool first, or enter values manually."
+        )
+
+    return {
+        "success": True,
+        "data": {
+            "n": latest.n_level,
+            "p": latest.p_level,
+            "k": latest.k_level,
+            "soilType": latest.soil_type,
+            "crop": latest.crop_name,
+            "region": latest.region,
+            "savedAt": latest.created_at.isoformat() if latest.created_at else None,
+        },
+        "source": "saved_soil_profile"
+    }
+
+
 @app.post("/api/advisory")
 async def generate_crop_advisory(
     soil_type: str = Form(...),

@@ -235,11 +235,17 @@ const Weather = () => {
             Real-time weather data + 7-day forecast for smart farming decisions
           </p>
         </div>
-        {data && (
-          <div className="weather-last-updated">
-            🔄 Updated: {new Date(data.lastUpdated).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-          </div>
-        )}
+        {data && (() => {
+            const ts = data.lastUpdated ? new Date(data.lastUpdated) : null;
+            const isValid = ts && !isNaN(ts.getTime());
+            return (
+              <div className="weather-last-updated">
+                🔄 Updated: {isValid
+                  ? ts.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+                  : new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+              </div>
+            );
+          })()}
       </div>
 
       {/* Search Bar */}
@@ -328,13 +334,13 @@ const Weather = () => {
             {/* Stats Grid */}
             <div className="weather-stats-grid">
               {[
-                { icon: "💧", label: "Humidity", value: `${curr.humidity}%` },
-                { icon: "💨", label: "Wind", value: `${curr.windSpeed} km/h ${windDirLabel(curr.windDirection)}` },
-                { icon: "🌡️", label: "Pressure", value: `${curr.pressure} hPa` },
-                { icon: "☀️", label: "UV Index", value: `${curr.uvIndex} (${uvLabel(curr.uvIndex).label})`, valueColor: uvLabel(curr.uvIndex).color },
-                { icon: "🌧️", label: "Precipitation", value: `${curr.precipitation} mm` },
-                { icon: curr.isDay ? "🌞" : "🌙", label: "Day/Night", value: curr.isDay ? "Daytime" : "Nighttime" },
-              ].map((stat, i) => (
+                { icon: "💧", label: "Humidity", value: curr.humidity != null ? `${curr.humidity}%` : null },
+                { icon: "💨", label: "Wind", value: curr.windSpeed != null ? `${curr.windSpeed} km/h ${curr.windDirection != null ? windDirLabel(curr.windDirection) : ""}`.trim() : null },
+                { icon: "🌡️", label: "Pressure", value: curr.pressure != null ? `${curr.pressure} hPa` : null },
+                { icon: "☀️", label: "UV Index", value: curr.uvIndex != null ? `${curr.uvIndex} (${uvLabel(curr.uvIndex).label})` : null, valueColor: curr.uvIndex != null ? uvLabel(curr.uvIndex).color : undefined },
+                { icon: "🌧️", label: "Precipitation", value: curr.precipitation != null ? `${curr.precipitation} mm` : null },
+                { icon: curr.isDay ? "🌞" : "🌙", label: "Day/Night", value: curr.isDay != null ? (curr.isDay ? "Daytime" : "Nighttime") : null },
+              ].filter(stat => stat.value != null).map((stat, i) => (
                 <div key={i} className="weather-stat-box">
                   <span className="weather-stat-icon">{stat.icon}</span>
                   <div className="weather-stat-label">{stat.label}</div>

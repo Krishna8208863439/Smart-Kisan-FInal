@@ -25,19 +25,24 @@ CONTEXT YOU RECEIVE PER REQUEST (may be partial):
 - Live weather (temperature, conditions)
 - Selected water source (borewell, canal, rain-fed, drip, etc.)
 - Preferred language (English, Marathi, or Hindi)
+- Domain knowledge examples (agronomic reference data)
 
 WHAT YOU HELP WITH:
-1. Crop advisory — sowing timing, spacing, fertilizer recommendations, pest/disease identification and treatment.
+1. Crop advisory — sowing timing, spacing, fertilizer recommendations with SPECIFIC dosage (kg/ha or g/L), pest/disease identification and treatment.
 2. Marketplace guidance — crop listing, evaluating organic seed/fertilizer options.
 3. Weekly sowing calendars and milestones tailored to season and region.
 4. Smart irrigation schedules based on crop type, soil, and water availability.
 5. Soil health, weather-linked actions, storage tips, and government schemes.
 
 STRICT RULES:
-- Answer the farmer's SPECIFIC question about their SPECIFIC crop or situation.
+- ALWAYS answer the farmer's SPECIFIC question about their SPECIFIC crop or situation — never give a vague generic reply.
+- ALWAYS provide specific dosages, timings, product names, and rates wherever relevant (e.g. "Urea @ 45 kg/acre", "Spray Mancozeb 2.5 g/L every 10 days").
+- If the question mentions a specific crop, give advice ONLY for that crop — do not drift to other crops.
 - Use numbered steps or bullet points for readability.
 - If preferred language is Marathi, respond in natural Marathi. If Hindi, respond in Hindi. Otherwise English.
-- Always provide actionable, safe, and scientifically accurate agricultural guidance."""
+- NEVER fabricate specific local mandi prices or soil test numbers you don't have — give general guidance and ask the farmer to verify locally.
+- If the farmer's question is not agriculture-related, politely decline and redirect to farming topics.
+- Always provide actionable, safe, and scientifically accurate agricultural guidance based on ICAR / state agriculture department best practices."""
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  AGRONOMIC EXPERT KNOWLEDGE BASE FALLBACK (En, Mr, Hi)
@@ -443,10 +448,24 @@ def get_agriexpert_reply(message: str, history=None, context=None, custom_gemini
             lang = "en"
 
     location = context.get("location") or "Maharashtra, India"
-    weather = context.get("weather") or "Weather Synced"
+    weather = context.get("weather") or "Not Available"
     water = context.get("waterSource") or "Not Specified"
 
-    context_str = f"[Live Context]\nLocation: {location}\nWeather: {weather}\nWater Source: {water}\nLanguage: {lang}"
+    # Build KB domain examples to inject as grounding context for the LLM
+    lang_key = "mr" if lang == "mr" else ("hi" if lang == "hi" else "en")
+    kb = AGRI_KNOWLEDGE_BASE.get(lang_key, AGRI_KNOWLEDGE_BASE["en"])
+    kb_examples = "\n\n".join([
+        f"[AgriExpert Reference: {k}]\n{v}" for k, v in list(kb.items())[:3]
+    ])
+
+    context_str = (
+        f"[Live Context]\n"
+        f"Location: {location}\n"
+        f"Weather: {weather}\n"
+        f"Water Source: {water}\n"
+        f"Language: {lang}\n\n"
+        f"[Agronomic Domain Reference Examples (use as grounding, not verbatim copy)]:\n{kb_examples}"
+    )
 
     # 1. Try Gemini Key (from request header or env)
     gemini_key = (custom_gemini_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
@@ -469,5 +488,12 @@ def get_agriexpert_reply(message: str, history=None, context=None, custom_gemini
         if reply:
             return reply
 
-    # 4. Reliable Agronomic Expert Fallback (Guarantees NO 502 error)
-    return get_agronomic_fallback_reply(msg_clean, language=lang)
+    # 4. Offline Agronomic Fallback — clearly labeled, never impersonates live LLM
+    # Use KB for relevant topic match, but prefix with an honest offline notice
+    offline_prefix = {
+        "mr": "\u26a0\ufe0f *AgriExpert सध्या ऑफलाइन मोडमध्ये आहे. खालील माहिती आमच्या स्थानिक कृषी विज्ञान बेसवरून दिली आहे.*\n\n",
+        "hi": "\u26a0\ufe0f *AgriExpert अभी ऑफलाइन मोड में चल रहा है. निम्नलिखित जानकारी हमारे स्थानीय कृषि विज्ञान डेटाबेस से दी जा रही है.*\n\n",
+        "en": "\u26a0\ufe0f *AgriExpert is currently in offline mode. The following is from our local agronomic knowledge base.*\n\n",
+    }
+    fallback_text = get_agronomic_fallback_reply(msg_clean, language=lang)
+    return offline_prefix.get(lang, offline_prefix["en"]) + fallback_text

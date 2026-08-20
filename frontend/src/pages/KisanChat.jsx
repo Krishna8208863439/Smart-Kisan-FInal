@@ -54,14 +54,6 @@ const UI_TRANSLATIONS = {
     sidebarTitle: "AgriExpert Advisor",
     sidebarDesc: "Elite agronomic assistant, dual-sided marketplace facilitator, and water manager.",
     langPickerLabel: "Change Language",
-    gpsStatus: "GPS Position Linked",
-    weatherSync: "Weather Synced",
-    waterSource: "Water Availability",
-    waterPlaceholder: "Select your water source...",
-    rainfed: "Rainfed (Rain)",
-    borewell: "Borewell",
-    canal: "Canal System",
-    drip: "Drip Irrigation",
     keyConfig: "Gemini Key Config",
     assistantMode: "Farming Focus Mode",
     modeAdvisory: "Advisory & Chat",
@@ -83,14 +75,6 @@ const UI_TRANSLATIONS = {
     sidebarTitle: "एग्रीएक्सपर्ट एआई सलाहकार",
     sidebarDesc: "कुलीन कृषि विज्ञान विशेषज्ञ, दोतरफा बाजार और जल प्रबंधन सहायक।",
     langPickerLabel: "भाषा बदलें",
-    gpsStatus: "जीपीएस स्थान कनेक्टेड",
-    weatherSync: "मौसम डेटा सिंक है",
-    waterSource: "पानी की उपलब्धता",
-    waterPlaceholder: "पानी का स्रोत चुनें...",
-    rainfed: "वर्षा आधारित (बारिश)",
-    borewell: "बोरवेल/ट्यूबवेल",
-    canal: "नहर प्रणाली",
-    drip: "ड्रिप सिंचाई",
     keyConfig: "जेमिनी कुंजी विन्यास",
     assistantMode: "कृषि फोकस मोड",
     modeAdvisory: "सलाहकार और चैट",
@@ -112,14 +96,6 @@ const UI_TRANSLATIONS = {
     sidebarTitle: "ॲग्रीएक्सपर्ट सल्लागार",
     sidebarDesc: "तज्ज्ञ कृषी सल्लागार, शेतमाल खरेदी-विक्री व्यवस्थापक आणि पाणी व्यवस्थापन मार्गदर्शक.",
     langPickerLabel: "भाषा बदला",
-    gpsStatus: "जीपीएस स्थान जोडले",
-    weatherSync: "हवामान डेटा सिंक केला",
-    waterSource: "पाण्याची उपलब्धता",
-    waterPlaceholder: "पाण्याचा स्रोत निवडा...",
-    rainfed: "पावसावर आधारित (जिरायती)",
-    borewell: "बोअरवेल / विहीर",
-    canal: "कालवा प्रणाली",
-    drip: "ठिबक सिंचन",
     keyConfig: "जेमिनी की कॉन्फिगरेशन",
     assistantMode: "शेती मुख्य उद्देश",
     modeAdvisory: "सल्लागार आणि गप्पा",
@@ -158,10 +134,9 @@ const KisanChat = () => {
   const [customKey, setCustomKey] = useState(localStorage.getItem("sk_gemini_key") || "");
   const [showKeyConfig, setShowKeyConfig] = useState(false);
 
-  // Advanced metadata states
+  // Advanced metadata states (GPS + weather enrich the LLM chat context)
   const [gps, setGps] = useState(null);
   const [weather, setWeather] = useState(null);
-  const [waterAvailability, setWaterAvailability] = useState("");
   const [activeMode, setActiveMode] = useState("advisory"); // advisory, diagnostics, marketplace
   const [cropHint, setCropHint] = useState("");
 
@@ -400,7 +375,6 @@ const KisanChat = () => {
         context: {
           location: gps ? `Lat ${gps.lat}, Lon ${gps.lon}` : undefined,
           weather: weatherSummary,
-          waterSource: waterAvailability || undefined,
           language: language === "mr" ? "Marathi" : language === "hi" ? "Hindi" : "English",
         },
         language: language === "mr" ? "mr" : language === "hi" ? "hi" : "en"
@@ -584,28 +558,6 @@ const KisanChat = () => {
           gap: 12px;
           animation: fadeIn 0.4s ease;
         }
-        .meta-badges-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-          gap: 8px;
-          margin-bottom: 16px;
-        }
-        .meta-badge {
-          background: var(--bg-card);
-          border: 1px solid var(--border-color);
-          padding: 8px 12px;
-          border-radius: 8px;
-          font-size: 11px;
-          color: var(--text-muted);
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-        .meta-badge-active {
-          border-color: #10b981;
-          background: #ecfdf5;
-          color: #065f46;
-        }
         .mode-selection-tabs {
           display: flex;
           gap: 8px;
@@ -655,43 +607,6 @@ const KisanChat = () => {
           <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>
             {ui.sidebarDesc}
           </p>
-
-          <hr style={{ borderColor: "var(--border-color)", margin: 0 }} />
-
-          {/* Sync Stats Badges */}
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, display: "block" }}>🛰️ Metadata Sync</label>
-            <div className="meta-badges-grid">
-              <div className={`meta-badge ${gps ? "meta-badge-active" : ""}`}>
-                <span>📍</span>
-                <span>{gps ? ui.gpsStatus : "GPS Pending..."}</span>
-              </div>
-              <div className={`meta-badge ${weather ? "meta-badge-active" : ""}`}>
-                <span>🌤️</span>
-                <span>{weather ? `${weather.temp}°C · ${ui.weatherSync}` : "Weather Pending..."}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Water Availability Input */}
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 700, marginBottom: 4, display: "block" }}>💧 {ui.waterSource}</label>
-            <select
-              className="input"
-              value={waterAvailability}
-              onChange={(e) => setWaterAvailability(e.target.value)}
-              style={{ padding: 8, fontSize: 12.5 }}
-            >
-              <option value="">{ui.waterPlaceholder}</option>
-              <option value="Rainfed">{ui.rainfed}</option>
-              <option value="Borewell">{ui.borewell}</option>
-              <option value="Canal">{ui.canal}</option>
-              <option value="Drip">{ui.drip}</option>
-            </select>
-          </div>
-
-
-
 
           {/* Settings / Configuration */}
           <div style={{ marginTop: "auto" }}>
